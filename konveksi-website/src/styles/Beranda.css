@@ -1,0 +1,142 @@
+body {
+  margin: 0;
+  padding: 0;
+}
+
+.category-image {
+  height: 300px;
+  object-fit: cover;
+}
+
+.card-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.card:hover .card-overlay {
+  opacity: 1;
+}
+
+.btn-light {
+  background: white;
+  border: none;
+  padding: 8px 16px;
+  margin: 0 5px;
+}
+
+.btn-light:hover {
+  background: #f8f9fa;
+}
+
+.hero-carousel {
+  margin: 0;
+  padding: 0;
+  position: relative;
+  top: -56px; /* Sesuaikan dengan tinggi navbar Anda */
+  z-index: -1;
+}
+
+.carousel {
+  margin: 0;
+  padding: 0;
+}
+
+.carousel-inner {
+  margin: 0;
+  padding: 0;
+}
+
+.carousel-nav-btn {
+  background: rgba(255, 255, 255, 0.8);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.carousel-nav-btn:hover {
+  background: rgba(255, 255, 255, 1);
+}
+
+.carousel-nav-btn.prev {
+  left: 20px;
+}
+
+.carousel-nav-btn.next {
+  right: 20px;
+}
+
+/* Styling untuk indikator */
+.carousel-indicators {
+  margin-bottom: 1rem;
+}
+
+.carousel-indicators button {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.5);
+  margin: 0 5px;
+}
+
+.carousel-indicators button.active {
+  background-color: white;
+}
+
+/* Styling untuk gambar carousel */
+.carousel-item img {
+  width: 100%;
+  height: 400px;
+  object-fit: cover;
+}
+
+/* Animasi transisi */
+.carousel-item {
+  transition: transform 0.6s ease-in-out;
+}
+
+/* Responsive styling */
+@media (max-width: 768px) {
+  .carousel-item img {
+    height: 300px;
+  }
+
+  .carousel-nav-btn {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+@media (max-width: 576px) {
+  .carousel-item img {
+    height: 250px;
+  }
+}
+
+/* Update style navbar jika diperlukan */
+.navbar {
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
+/* Sesuaikan margin untuk konten di bawah carousel */
+.category-section {
+  margin-top: -56px; /* Sesuaikan dengan tinggi navbar */
+  padding-top: 2rem;
+} 
