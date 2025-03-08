@@ -8,7 +8,7 @@ function NavigationBar() {
   const { cartCount } = useCart();
 
   return (
-    <Navbar bg="light" expand="lg" className="shadow-sm" style={{ zIndex: 1000 }}>
+    <Navbar bg="white" expand="lg" className="py-3">
       <Container>
         <Navbar.Brand as={Link} to="/">
           <img
@@ -23,31 +23,17 @@ function NavigationBar() {
           <Nav className="ms-auto">
             <Nav.Link as={Link} to="/">Home</Nav.Link>
             <NavDropdown title="Collection" id="collection-dropdown">
-              <NavDropdown.Item as={Link} to="/category/gamis">
-                GAMIS SERIES
-              </NavDropdown.Item>
-              <NavDropdown.Item as={Link} to="/category/tiama">
-                CLOTHES SERIES
-              </NavDropdown.Item>
-              <NavDropdown.Item as={Link} to="/category/akhwat">
-                KNITWARE
-              </NavDropdown.Item>
-              <NavDropdown.Item as={Link} to="/category/hijab">
-                HIJAB COLLECTION
-              </NavDropdown.Item>
             </NavDropdown>
-            <Nav.Link as={Link} to="/tentang">Tentang Kami</Nav.Link>
+            <Nav.Link as={Link} to="/custom-order">Custom Order</Nav.Link>
+            <Nav.Link as={Link} to="/contact">Contact Us</Nav.Link>
             <Nav.Link as={Link} to="/ulasan">Ulasan</Nav.Link>
-            <Nav.Link as={Link} to="/lokasi">Lokasi</Nav.Link>
             <Nav.Link as={Link} to="/akun">
               <i className="fas fa-user"></i>
             </Nav.Link>
-            <Nav.Link as={Link} to="/cart" className="position-relative">
-              <FaShoppingCart size={20} />
+            <Nav.Link as={Link} to="/cart">
+              <i className="fas fa-shopping-cart"></i>
               {cartCount > 0 && (
-                <span className="cart-badge">
-                  {cartCount}
-                </span>
+                <span className="cart-badge">{cartCount}</span>
               )}
             </Nav.Link>
           </Nav>

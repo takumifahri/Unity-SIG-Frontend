@@ -1,55 +1,31 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const CartContext = createContext();
 
 export function CartProvider({ children }) {
-  const [cartItems, setCartItems] = useState([]);
+  const [cartCount, setCartCount] = useState(0);
 
-  const addToCart = (product, selectedSize, selectedColor, quantity = 1) => {
-    setCartItems(prevItems => {
-      const existingItem = prevItems.find(
-        item => 
-          item.id === product.id && 
-          item.selectedSize === selectedSize && 
-          item.selectedColor === selectedColor
-      );
-
-      if (existingItem) {
-        return prevItems.map(item =>
-          item === existingItem
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        );
-      }
-
-      return [...prevItems, {
-        ...product,
-        selectedSize,
-        selectedColor,
-        quantity
-      }];
-    });
+  const updateCartCount = () => {
+    const cart = JSON.parse(localStorage.getItem('cart')) || [];
+    setCartCount(cart.length);
   };
 
-  const removeFromCart = (itemId, size, color) => {
-    setCartItems(prevItems => 
-      prevItems.filter(item => 
-        !(item.id === itemId && 
-          item.selectedSize === size && 
-          item.selectedColor === color)
-      )
-    );
-  };
-
-  const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
+  // Update cart count when component mounts
+  useEffect(() => {
+    updateCartCount();
+  }, []);
 
   return (
-    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, cartCount }}>
+    <CartContext.Provider value={{ cartCount, updateCartCount }}>
       {children}
     </CartContext.Provider>
   );
 }
 
 export function useCart() {
-  return useContext(CartContext);
+  const context = useContext(CartContext);
+  if (!context) {
+    throw new Error('useCart must be used within a CartProvider');
+  }
+  return context;
 } 

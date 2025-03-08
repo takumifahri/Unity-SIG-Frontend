@@ -139,4 +139,59 @@ body {
 .category-section {
   margin-top: -56px; /* Sesuaikan dengan tinggi navbar */
   padding-top: 2rem;
+}
+
+.product-card {
+  transition: all 0.3s ease;
+  border: none;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.category-image {
+  transition: all 0.3s ease;
+}
+
+.product-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.product-card:hover .product-overlay {
+  opacity: 1;
+}
+
+.btn-light {
+  background: white;
+  border: none;
+  padding: 8px 16px;
+  transition: all 0.3s ease;
+}
+
+.btn-light:hover {
+  background: #f8f9fa;
+  transform: scale(1.05);
+}
+
+.modal-content {
+  border: none;
+  border-radius: 10px;
+}
+
+.badge {
+  font-weight: normal;
+  padding: 6px 12px;
 } 

@@ -1,15 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Tab, Nav, Form, Button, Table, Alert } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 
 function Akun() {
   const navigate = useNavigate();
-  const [userInfo, setUserInfo] = useState({
-    nama: 'John Doe',
-    email: 'john@example.com',
-    telepon: '081234567890',
-    gender: 'Laki-laki'
+  
+  // Get user data from localStorage
+  const [userInfo, setUserInfo] = useState(() => {
+    const savedUser = localStorage.getItem('user');
+    return savedUser ? JSON.parse(savedUser) : {
+      nama: '',
+      email: '',
+      telepon: '',
+      gender: ''
+    };
   });
+
+  // Check if user is logged in
+  useEffect(() => {
+    const user = localStorage.getItem('user');
+    if (!user) {
+      navigate('/login');
+    }
+  }, [navigate]);
 
   const [passwords, setPasswords] = useState({
     currentPassword: '',
@@ -21,6 +34,25 @@ function Akun() {
   const [feedback, setFeedback] = useState({
     type: '',
     message: ''
+  });
+
+  // Tambahkan state baru untuk mode edit dan temporary data
+  const [isEditing, setIsEditing] = useState(false);
+  const [tempUserInfo, setTempUserInfo] = useState({...userInfo});
+
+  // Tambahkan state untuk validasi password
+  const [passwordValidation, setPasswordValidation] = useState({
+    length: false,
+    number: false,
+    uppercase: false,
+    lowercase: false
+  });
+
+  // Tambahkan state untuk visibility toggle
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false
   });
 
   // Contoh data pesanan (nanti bisa diambil dari API/database)
@@ -53,11 +85,19 @@ function Akun() {
     return re.test(phone);
   };
 
+  const handleEditToggle = () => {
+    if (isEditing) {
+      // Jika sedang dalam mode edit dan klik batal, kembalikan ke data asli
+      setTempUserInfo({...userInfo});
+    }
+    setIsEditing(!isEditing);
+  };
+
   const handleInfoUpdate = (e) => {
     e.preventDefault();
     
     // Validasi input
-    if (!userInfo.nama.trim()) {
+    if (!tempUserInfo.nama.trim()) {
       setFeedback({
         type: 'danger',
         message: 'Nama tidak boleh kosong'
@@ -65,7 +105,8 @@ function Akun() {
       return;
     }
 
-    if (!validateEmail(userInfo.email)) {
+    // Validasi email
+    if (!validateEmail(tempUserInfo.email)) {
       setFeedback({
         type: 'danger',
         message: 'Format email tidak valid'
@@ -73,7 +114,7 @@ function Akun() {
       return;
     }
 
-    if (!validatePhone(userInfo.telepon)) {
+    if (!validatePhone(tempUserInfo.telepon)) {
       setFeedback({
         type: 'danger',
         message: 'Format nomor telepon tidak valid'
@@ -81,26 +122,44 @@ function Akun() {
       return;
     }
 
-    // Implement update user info logic here
+    // Update userInfo dengan data temporary
+    setUserInfo({...tempUserInfo});
+    
+    // Update localStorage
+    localStorage.setItem('user', JSON.stringify(tempUserInfo));
+    
     setFeedback({
       type: 'success',
       message: 'Informasi akun berhasil diperbarui!'
     });
 
-    // Reset feedback after 3 seconds
+    // Nonaktifkan mode edit
+    setIsEditing(false);
+
     setTimeout(() => {
       setFeedback({ type: '', message: '' });
     }, 3000);
   };
 
+  const validatePasswordRules = (password) => {
+    setPasswordValidation({
+      length: password.length >= 8,
+      number: /[0-9]/.test(password),
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password)
+    });
+  };
+
   const handlePasswordChange = (e) => {
     e.preventDefault();
 
-    // Validasi password
-    if (passwords.newPassword.length < 8) {
+    // Validasi semua rules terpenuhi
+    const allRulesMet = Object.values(passwordValidation).every(rule => rule);
+    
+    if (!allRulesMet) {
       setFeedback({
         type: 'danger',
-        message: 'Password baru minimal 8 karakter'
+        message: 'Password harus memenuhi semua kriteria'
       });
       return;
     }
@@ -125,6 +184,12 @@ function Akun() {
       newPassword: '',
       confirmPassword: ''
     });
+    setPasswordValidation({
+      length: false,
+      number: false,
+      uppercase: false,
+      lowercase: false
+    });
 
     setTimeout(() => {
       setFeedback({ type: '', message: '' });
@@ -134,9 +199,8 @@ function Akun() {
   const handleLogout = () => {
     const confirmLogout = window.confirm('Apakah Anda yakin ingin keluar?');
     if (confirmLogout) {
-      // Implement logout logic here (clear session/token)
-      localStorage.removeItem('user'); // Contoh
-      navigate('/');
+      localStorage.removeItem('user');
+      navigate('/login');
     }
   };
 
@@ -190,7 +254,6 @@ function Akun() {
                           <th>Items</th>
                           <th>Total</th>
                           <th>Status</th>
-                          <th>Action</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -207,11 +270,6 @@ function Akun() {
                                 {order.status}
                               </span>
                             </td>
-                            <td>
-                              <Button variant="outline-primary" size="sm">
-                                Detail
-                              </Button>
-                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -220,7 +278,19 @@ function Akun() {
 
                   {/* Informasi Akun */}
                   <Tab.Pane eventKey="account">
-                    <h4 className="mb-4">Informasi Akun</h4>
+                    <div className="d-flex justify-content-between align-items-center mb-4">
+                      <h4 className="mb-0">Informasi Akun</h4>
+                      {!isEditing && (
+                        <Button 
+                          variant="outline-primary" 
+                          onClick={handleEditToggle}
+                        >
+                          <i className="fas fa-edit me-2"></i>
+                          Edit Informasi
+                        </Button>
+                      )}
+                    </div>
+                    
                     <Form onSubmit={handleInfoUpdate}>
                       <Row>
                         <Col md={6}>
@@ -228,8 +298,9 @@ function Akun() {
                             <Form.Label>Nama Lengkap</Form.Label>
                             <Form.Control
                               type="text"
-                              value={userInfo.nama}
-                              onChange={(e) => setUserInfo({...userInfo, nama: e.target.value})}
+                              value={isEditing ? tempUserInfo.nama : userInfo.nama}
+                              onChange={(e) => setTempUserInfo({...tempUserInfo, nama: e.target.value})}
+                              disabled={!isEditing}
                             />
                           </Form.Group>
                         </Col>
@@ -238,8 +309,9 @@ function Akun() {
                             <Form.Label>Email</Form.Label>
                             <Form.Control
                               type="email"
-                              value={userInfo.email}
-                              onChange={(e) => setUserInfo({...userInfo, email: e.target.value})}
+                              value={isEditing ? tempUserInfo.email : userInfo.email}
+                              onChange={(e) => setTempUserInfo({...tempUserInfo, email: e.target.value})}
+                              disabled={!isEditing}
                             />
                           </Form.Group>
                         </Col>
@@ -250,8 +322,9 @@ function Akun() {
                             <Form.Label>Nomor Telepon</Form.Label>
                             <Form.Control
                               type="tel"
-                              value={userInfo.telepon}
-                              onChange={(e) => setUserInfo({...userInfo, telepon: e.target.value})}
+                              value={isEditing ? tempUserInfo.telepon : userInfo.telepon}
+                              onChange={(e) => setTempUserInfo({...tempUserInfo, telepon: e.target.value})}
+                              disabled={!isEditing}
                             />
                           </Form.Group>
                         </Col>
@@ -259,8 +332,9 @@ function Akun() {
                           <Form.Group className="mb-3">
                             <Form.Label>Gender</Form.Label>
                             <Form.Select
-                              value={userInfo.gender}
-                              onChange={(e) => setUserInfo({...userInfo, gender: e.target.value})}
+                              value={isEditing ? tempUserInfo.gender : userInfo.gender}
+                              onChange={(e) => setTempUserInfo({...tempUserInfo, gender: e.target.value})}
+                              disabled={!isEditing}
                             >
                               <option value="Laki-laki">Laki-laki</option>
                               <option value="Perempuan">Perempuan</option>
@@ -268,50 +342,127 @@ function Akun() {
                           </Form.Group>
                         </Col>
                       </Row>
-                      <Button type="submit" variant="primary">
-                        Simpan Perubahan
-                      </Button>
+                      
+                      {isEditing && (
+                        <div className="d-flex gap-2">
+                          <Button type="submit" variant="primary">
+                            Simpan Perubahan
+                          </Button>
+                          <Button type="button" variant="secondary" onClick={handleEditToggle}>
+                            Batal
+                          </Button>
+                        </div>
+                      )}
                     </Form>
                   </Tab.Pane>
 
                   {/* Ubah Password */}
                   <Tab.Pane eventKey="password">
-                    <h4 className="mb-4">Ubah Password</h4>
-                    <Form onSubmit={handlePasswordChange}>
-                      <Form.Group className="mb-3">
-                        <Form.Label>Password Saat Ini</Form.Label>
-                        <Form.Control
-                          type="password"
-                          value={passwords.currentPassword}
-                          onChange={(e) => setPasswords({...passwords, currentPassword: e.target.value})}
-                          required
-                        />
-                      </Form.Group>
-                      <Form.Group className="mb-3">
-                        <Form.Label>Password Baru</Form.Label>
-                        <Form.Control
-                          type="password"
-                          value={passwords.newPassword}
-                          onChange={(e) => setPasswords({...passwords, newPassword: e.target.value})}
-                          required
-                          minLength={8}
-                        />
-                        <Form.Text className="text-muted">
-                          Password minimal 8 karakter
-                        </Form.Text>
-                      </Form.Group>
-                      <Form.Group className="mb-3">
-                        <Form.Label>Konfirmasi Password Baru</Form.Label>
-                        <Form.Control
-                          type="password"
-                          value={passwords.confirmPassword}
-                          onChange={(e) => setPasswords({...passwords, confirmPassword: e.target.value})}
-                          required
-                        />
-                      </Form.Group>
-                      <Button type="submit" variant="primary">
-                        Ubah Password
+                    <div className="d-flex justify-content-between align-items-center mb-4">
+                      <h4 className="mb-0">Change Password</h4>
+                      <Button 
+                        variant="link" 
+                        className="p-0 text-dark" 
+                        style={{ fontSize: '1.5rem' }}
+                        onClick={() => navigate(-1)}
+                      >
+                        ×
                       </Button>
+                    </div>
+                    <Form onSubmit={handlePasswordChange}>
+                      <Form.Group className="mb-3 position-relative">
+                        <Form.Label>Current Password*</Form.Label>
+                        <div className="position-relative">
+                          <Form.Control
+                            type={showPasswords.current ? "text" : "password"}
+                            value={passwords.currentPassword}
+                            onChange={(e) => setPasswords({...passwords, currentPassword: e.target.value})}
+                            required
+                          />
+                          <Button
+                            variant="link"
+                            className="position-absolute end-0 top-50 translate-middle-y"
+                            onClick={() => setShowPasswords({...showPasswords, current: !showPasswords.current})}
+                            style={{ zIndex: 10 }}
+                          >
+                            <i className={`far fa-eye${showPasswords.current ? '-slash' : ''}`}></i>
+                          </Button>
+                        </div>
+                      </Form.Group>
+
+                      <Form.Group className="mb-3 position-relative">
+                        <Form.Label>New Password*</Form.Label>
+                        <div className="position-relative">
+                          <Form.Control
+                            type={showPasswords.new ? "text" : "password"}
+                            value={passwords.newPassword}
+                            onChange={(e) => {
+                              setPasswords({...passwords, newPassword: e.target.value});
+                              validatePasswordRules(e.target.value);
+                            }}
+                            required
+                          />
+                          <Button
+                            variant="link"
+                            className="position-absolute end-0 top-50 translate-middle-y"
+                            onClick={() => setShowPasswords({...showPasswords, new: !showPasswords.new})}
+                            style={{ zIndex: 10 }}
+                          >
+                            <i className={`far fa-eye${showPasswords.new ? '-slash' : ''}`}></i>
+                          </Button>
+                        </div>
+                        <div className="mt-2">
+                          <div className={`small ${passwordValidation.length ? 'text-success' : 'text-muted'}`}>
+                            <i className={`fas fa-${passwordValidation.length ? 'check' : 'times'} me-2`}></i>
+                            More than 8 characters
+                          </div>
+                          <div className={`small ${passwordValidation.number ? 'text-success' : 'text-muted'}`}>
+                            <i className={`fas fa-${passwordValidation.number ? 'check' : 'times'} me-2`}></i>
+                            1 number
+                          </div>
+                          <div className={`small ${passwordValidation.uppercase ? 'text-success' : 'text-muted'}`}>
+                            <i className={`fas fa-${passwordValidation.uppercase ? 'check' : 'times'} me-2`}></i>
+                            1 uppercase
+                          </div>
+                          <div className={`small ${passwordValidation.lowercase ? 'text-success' : 'text-muted'}`}>
+                            <i className={`fas fa-${passwordValidation.lowercase ? 'check' : 'times'} me-2`}></i>
+                            1 lowercase
+                          </div>
+                        </div>
+                      </Form.Group>
+
+                      <Form.Group className="mb-4 position-relative">
+                        <Form.Label>Confirm new Password*</Form.Label>
+                        <div className="position-relative">
+                          <Form.Control
+                            type={showPasswords.confirm ? "text" : "password"}
+                            value={passwords.confirmPassword}
+                            onChange={(e) => setPasswords({...passwords, confirmPassword: e.target.value})}
+                            required
+                          />
+                          <Button
+                            variant="link"
+                            className="position-absolute end-0 top-50 translate-middle-y"
+                            onClick={() => setShowPasswords({...showPasswords, confirm: !showPasswords.confirm})}
+                            style={{ zIndex: 10 }}
+                          >
+                            <i className={`far fa-eye${showPasswords.confirm ? '-slash' : ''}`}></i>
+                          </Button>
+                        </div>
+                      </Form.Group>
+
+                      <div className="d-grid">
+                        <Button 
+                          type="submit" 
+                          variant="dark" 
+                          size="lg"
+                          disabled={!Object.values(passwordValidation).every(rule => rule) || 
+                                   !passwords.confirmPassword ||
+                                   passwords.newPassword !== passwords.confirmPassword}
+                        >
+                          CONFIRM NEW PASSWORD
+                        </Button>
+                      </div>
                     </Form>
                   </Tab.Pane>
                 </Tab.Content>

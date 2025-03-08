@@ -1,38 +1,70 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import NavigationBar from './components/Navbar';
-import Beranda from './pages/Beranda';
-import TentangKami from './pages/TentangKami';
-import Ulasan from './pages/Ulasan';
-import Lokasi from './pages/Lokasi';
+import { ReviewProvider } from './context/ReviewContext';
+import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import Home from './pages/Home';
+import ContactUs from './components/ContactUs';
 import CategoryPage from './pages/CategoryPage';
 import ProductDetail from './pages/ProductDetail';
 import { CartProvider } from './context/CartContext';
 import Cart from './pages/Cart';
+import Ulasan from './pages/Ulasan';
+import Checkout from './pages/Checkout';
+import Akun from './pages/Akun';
+import Login from './pages/Login';
+import CustomOrder from './pages/CustomOrder';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import './styles/Footer.css';
 
 function App() {
   return (
     <CartProvider>
-      <div className="d-flex flex-column min-vh-100">
+      <ReviewProvider>
         <Router>
-          <NavigationBar />
-          <main className="flex-grow-1">
-            <Routes>
-              <Route path="/" element={<Beranda />} />
-              <Route path="/tentang" element={<TentangKami />} />
+          <Routes>
+            {/* Route untuk Login tanpa Navbar dan Footer */}
+            <Route path="/login" element={<Login />} />
+
+            {/* Route lainnya dengan Layout (Navbar dan Footer) */}
+            <Route path="/" element={<Layout />}>
+              <Route index element={<Home />} />
+              <Route path="/akun" element={<Akun />} />
+              <Route path="/contact" element={<ContactUs />} />
               <Route path="/Collection" element={<CategoryPage />} />
-              <Route path="/ulasan" element={<Ulasan />} />
-              <Route path="/lokasi" element={<Lokasi />} />
               <Route path="/category/:categoryId" element={<CategoryPage />} />
               <Route path="/product/:productId" element={<ProductDetail />} />
               <Route path="/cart" element={<Cart />} />
-            </Routes>
-          </main>
+              <Route path="/ulasan" element={<Ulasan />} />
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/custom-order" element={<CustomOrder />} />
+            </Route>
+          </Routes>
         </Router>
-        <Footer />
-      </div>
+      </ReviewProvider>
     </CartProvider>
+  );
+}
+
+// Layout component dengan Navbar dan Footer
+function Layout() {
+  return (
+    <>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/akun" element={<Akun />} />
+        <Route path="/contact" element={<ContactUs />} />
+        <Route path="/Collection" element={<CategoryPage />} />
+        <Route path="/category/:categoryId" element={<CategoryPage />} />
+        <Route path="/product/:productId" element={<ProductDetail />} />
+        <Route path="/cart" element={<Cart />} />
+        <Route path="/ulasan" element={<Ulasan />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/custom-order" element={<CustomOrder />} />
+      </Routes>
+      <Footer />
+    </>
   );
 }
 

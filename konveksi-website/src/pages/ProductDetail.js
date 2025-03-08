@@ -5,11 +5,12 @@ import { useCart } from '../context/CartContext';
 
 function ProductDetail() {
   const { productId } = useParams();
-  const { addToCart } = useCart();
+  const { addToCart, updateCartCount } = useCart();
   const navigate = useNavigate();
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
   const [showToast, setShowToast] = useState(false);
+  const [selectedQuantity, setSelectedQuantity] = useState(1);
 
   // Database produk (nanti bisa diganti dengan API/database)
   const products = {
@@ -82,14 +83,36 @@ function ProductDetail() {
   if (!product) return <div>Product not found</div>;
 
   const handleAddToCart = () => {
-    if (!selectedSize || !selectedColor) {
-      alert('Please select size and color');
-      return;
-    }
+    try {
+      // Buat objek item untuk cart
+      const cartItem = {
+        id: product.id,
+        cartId: `${product.id}-${Date.now()}`,
+        name: product.title,
+        price: product.price,
+        image: product.images[0],
+        size: selectedSize,
+        quantity: selectedQuantity
+      };
 
-    addToCart(product, selectedSize, selectedColor);
-    setShowToast(true);
-    setTimeout(() => navigate('/cart'), 1500);
+      // Ambil cart yang ada
+      const currentCart = JSON.parse(localStorage.getItem('cart')) || [];
+      
+      // Tambahkan item baru
+      const newCart = [...currentCart, cartItem];
+      
+      // Simpan ke localStorage
+      localStorage.setItem('cart', JSON.stringify(newCart));
+      
+      // Update cart count
+      updateCartCount();
+
+      // Optional: Tambahkan feedback ke user
+      alert('Produk berhasil ditambahkan ke keranjang');
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      alert('Gagal menambahkan produk ke keranjang');
+    }
   };
 
   return (
@@ -100,11 +123,14 @@ function ProductDetail() {
         delay={1500}
         autohide
         className="position-fixed top-0 end-0 m-4"
+        style={{ zIndex: 1000 }}
       >
         <Toast.Header>
           <strong className="me-auto">Success!</strong>
         </Toast.Header>
-        <Toast.Body>Item added to cart. Redirecting to cart...</Toast.Body>
+        <Toast.Body>
+          {product.title} ({selectedSize}, {selectedColor}) added to cart!
+        </Toast.Body>
       </Toast>
 
       <Row>
@@ -158,8 +184,9 @@ function ProductDetail() {
             size="lg" 
             className="w-100 mb-3"
             onClick={handleAddToCart}
+            disabled={!selectedSize || selectedQuantity < 1}
           >
-            Add to Cart
+            Tambah ke Keranjang
           </Button>
 
           <Tabs defaultActiveKey="details" className="mb-3">
