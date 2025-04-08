@@ -2,13 +2,19 @@ import React, { useState } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import '../styles/Login.css';
+import { useAuth } from '../context/AuthContext';
+import Swal from 'sweetalert2';
+import { Router } from 'react-router-dom';
 
 function Login() {
   const navigate = useNavigate();
+  const { Login } = useAuth(); // Gunakan login dari AuthContext, perhatikan huruf kecil 'login'
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
+  
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
@@ -25,7 +31,7 @@ function Login() {
     return re.test(email);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!formData.email || !formData.password) {
@@ -38,14 +44,42 @@ function Login() {
       return;
     }
 
-    const userData = {
-      email: formData.email,
-      telepon: '081234567890',
-      gender: 'Laki-laki'
-    };
-    
-    localStorage.setItem('user', JSON.stringify(userData));
-    navigate('/akun');
+    setLoading(true);
+    setError('');
+
+    try {
+      // Menggunakan fungsi login dari AuthContext
+      const result = await Login(formData.email, formData.password);
+      
+      if (result.success) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Login Berhasil',
+          text: 'Anda akan diarahkan ke halaman akun.',
+          timer: 2000,
+          showConfirmButton: false
+        }).then(() => {
+          navigate('/akun'); // Arahkan ke halaman akun setelah login berhasil
+        });
+      } else {
+      Swal.fire({
+        icon: 'error',
+        title: 'Login Gagal',
+        text: result.message || 'Login gagal. Silakan coba lagi.'
+      });
+      setError(result.message || 'Login gagal. Silakan coba lagi.');
+      }
+    } catch (err) {
+      Swal.fire({
+      icon: 'error',
+      title: 'Terjadi Kesalahan',
+      text: 'Terjadi kesalahan saat login. Silakan coba lagi.'
+      });
+      setError('Terjadi kesalahan saat login. Silakan coba lagi.');
+      console.error('Login error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -102,8 +136,13 @@ function Login() {
                   </Form.Group>
 
                   <div className="d-grid">
-                    <Button variant="dark" type="submit" size="lg">
-                      LOGIN
+                    <Button 
+                      variant="dark" 
+                      type="submit" 
+                      size="lg" 
+                      disabled={loading}
+                    >
+                      {loading ? 'LOADING...' : 'LOGIN'}
                     </Button>
                   </div>
                 </Form>
@@ -116,4 +155,4 @@ function Login() {
   );
 }
 
-export default Login; 
+export default Login;

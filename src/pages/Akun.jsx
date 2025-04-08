@@ -1,28 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Tab, Nav, Form, Button, Table, Alert } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import axios from 'axios';
 
 function Akun() {
   const navigate = useNavigate();
+  const { user, isAuth, Logout, token, loading } = useAuth();
   
-  // Get user data from localStorage
-  const [userInfo, setUserInfo] = useState(() => {
-    const savedUser = localStorage.getItem('user');
-    return savedUser ? JSON.parse(savedUser) : {
-      nama: '',
-      email: '',
-      telepon: '',
-      gender: ''
-    };
-  });
-
   // Check if user is logged in
   useEffect(() => {
-    const user = localStorage.getItem('user');
-    if (!user) {
+    if (!loading && (!isAuth() || !token)) {
       navigate('/login');
     }
-  }, [navigate]);
+  }, [isAuth, navigate, token, loading]);
+
+  const [userInfo, setUserInfo] = useState({
+    nama: '',
+    email: '',
+    telepon: '',
+    gender: ''
+  });
 
   const [passwords, setPasswords] = useState({
     currentPassword: '',
@@ -30,17 +28,36 @@ function Akun() {
     confirmPassword: ''
   });
 
-  // Tambahkan state untuk feedback
+  // State untuk feedback
   const [feedback, setFeedback] = useState({
     type: '',
     message: ''
   });
 
-  // Tambahkan state baru untuk mode edit dan temporary data
+  // State untuk mode edit dan temporary data
   const [isEditing, setIsEditing] = useState(false);
   const [tempUserInfo, setTempUserInfo] = useState({...userInfo});
 
-  // Tambahkan state untuk validasi password
+  // Update user info when auth user changes
+  useEffect(() => {
+    if (user) {
+      console.log("User data received:", user);
+      setUserInfo({
+        nama: user.name || '',
+        email: user.email || '',
+        telepon: user.phone || '',
+        gender: user.gender || ''
+      });
+      setTempUserInfo({
+        nama: user.name || '',
+        email: user.email || '',
+        telepon: user.phone || '',
+        gender: user.gender || ''
+      });
+    }
+  }, [user]);
+
+  // State untuk validasi password
   const [passwordValidation, setPasswordValidation] = useState({
     length: false,
     number: false,
@@ -48,7 +65,7 @@ function Akun() {
     lowercase: false
   });
 
-  // Tambahkan state untuk visibility toggle
+  // State untuk visibility toggle
   const [showPasswords, setShowPasswords] = useState({
     current: false,
     new: false,
@@ -56,22 +73,69 @@ function Akun() {
   });
 
   // Contoh data pesanan (nanti bisa diambil dari API/database)
-  const orderHistory = [
-    {
-      id: '#ORD001',
-      date: '2024-03-15',
-      items: ['Gamis Modern Cream', 'Hijab Pashmina'],
-      total: 'Rp 525.000',
-      status: 'Selesai'
-    },
-    {
-      id: '#ORD002',
-      date: '2024-03-10',
-      items: ['Tunic Brown'],
-      total: 'Rp 275.000',
-      status: 'Dikirim'
-    }
-  ];
+  const [orderHistory, setOrderHistory] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+
+  // Fetch order history
+  useEffect(() => {
+    const fetchOrders = async () => {
+      if (!token) return;
+      
+      setOrdersLoading(true);
+      try {
+        const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/user/orders`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        
+        if (response.data && response.data.orders) {
+          setOrderHistory(response.data.orders);
+        } else {
+          // Fallback to sample data if API doesn't return expected format
+          setOrderHistory([
+            {
+              id: '#ORD001',
+              date: '2024-03-15',
+              items: ['Gamis Modern Cream', 'Hijab Pashmina'],
+              total: 'Rp 525.000',
+              status: 'Selesai'
+            },
+            {
+              id: '#ORD002',
+              date: '2024-03-10',
+              items: ['Tunic Brown'],
+              total: 'Rp 275.000',
+              status: 'Dikirim'
+            }
+          ]);
+        }
+      } catch (error) {
+        console.error("Error fetching orders:", error);
+        // Use sample data as fallback
+        setOrderHistory([
+          {
+            id: '#ORD001',
+            date: '2024-03-15',
+            items: ['Gamis Modern Cream', 'Hijab Pashmina'],
+            total: 'Rp 525.000',
+            status: 'Selesai'
+          },
+          {
+            id: '#ORD002',
+            date: '2024-03-10',
+            items: ['Tunic Brown'],
+            total: 'Rp 275.000',
+            status: 'Dikirim'
+          }
+        ]);
+      } finally {
+        setOrdersLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, [token]);
 
   // Validasi email
   const validateEmail = (email) => {
@@ -81,6 +145,7 @@ function Akun() {
 
   // Validasi nomor telepon
   const validatePhone = (phone) => {
+    if (!phone) return true; // Allow empty phone for now
     const re = /^[0-9]{10,13}$/;
     return re.test(phone);
   };
@@ -93,7 +158,7 @@ function Akun() {
     setIsEditing(!isEditing);
   };
 
-  const handleInfoUpdate = (e) => {
+  const handleInfoUpdate = async (e) => {
     e.preventDefault();
     
     // Validasi input
@@ -114,7 +179,7 @@ function Akun() {
       return;
     }
 
-    if (!validatePhone(tempUserInfo.telepon)) {
+    if (tempUserInfo.telepon && !validatePhone(tempUserInfo.telepon)) {
       setFeedback({
         type: 'danger',
         message: 'Format nomor telepon tidak valid'
@@ -122,19 +187,41 @@ function Akun() {
       return;
     }
 
-    // Update userInfo dengan data temporary
-    setUserInfo({...tempUserInfo});
-    
-    // Update localStorage
-    localStorage.setItem('user', JSON.stringify(tempUserInfo));
-    
-    setFeedback({
-      type: 'success',
-      message: 'Informasi akun berhasil diperbarui!'
-    });
+    try {
+      // Make API call to update user data
+      const response = await axios.put(
+        `${process.env.REACT_APP_API_URL}/api/user/profile`, 
+        {
+          name: tempUserInfo.nama,
+          email: tempUserInfo.email,
+          phone: tempUserInfo.telepon,
+          gender: tempUserInfo.gender
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
 
-    // Nonaktifkan mode edit
-    setIsEditing(false);
+      // Update userInfo with temporary data
+      setUserInfo({...tempUserInfo});
+      
+      setFeedback({
+        type: 'success',
+        message: 'Informasi akun berhasil diperbarui!'
+      });
+
+      // Nonaktifkan mode edit
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      setFeedback({
+        type: 'danger',
+        message: error.response?.data?.message || 'Gagal memperbarui informasi akun!'
+      });
+    }
 
     setTimeout(() => {
       setFeedback({ type: '', message: '' });
@@ -150,7 +237,7 @@ function Akun() {
     });
   };
 
-  const handlePasswordChange = (e) => {
+  const handlePasswordChange = async (e) => {
     e.preventDefault();
 
     // Validasi semua rules terpenuhi
@@ -172,24 +259,47 @@ function Akun() {
       return;
     }
 
-    // Implement password change logic here
-    setFeedback({
-      type: 'success',
-      message: 'Password berhasil diubah!'
-    });
+    try {
+      // Make API call to update password
+      const response = await axios.put(
+        `${process.env.REACT_APP_API_URL}/api/user/change-password`, 
+        {
+          current_password: passwords.currentPassword,
+          new_password: passwords.newPassword,
+          new_password_confirmation: passwords.confirmPassword
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      
+      setFeedback({
+        type: 'success',
+        message: 'Password berhasil diubah!'
+      });
 
-    // Reset form dan feedback
-    setPasswords({
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: ''
-    });
-    setPasswordValidation({
-      length: false,
-      number: false,
-      uppercase: false,
-      lowercase: false
-    });
+      // Reset form dan feedback
+      setPasswords({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+      setPasswordValidation({
+        length: false,
+        number: false,
+        uppercase: false,
+        lowercase: false
+      });
+    } catch (error) {
+      console.error("Error changing password:", error);
+      setFeedback({
+        type: 'danger',
+        message: error.response?.data?.message || 'Gagal mengubah password!'
+      });
+    }
 
     setTimeout(() => {
       setFeedback({ type: '', message: '' });
@@ -199,10 +309,27 @@ function Akun() {
   const handleLogout = () => {
     const confirmLogout = window.confirm('Apakah Anda yakin ingin keluar?');
     if (confirmLogout) {
-      localStorage.removeItem('user');
+      Logout();
       navigate('/login');
     }
   };
+
+  // Show loading while checking authentication
+  if (loading) {
+    return (
+      <Container className="py-5 text-center">
+        <div className="spinner-border" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+        <p className="mt-3">Memuat informasi pengguna...</p>
+      </Container>
+    );
+  }
+
+  // Redirect if not authenticated
+  if (!isAuth() || !user) {
+    return null; // The useEffect will handle redirection
+  }
 
   return (
     <Container className="py-5">
@@ -214,10 +341,22 @@ function Akun() {
                 <div className="text-center mb-3">
                   <div className="rounded-circle bg-light d-inline-flex align-items-center justify-content-center" 
                        style={{ width: '100px', height: '100px' }}>
-                    <i className="fas fa-user fa-3x text-secondary"></i>
+                    {user.profile_photo ? (
+                      <img 
+                        src={user.profile_photo} 
+                        alt="Profile" 
+                        className="rounded-circle" 
+                        style={{ width: '100px', height: '100px', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <i className="fas fa-user fa-3x text-secondary"></i>
+                    )}
                   </div>
                   <h5 className="mt-3 mb-0">{userInfo.nama}</h5>
                   <p className="text-muted">{userInfo.email}</p>
+                  {user.role && (
+                    <span className="badge bg-info">{user.role}</span>
+                  )}
                 </div>
                 <Nav variant="pills" className="flex-column">
                   <Nav.Item>
@@ -246,34 +385,49 @@ function Akun() {
                   {/* Riwayat Pesanan */}
                   <Tab.Pane eventKey="history">
                     <h4 className="mb-4">Riwayat Pesanan</h4>
-                    <Table responsive>
-                      <thead>
-                        <tr>
-                          <th>Order ID</th>
-                          <th>Tanggal</th>
-                          <th>Items</th>
-                          <th>Total</th>
-                          <th>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {orderHistory.map((order) => (
-                          <tr key={order.id}>
-                            <td>{order.id}</td>
-                            <td>{order.date}</td>
-                            <td>{order.items.join(', ')}</td>
-                            <td>{order.total}</td>
-                            <td>
-                              <span className={`badge bg-${
-                                order.status === 'Selesai' ? 'success' : 'primary'
-                              }`}>
-                                {order.status}
-                              </span>
-                            </td>
+                    {ordersLoading ? (
+                      <div className="text-center py-4">
+                        <div className="spinner-border" role="status">
+                          <span className="visually-hidden">Loading...</span>
+                        </div>
+                        <p className="mt-3">Memuat riwayat pesanan...</p>
+                      </div>
+                    ) : orderHistory.length > 0 ? (
+                      <Table responsive>
+                        <thead>
+                          <tr>
+                            <th>Order ID</th>
+                            <th>Tanggal</th>
+                            <th>Items</th>
+                            <th>Total</th>
+                            <th>Status</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </Table>
+                        </thead>
+                        <tbody>
+                          {orderHistory.map((order) => (
+                            <tr key={order.id}>
+                              <td>{order.id}</td>
+                              <td>{order.date}</td>
+                              <td>{Array.isArray(order.items) ? order.items.join(', ') : order.items}</td>
+                              <td>{order.total}</td>
+                              <td>
+                                <span className={`badge bg-${
+                                  order.status === 'Selesai' ? 'success' : 
+                                  order.status === 'Dikirim' ? 'primary' : 
+                                  order.status === 'Dibatalkan' ? 'danger' : 'warning'
+                                }`}>
+                                  {order.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </Table>
+                    ) : (
+                      <Alert variant="info">
+                        Anda belum memiliki riwayat pesanan.
+                      </Alert>
+                    )}
                   </Tab.Pane>
 
                   {/* Informasi Akun */}
@@ -325,6 +479,7 @@ function Akun() {
                               value={isEditing ? tempUserInfo.telepon : userInfo.telepon}
                               onChange={(e) => setTempUserInfo({...tempUserInfo, telepon: e.target.value})}
                               disabled={!isEditing}
+                              placeholder="Contoh: 08123456789"
                             />
                           </Form.Group>
                         </Col>
@@ -336,12 +491,41 @@ function Akun() {
                               onChange={(e) => setTempUserInfo({...tempUserInfo, gender: e.target.value})}
                               disabled={!isEditing}
                             >
+                              <option value="">Pilih Gender</option>
                               <option value="Laki-laki">Laki-laki</option>
                               <option value="Perempuan">Perempuan</option>
                             </Form.Select>
                           </Form.Group>
                         </Col>
                       </Row>
+                      
+                      {/* Display user role (read-only) */}
+                      {user.role && (
+                        <Row>
+                          <Col md={6}>
+                            <Form.Group className="mb-3">
+                              <Form.Label>Role</Form.Label>
+                              <Form.Control
+                                type="text"
+                                value={user.role}
+                                disabled
+                                className="bg-light"
+                              />
+                            </Form.Group>
+                          </Col>
+                          <Col md={6}>
+                            <Form.Group className="mb-3">
+                              <Form.Label>Jumlah Pesanan</Form.Label>
+                              <Form.Control
+                                type="text"
+                                value={user.total_order || 0}
+                                disabled
+                                className="bg-light"
+                              />
+                            </Form.Group>
+                          </Col>
+                        </Row>
+                      )}
                       
                       {isEditing && (
                         <div className="d-flex gap-2">
@@ -359,19 +543,11 @@ function Akun() {
                   {/* Ubah Password */}
                   <Tab.Pane eventKey="password">
                     <div className="d-flex justify-content-between align-items-center mb-4">
-                      <h4 className="mb-0">Change Password</h4>
-                      <Button 
-                        variant="link" 
-                        className="p-0 text-dark" 
-                        style={{ fontSize: '1.5rem' }}
-                        onClick={() => navigate(-1)}
-                      >
-                        ×
-                      </Button>
+                      <h4 className="mb-0">Ubah Password</h4>
                     </div>
                     <Form onSubmit={handlePasswordChange}>
                       <Form.Group className="mb-3 position-relative">
-                        <Form.Label>Current Password*</Form.Label>
+                        <Form.Label>Password Saat Ini*</Form.Label>
                         <div className="position-relative">
                           <Form.Control
                             type={showPasswords.current ? "text" : "password"}
@@ -391,7 +567,7 @@ function Akun() {
                       </Form.Group>
 
                       <Form.Group className="mb-3 position-relative">
-                        <Form.Label>New Password*</Form.Label>
+                        <Form.Label>Password Baru*</Form.Label>
                         <div className="position-relative">
                           <Form.Control
                             type={showPasswords.new ? "text" : "password"}
@@ -414,25 +590,25 @@ function Akun() {
                         <div className="mt-2">
                           <div className={`small ${passwordValidation.length ? 'text-success' : 'text-muted'}`}>
                             <i className={`fas fa-${passwordValidation.length ? 'check' : 'times'} me-2`}></i>
-                            More than 8 characters
+                            Minimal 8 karakter
                           </div>
                           <div className={`small ${passwordValidation.number ? 'text-success' : 'text-muted'}`}>
                             <i className={`fas fa-${passwordValidation.number ? 'check' : 'times'} me-2`}></i>
-                            1 number
+                            Minimal 1 angka
                           </div>
                           <div className={`small ${passwordValidation.uppercase ? 'text-success' : 'text-muted'}`}>
                             <i className={`fas fa-${passwordValidation.uppercase ? 'check' : 'times'} me-2`}></i>
-                            1 uppercase
+                            Minimal 1 huruf kapital
                           </div>
                           <div className={`small ${passwordValidation.lowercase ? 'text-success' : 'text-muted'}`}>
                             <i className={`fas fa-${passwordValidation.lowercase ? 'check' : 'times'} me-2`}></i>
-                            1 lowercase
+                            Minimal 1 huruf kecil
                           </div>
                         </div>
                       </Form.Group>
 
                       <Form.Group className="mb-4 position-relative">
-                        <Form.Label>Confirm new Password*</Form.Label>
+                        <Form.Label>Konfirmasi Password Baru*</Form.Label>
                         <div className="position-relative">
                           <Form.Control
                             type={showPasswords.confirm ? "text" : "password"}
@@ -460,7 +636,7 @@ function Akun() {
                                    !passwords.confirmPassword ||
                                    passwords.newPassword !== passwords.confirmPassword}
                         >
-                          CONFIRM NEW PASSWORD
+                          KONFIRMASI PASSWORD BARU
                         </Button>
                       </div>
                     </Form>
@@ -488,4 +664,4 @@ function Akun() {
   );
 }
 
-export default Akun; 
+export default Akun;

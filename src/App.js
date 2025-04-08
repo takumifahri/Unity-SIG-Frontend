@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import { ReviewProvider } from './context/ReviewContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -16,33 +16,36 @@ import Login from './pages/Login';
 import CustomOrder from './pages/CustomOrder';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './styles/Footer.css';
+import { AuthProvider } from './context/AuthContext';
 
 function App() {
   return (
-    <CartProvider>
-      <ReviewProvider>
-        <Router>
-          <Routes>
-            {/* Route untuk Login tanpa Navbar dan Footer */}
-            <Route path="/login" element={<Login />} />
+    <AuthProvider>
+      <CartProvider>
+        <ReviewProvider>
+          <Router>
+            <Routes>
+              {/* Route untuk Login tanpa Navbar dan Footer */}
+              <Route path="/login" element={<Login />} />
 
-            {/* Route lainnya dengan Layout (Navbar dan Footer) */}
-            <Route path="/" element={<Layout />}>
-              <Route index element={<Home />} />
-              <Route path="/akun" element={<Akun />} />
-              <Route path="/contact" element={<ContactUs />} />
-              <Route path="/Collection" element={<CategoryPage />} />
-              <Route path="/category/:categoryId" element={<CategoryPage />} />
-              <Route path="/product/:productId" element={<ProductDetail />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/ulasan" element={<Ulasan />} />
-              <Route path="/checkout" element={<Checkout />} />
-              <Route path="/custom-order" element={<CustomOrder />} />
-            </Route>
-          </Routes>
-        </Router>
-      </ReviewProvider>
-    </CartProvider>
+              {/* Route lainnya dengan Layout (Navbar dan Footer) */}
+              <Route path="/" element={<Layout />}>
+                <Route index element={<Home />} />
+                <Route path="akun" element={<Akun />} />
+                <Route path="contact" element={<ContactUs />} />
+                <Route path="Collection" element={<CategoryPage />} />
+                <Route path="category/:categoryId" element={<CategoryPage />} />
+                <Route path="product/:productId" element={<ProductDetail />} />
+                <Route path="cart" element={<Cart />} />
+                <Route path="ulasan" element={<Ulasan />} />
+                <Route path="checkout" element={<Checkout />} />
+                <Route path="custom-order" element={<CustomOrder />} />
+              </Route>
+            </Routes>
+          </Router>
+        </ReviewProvider>
+      </CartProvider>
+    </AuthProvider>
   );
 }
 
@@ -51,21 +54,10 @@ function Layout() {
   return (
     <>
       <Navbar />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/akun" element={<Akun />} />
-        <Route path="/contact" element={<ContactUs />} />
-        <Route path="/Collection" element={<CategoryPage />} />
-        <Route path="/category/:categoryId" element={<CategoryPage />} />
-        <Route path="/product/:productId" element={<ProductDetail />} />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/ulasan" element={<Ulasan />} />
-        <Route path="/checkout" element={<Checkout />} />
-        <Route path="/custom-order" element={<CustomOrder />} />
-      </Routes>
+      <Outlet /> {/* This replaces the nested Routes component */}
       <Footer />
     </>
   );
 }
 
-export default App; 
+export default App;
