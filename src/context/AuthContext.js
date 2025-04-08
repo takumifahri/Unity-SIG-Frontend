@@ -79,6 +79,7 @@ export const AuthProvider = ({ children }) => {  // Perbaikan: "children" (huruf
             {children}
         </AuthContext.Provider>
     );
+    
 };
 
 export const useAuth = () => {

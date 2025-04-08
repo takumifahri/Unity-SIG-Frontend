@@ -3,7 +3,7 @@ import { Container, Row, Col, Card, Tab, Nav, Form, Button, Table, Alert } from 
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
-
+import Swal from 'sweetalert2';
 function Akun() {
   const navigate = useNavigate();
   const { user, isAuth, Logout, token, loading } = useAuth();
@@ -43,16 +43,16 @@ function Akun() {
     if (user) {
       console.log("User data received:", user);
       setUserInfo({
-        nama: user.name || '',
-        email: user.email || '',
-        telepon: user.phone || '',
-        gender: user.gender || ''
+        nama: user.user.name || '',
+        email: user.user.email || '',
+        telepon: user.user.phone || '',
+        gender: user.user.gender || ''
       });
       setTempUserInfo({
-        nama: user.name || '',
-        email: user.email || '',
-        telepon: user.phone || '',
-        gender: user.gender || ''
+        nama: user.user.name || '',
+        email: user.user.email || '',
+        telepon: user.user.phone || '',
+        gender: user.user.gender || ''
       });
     }
   }, [user]);
@@ -75,66 +75,42 @@ function Akun() {
   // Contoh data pesanan (nanti bisa diambil dari API/database)
   const [orderHistory, setOrderHistory] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+  
+    if (token) {
+      // Simpan token ke localStorage atau ke AuthContext
+      localStorage.setItem('token', token);
+      
+      // Misalnya pakai context
+      // setToken(token);
+      // fetchUser(); // jika perlu refresh user info
+  
+      // Bersihkan token dari URL agar tidak terlihat
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+  }, []);
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
 
+  if (token) {
+    // Simpan token ke localStorage atau ke AuthContext
+    localStorage.setItem('token', token);
+    
+    // Misalnya pakai context
+    // setToken(token);
+    // fetchUser(); // jika perlu refresh user info
+
+    // Bersihkan token dari URL agar tidak terlihat
+    const cleanUrl = window.location.origin + window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUrl);
+  }
+}, []);
   // Fetch order history
   useEffect(() => {
-    const fetchOrders = async () => {
-      if (!token) return;
-      
-      setOrdersLoading(true);
-      try {
-        const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/user/orders`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-        
-        if (response.data && response.data.orders) {
-          setOrderHistory(response.data.orders);
-        } else {
-          // Fallback to sample data if API doesn't return expected format
-          setOrderHistory([
-            {
-              id: '#ORD001',
-              date: '2024-03-15',
-              items: ['Gamis Modern Cream', 'Hijab Pashmina'],
-              total: 'Rp 525.000',
-              status: 'Selesai'
-            },
-            {
-              id: '#ORD002',
-              date: '2024-03-10',
-              items: ['Tunic Brown'],
-              total: 'Rp 275.000',
-              status: 'Dikirim'
-            }
-          ]);
-        }
-      } catch (error) {
-        console.error("Error fetching orders:", error);
-        // Use sample data as fallback
-        setOrderHistory([
-          {
-            id: '#ORD001',
-            date: '2024-03-15',
-            items: ['Gamis Modern Cream', 'Hijab Pashmina'],
-            total: 'Rp 525.000',
-            status: 'Selesai'
-          },
-          {
-            id: '#ORD002',
-            date: '2024-03-10',
-            items: ['Tunic Brown'],
-            total: 'Rp 275.000',
-            status: 'Dikirim'
-          }
-        ]);
-      } finally {
-        setOrdersLoading(false);
-      }
-    };
-
-    fetchOrders();
   }, [token]);
 
   // Validasi email
@@ -307,11 +283,19 @@ function Akun() {
   };
 
   const handleLogout = () => {
-    const confirmLogout = window.confirm('Apakah Anda yakin ingin keluar?');
-    if (confirmLogout) {
+    Swal.fire({
+      title: 'Apakah Anda yakin ingin keluar?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, keluar',
+      cancelButtonText: 'Batal'
+    }).then((result) => {
+      if (result.isConfirmed) {
       Logout();
       navigate('/login');
-    }
+      }
+    });
+  
   };
 
   // Show loading while checking authentication
@@ -341,9 +325,9 @@ function Akun() {
                 <div className="text-center mb-3">
                   <div className="rounded-circle bg-light d-inline-flex align-items-center justify-content-center" 
                        style={{ width: '100px', height: '100px' }}>
-                    {user.profile_photo ? (
+                    {user.user.profile_photo ? (
                       <img 
-                        src={user.profile_photo} 
+                        src={user.user.profile_photo} 
                         alt="Profile" 
                         className="rounded-circle" 
                         style={{ width: '100px', height: '100px', objectFit: 'cover' }}
