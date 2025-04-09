@@ -19,7 +19,12 @@ function Akun() {
     nama: '',
     email: '',
     telepon: '',
-    gender: ''
+    gender: '',
+    profile_photo: '',
+    total_order: 0,
+    role: '',
+    google_id: '',
+    facebook_id: ''
   });
 
   const [passwords, setPasswords] = useState({
@@ -34,6 +39,41 @@ function Akun() {
     message: ''
   });
 
+  const [showPhotoForm, setShowPhotoForm] = useState(false);
+  const updatePhoto = async (e) => {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append('profile_photo', e.target.files[0]);
+
+    try {
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_URL}/api/profile/update_avatar`, 
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      setUserInfo((prev) => ({
+        ...prev,
+        profile_photo: response.data.profile_photo
+      }));
+
+      setFeedback({
+        type: 'success',
+        message: 'Foto profil berhasil diperbarui!'
+      });
+    } catch (error) {
+      console.error("Error updating photo:", error);
+      setFeedback({
+        type: 'danger',
+        message: error.response?.data?.message || 'Gagal memperbarui foto profil!'
+      });
+    }
+  }
   // State untuk mode edit dan temporary data
   const [isEditing, setIsEditing] = useState(false);
   const [tempUserInfo, setTempUserInfo] = useState({...userInfo});
@@ -46,13 +86,23 @@ function Akun() {
         nama: user.user.name || '',
         email: user.user.email || '',
         telepon: user.user.phone || '',
-        gender: user.user.gender || ''
+        gender: user.user.gender || '',
+        profile_photo: user.user.profile_photo || '',
+        total_order: user.user.total_order || 0,
+        role: user.user.role || '',
+        google_id: user.user.google_id || '',
+        facebook_id: user.user.facebook_id || ''
       });
       setTempUserInfo({
         nama: user.user.name || '',
         email: user.user.email || '',
         telepon: user.user.phone || '',
-        gender: user.user.gender || ''
+        gender: user.user.gender || '',
+        profile_photo: user.user.profile_photo || '',
+        total_order: user.user.total_order || 0,
+        role: user.user.role || '',
+        google_id: user.user.google_id || '',
+        facebook_id: user.user.facebook_id || ''
       });
     }
   }, [user]);
@@ -165,18 +215,18 @@ useEffect(() => {
 
     try {
       // Make API call to update user data
-      const response = await axios.put(
-        `${process.env.REACT_APP_API_URL}/api/user/profile`, 
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_URL}/api/profile/update_profile`, 
         {
           name: tempUserInfo.nama,
           email: tempUserInfo.email,
           phone: tempUserInfo.telepon,
-          gender: tempUserInfo.gender
+          gender: tempUserInfo.gender,
         },
         {
           headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
           }
         }
       );
@@ -237,8 +287,8 @@ useEffect(() => {
 
     try {
       // Make API call to update password
-      const response = await axios.put(
-        `${process.env.REACT_APP_API_URL}/api/user/change-password`, 
+      const change_password = await axios.put(
+        `${process.env.REACT_APP_API_URL}/api/user/change_password`, 
         {
           current_password: passwords.currentPassword,
           new_password: passwords.newPassword,
@@ -309,6 +359,36 @@ useEffect(() => {
       </Container>
     );
   }
+  console.log("User data:", user);
+  console.log("User Info:", userInfo);
+  const sendResetLink = async() =>{
+    try {
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_URL}/api/profile/reset_password`,
+        {
+          email: userInfo.email,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}` // Gunakan token yang valid
+          },
+        }
+      );
+      Swal.fire({
+        icon: 'success',
+        title: 'Link reset password telah dikirim ke email Anda',
+        text: response.data.message,
+      });
+    } catch (error) {
+      console.log(error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal mengirim link reset password',
+        text: error.response?.data?.message || 'Terjadi kesalahan',
+      });
+    }
+  }
 
   // Redirect if not authenticated
   if (!isAuth() || !user) {
@@ -323,19 +403,58 @@ useEffect(() => {
             <Card className="mb-4">
               <Card.Body>
                 <div className="text-center mb-3">
-                  <div className="rounded-circle bg-light d-inline-flex align-items-center justify-content-center" 
-                       style={{ width: '100px', height: '100px' }}>
-                    {user.user.profile_photo ? (
-                      <img 
-                        src={user.user.profile_photo} 
-                        alt="Profile" 
-                        className="rounded-circle" 
-                        style={{ width: '100px', height: '100px', objectFit: 'cover' }}
+                <div
+                  className="position-relative d-inline-block"
+                  style={{ width: '100px', height: '100px' }}
+                >
+                  {/* Foto Profil */}
+                  <div
+                    className="rounded-circle bg-light d-inline-flex align-items-center justify-content-center overflow-hidden"
+                    style={{ width: '100px', height: '100px' }}
+                  >
+                    {userInfo.profile_photo ? (
+                      <img
+                        src={`${process.env.REACT_APP_API_URL}/storage/${userInfo.profile_photo}`}
+                        alt="Profile"
+                        className="rounded-circle w-100 h-100 object-fit-cover"
                       />
                     ) : (
                       <i className="fas fa-user fa-3x text-secondary"></i>
                     )}
                   </div>
+
+                  {/* Tombol Kamera (dengan input file tersembunyi) */}
+                  <label
+                    className="btn btn-sm btn-primary position-absolute"
+                    style={{
+                      bottom: '0',
+                      right: '0',
+                      borderRadius: '50%',
+                      padding: '6px 8px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <i className="fas fa-camera"></i>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      name="profile_photo"
+                      style={{ display: 'none' }}
+                      onChange={updatePhoto}
+                    />
+                  </label>
+                </div>
+
+
+                  {/* <div className="mt-3">
+                    <Button 
+                      variant="outline-primary" 
+                      onClick={updatePhoto}
+                    >
+                      <i className="fas fa-edit me-2"></i>
+                      Edit Foto
+                    </Button>
+                  </div> */}
                   <h5 className="mt-3 mb-0">{userInfo.nama}</h5>
                   <p className="text-muted">{userInfo.email}</p>
                   {user.role && (
@@ -476,8 +595,8 @@ useEffect(() => {
                               disabled={!isEditing}
                             >
                               <option value="">Pilih Gender</option>
-                              <option value="Laki-laki">Laki-laki</option>
-                              <option value="Perempuan">Perempuan</option>
+                              <option value="laki">Laki-laki</option>
+                              <option value="perempuan">Perempuan</option>
                             </Form.Select>
                           </Form.Group>
                         </Col>
@@ -609,8 +728,17 @@ useEffect(() => {
                             <i className={`far fa-eye${showPasswords.confirm ? '-slash' : ''}`}></i>
                           </Button>
                         </div>
+                        <div className="mt-3">
+                          <Button 
+                            variant="link" 
+                            className="text-decoration-none p-0" 
+                            onClick={sendResetLink}
+                          >
+                            Lupa password lama?
+                          </Button>
+                        </div>
                       </Form.Group>
-
+                      
                       <div className="d-grid">
                         <Button 
                           type="submit" 

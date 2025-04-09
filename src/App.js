@@ -17,6 +17,7 @@ import CustomOrder from './pages/CustomOrder';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './styles/Footer.css';
 import { AuthProvider } from './context/AuthContext';
+import Kontak from './pages/Kontak';
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
                 <Route path="ulasan" element={<Ulasan />} />
                 <Route path="checkout" element={<Checkout />} />
                 <Route path="custom-order" element={<CustomOrder />} />
+                <Route path="kontak" element={<Kontak />} />
               </Route>
             </Routes>
           </Router>

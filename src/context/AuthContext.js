@@ -15,7 +15,7 @@ export const AuthProvider = ({ children }) => {  // Perbaikan: "children" (huruf
             if (token){
                 try{
                     // validasi token yg akan dikirim ke backend
-                    const resp = await axios.get(`${process.env.REACT_APP_API_URL}/api/auth/whoami`, {
+                    const resp = await axios.get(`${process.env.REACT_APP_API_URL}/api/auth/me`, {
                         headers: {
                             'Content-Type' : 'application/json',
                             Authorization: `Bearer ${token}`
