@@ -248,7 +248,7 @@ export default function Kontak(){
                   Minggu: Tutup<br /><br />
                   <strong>Kontak:</strong><br />
                   WhatsApp: +62 812-XXXX-XXXX<br />
-                  Email: JR@konveksi.com
+                  Email: JrKonveksiEmail@gmail.com
                 </p>
                 <div className="mt-3">
                   <iframe
