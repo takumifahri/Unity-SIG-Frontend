@@ -4,14 +4,37 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import Swal from 'sweetalert2';
+
 function Akun() {
   const navigate = useNavigate();
   const { user, isAuth, Logout, token, loading } = useAuth();
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
+  const [imageUrl, setImageUrl] = useState("");
   
-  // Check if user is logged in
+  // Check if user is logged in and fetch data
   useEffect(() => {
-    if (!loading && (!isAuth() || !token)) {
-      navigate('/login');
+    const fetchUserData = async () => {
+      if (isAuth() && token) {
+        try {
+          setProfileLoading(true);
+          // If you need additional user data outside of what's in AuthContext, fetch it here
+          console.log("User authenticated, token available");
+          // When using just AuthContext data, we'll set profileLoading to false in the user effect below
+        } catch (error) {
+          console.error("Error fetching additional user data:", error);
+          setProfileLoading(false);
+        }
+      }
+    };
+
+    if (!loading) {
+      if (!isAuth() || !token) {
+        console.log("No auth or token, redirecting to login");
+        navigate('/login');
+      } else {
+        fetchUserData();
+      }
     }
   }, [isAuth, navigate, token, loading]);
 
@@ -40,12 +63,18 @@ function Akun() {
   });
 
   const [showPhotoForm, setShowPhotoForm] = useState(false);
+  
   const updatePhoto = async (e) => {
     e.preventDefault();
     const formData = new FormData();
     formData.append('profile_photo', e.target.files[0]);
 
     try {
+      setFeedback({
+        type: 'info',
+        message: 'Mengupload foto...'
+      });
+      
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/api/profile/update_avatar`, 
         formData,
@@ -73,21 +102,27 @@ function Akun() {
         message: error.response?.data?.message || 'Gagal memperbarui foto profil!'
       });
     }
-  }
+    
+    setTimeout(() => {
+      setFeedback({ type: '', message: '' });
+    }, 3000);
+  };
+  
   // State untuk mode edit dan temporary data
   const [isEditing, setIsEditing] = useState(false);
   const [tempUserInfo, setTempUserInfo] = useState({...userInfo});
 
   // Update user info when auth user changes
   useEffect(() => {
-    if (user) {
-      console.log("User data received:", user);
+    console.log("User data in Akun component:", user);
+    if (user && user.user) {
+      console.log("User data structure received:", user);
       setUserInfo({
         nama: user.user.name || '',
         email: user.user.email || '',
         telepon: user.user.phone || '',
         gender: user.user.gender || '',
-        profile_photo: user.user.profile_photo || '',
+        profile_photo: user.user.profile_photo || '' || `${process.env.REACT_APP_API_URL}/${user.profile_photo}` ,
         total_order: user.user.total_order || 0,
         role: user.user.role || '',
         google_id: user.user.google_id || '',
@@ -98,15 +133,48 @@ function Akun() {
         email: user.user.email || '',
         telepon: user.user.phone || '',
         gender: user.user.gender || '',
-        profile_photo: user.user.profile_photo || '',
+        profile_photo: user.user.profile_photo || '' || `${process.env.REACT_APP_API_URL}/${user.profile_photo}`,
         total_order: user.user.total_order || 0,
         role: user.user.role || '',
         google_id: user.user.google_id || '',
         facebook_id: user.user.facebook_id || ''
       });
+      setProfileLoading(false);
+    } else if (user) {
+      // Handle if user structure is different
+      console.log("User exists but structure is different than expected:", user);
+      // Try to extract user info based on actual structure
+      // This might be necessary if your API returns a different structure
+      const userData = user.user || user;
+      setUserInfo({
+        nama: userData.name || '',
+        email: userData.email || '',
+        telepon: userData.phone || userData.telepon || '',
+        gender: userData.gender || '',
+        profile_photo: userData.profile_photo || `${process.env.REACT_APP_API_URL}/${userData.profile_photo}` || '',
+        total_order: userData.total_order || 0,
+        role: userData.role || '',
+        google_id: userData.google_id || '',
+        facebook_id: userData.facebook_id || ''
+      });
+      setTempUserInfo({
+        nama: userData.name || '',
+        email: userData.email || '',
+        telepon: userData.phone || userData.telepon || '',
+        gender: userData.gender || '',
+        profile_photo: userData.profile_photo || `${process.env.REACT_APP_API_URL}/${userData.profile_photo}` || '',
+        total_order: userData.total_order || 0,
+        role: userData.role || '',
+        google_id: userData.google_id || '',
+        facebook_id: userData.facebook_id || ''
+      });
+      setProfileLoading(false);
+    } else {
+      console.log("No user data available yet");
     }
   }, [user]);
 
+  console.log('poto',userInfo.profile_photo)
   // State untuk validasi password
   const [passwordValidation, setPasswordValidation] = useState({
     length: false,
@@ -125,42 +193,48 @@ function Akun() {
   // Contoh data pesanan (nanti bisa diambil dari API/database)
   const [orderHistory, setOrderHistory] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  
+  // Handle token from URL (untuk kasus reset password dll)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
+    const urlToken = params.get('token');
   
-    if (token) {
+    if (urlToken) {
+      console.log("Found token in URL, storing it");
       // Simpan token ke localStorage atau ke AuthContext
-      localStorage.setItem('token', token);
+      localStorage.setItem('token', urlToken);
       
-      // Misalnya pakai context
-      // setToken(token);
-      // fetchUser(); // jika perlu refresh user info
-  
       // Bersihkan token dari URL agar tidak terlihat
       const cleanUrl = window.location.origin + window.location.pathname;
       window.history.replaceState({}, document.title, cleanUrl);
     }
   }, []);
-useEffect(() => {
-  const params = new URLSearchParams(window.location.search);
-  const token = params.get('token');
 
-  if (token) {
-    // Simpan token ke localStorage atau ke AuthContext
-    localStorage.setItem('token', token);
-    
-    // Misalnya pakai context
-    // setToken(token);
-    // fetchUser(); // jika perlu refresh user info
-
-    // Bersihkan token dari URL agar tidak terlihat
-    const cleanUrl = window.location.origin + window.location.pathname;
-    window.history.replaceState({}, document.title, cleanUrl);
-  }
-}, []);
   // Fetch order history
   useEffect(() => {
+    const fetchOrderHistory = async () => {
+      if (token) {
+        try {
+          setOrdersLoading(true);
+          // Example API call to fetch order history
+          // const response = await axios.get(
+          //   `${process.env.REACT_APP_API_URL}/api/orders/history`,
+          //   {
+          //     headers: {
+          //       Authorization: `Bearer ${token}`
+          //     }
+          //   }
+          // );
+          // setOrderHistory(response.data);
+          setOrdersLoading(false);
+        } catch (error) {
+          console.error("Error fetching order history:", error);
+          setOrdersLoading(false);
+        }
+      }
+    };
+    
+    fetchOrderHistory();
   }, [token]);
 
   // Validasi email
@@ -182,6 +256,26 @@ useEffect(() => {
       setTempUserInfo({...userInfo});
     }
     setIsEditing(!isEditing);
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setTempUserInfo({
+      ...tempUserInfo,
+      [name]: value
+    });
+  };
+
+  const handlePasswordInputChange = (e) => {
+    const { name, value } = e.target;
+    setPasswords({
+      ...passwords,
+      [name]: value
+    });
+    
+    if (name === 'newPassword') {
+      validatePasswordRules(value);
+    }
   };
 
   const handleInfoUpdate = async (e) => {
@@ -214,6 +308,11 @@ useEffect(() => {
     }
 
     try {
+      setFeedback({
+        type: 'info',
+        message: 'Menyimpan perubahan...'
+      });
+      
       // Make API call to update user data
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/api/profile/update_profile`, 
@@ -225,8 +324,8 @@ useEffect(() => {
         },
         {
           headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
           }
         }
       );
@@ -286,6 +385,11 @@ useEffect(() => {
     }
 
     try {
+      setFeedback({
+        type: 'info',
+        message: 'Mengubah password...'
+      });
+      
       // Make API call to update password
       const change_password = await axios.put(
         `${process.env.REACT_APP_API_URL}/api/user/change_password`, 
@@ -332,6 +436,13 @@ useEffect(() => {
     }, 3000);
   };
 
+  const togglePasswordVisibility = (field) => {
+    setShowPasswords({
+      ...showPasswords,
+      [field]: !showPasswords[field]
+    });
+  };
+
   const handleLogout = () => {
     Swal.fire({
       title: 'Apakah Anda yakin ingin keluar?',
@@ -341,15 +452,64 @@ useEffect(() => {
       cancelButtonText: 'Batal'
     }).then((result) => {
       if (result.isConfirmed) {
-      Logout();
-      navigate('/login');
+        Logout();
+        navigate('/login');
       }
     });
-  
   };
 
-  // Show loading while checking authentication
-  if (loading) {
+  const sendResetLink = async() => {
+    try {
+      setFeedback({
+        type: 'info',
+        message: 'Mengirim link reset password...'
+      });
+      
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_URL}/api/profile/reset_password`,
+        {
+          email: userInfo.email,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+        }
+      );
+      
+      setFeedback({
+        type: 'success',
+        message: 'Link reset password telah dikirim ke email Anda'
+      });
+      
+      Swal.fire({
+        icon: 'success',
+        title: 'Link Reset Password Terkirim',
+        text: response.data.message,
+      });
+    } catch (error) {
+      console.log(error);
+      
+      setFeedback({
+        type: 'danger',
+        message: 'Gagal mengirim link reset password'
+      });
+      
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal mengirim link reset password',
+        text: error.response?.data?.message || 'Terjadi kesalahan',
+      });
+    }
+    
+    setTimeout(() => {
+      setFeedback({ type: '', message: '' });
+    }, 3000);
+  };
+
+  // Show loading while checking authentication or fetching profile
+  if (loading || profileLoading) {
     return (
       <Container className="py-5 text-center">
         <div className="spinner-border" role="status">
@@ -359,41 +519,12 @@ useEffect(() => {
       </Container>
     );
   }
-  console.log("User data:", user);
-  console.log("User Info:", userInfo);
-  const sendResetLink = async() =>{
-    try {
-      const response = await axios.post(
-        `${process.env.REACT_APP_API_URL}/api/profile/reset_password`,
-        {
-          email: userInfo.email,
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}` // Gunakan token yang valid
-          },
-        }
-      );
-      Swal.fire({
-        icon: 'success',
-        title: 'Link reset password telah dikirim ke email Anda',
-        text: response.data.message,
-      });
-    } catch (error) {
-      console.log(error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Gagal mengirim link reset password',
-        text: error.response?.data?.message || 'Terjadi kesalahan',
-      });
-    }
-  }
 
   // Redirect if not authenticated
   if (!isAuth() || !user) {
     return null; // The useEffect will handle redirection
   }
+
 
   return (
     <Container className="py-5">
@@ -414,7 +545,7 @@ useEffect(() => {
                   >
                     {userInfo.profile_photo ? (
                       <img
-                        src={`${process.env.REACT_APP_API_URL}/storage/${userInfo.profile_photo}`}
+                        src={`${process.env.REACT_APP_API_URL}/${userInfo.profile_photo}`}
                         alt="Profile"
                         className="rounded-circle w-100 h-100 object-fit-cover"
                       />
@@ -595,8 +726,8 @@ useEffect(() => {
                               disabled={!isEditing}
                             >
                               <option value="">Pilih Gender</option>
-                              <option value="laki">Laki-laki</option>
-                              <option value="perempuan">Perempuan</option>
+                              <option value="male">Laki-laki</option>
+                              <option value="female">Perempuan</option>
                             </Form.Select>
                           </Form.Group>
                         </Col>

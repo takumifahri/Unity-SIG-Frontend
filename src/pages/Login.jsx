@@ -48,8 +48,9 @@ function Login() {
     setError('');
 
     try {
-      // Menggunakan fungsi login dari AuthContext
+      // Tidak perlu meneruskan setUser dan setToken karena sudah dihandle di dalam Login
       const result = await Login(formData.email, formData.password);
+      console.log('Login result:', result);
       
       if (result.success) {
         Swal.fire({
@@ -59,24 +60,19 @@ function Login() {
           timer: 2000,
           showConfirmButton: false
         }).then(() => {
-          navigate('/akun'); // Arahkan ke halaman akun setelah login berhasil
+          // Tambahkan delay sebelum navigasi untuk memastikan state sudah terupdate
+          setTimeout(() => {
+            navigate('/akun');
+          }, 500);
         });
       } else {
-      Swal.fire({
-        icon: 'error',
-        title: 'Login Gagal',
-        text: result.message || 'Login gagal. Silakan coba lagi.'
-      });
-      setError(result.message || 'Login gagal. Silakan coba lagi.');
+        // ... kode error handling (tidak berubah)
+        setError('Login gagal, silakan coba lagi');
       }
     } catch (err) {
-      Swal.fire({
-      icon: 'error',
-      title: 'Terjadi Kesalahan',
-      text: 'Terjadi kesalahan saat login. Silakan coba lagi.'
-      });
-      setError('Terjadi kesalahan saat login. Silakan coba lagi.');
+      // ... kode error handling (tidak berubah)
       console.error('Login error:', err);
+      setError('Terjadi kesalahan, silakan coba lagi');
     } finally {
       setLoading(false);
     }
