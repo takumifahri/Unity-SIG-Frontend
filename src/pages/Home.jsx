@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import axios from 'axios';
 import Swal from 'sweetalert2';
-
+import { MoonLoader } from 'react-spinners';
 function Beranda() {
   const [showQuickView, setShowQuickView] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -27,17 +27,17 @@ function Beranda() {
         kategori: item.jenis_katalog?.nama_jenis_katalog,
         jenis_katalog_id: item.jenis_katalog_id,
         detail: item.detail,
-        image:  `${process.env.REACT_APP_API_URL}/${item.gambar}`,
+        image: `${process.env.REACT_APP_API_URL}/${item.gambar}`,
         description: item.deskripsi,
         path: `/category/${item.jenis_katalog_id}`,
         price: `Rp ${parseInt(item.price).toLocaleString()}`,
         details: item.details,
         features: JSON.parse(item.feature || '[]'),
-        sizes: [item.size],
-        size_guide: [item.size_guide],
-        colors: [item.colors],
-      careInstructions: JSON.parse(item.jenis_katalog?.tata_cara_pemakaian || '[]'),
-    }));
+        sizes: item.colors?.flatMap(color => color.sizes?.size || []) || [], // Ambil semua ukuran dari warna
+        stok: item.colors?.flatMap(color => color.sizes?.stok || []) || [], // Ambil semua stok dari warna
+        colors: item.colors?.map(color => color.color_name) || [], // Ambil semua warna
+        careInstructions: JSON.parse(item.jenis_katalog?.tata_cara_pemakaian || '[]'),
+      }));
       console.log('mappedData',mappedData)
       setItems(mappedData);
     } catch (error) {
@@ -54,7 +54,13 @@ function Beranda() {
   useEffect(() => {
     getCatalog();
   }, []);
-
+  if (loading) {
+    return (
+      <Container className="my-5 d-flex justify-content-center align-items-center" style={{ height: '50vh' }}>
+        <MoonLoader color="#000000" size={150} />
+      </Container>
+    );
+  }
   const handleQuickView = (category) => {
     setSelectedProduct(category);
     setShowQuickView(true);
@@ -107,7 +113,7 @@ function Beranda() {
                       style={{ height: '400px', objectFit: 'cover' }}
                     />
                     <div className="product-overlay">
-                      <Link to={category.path} className="btn btn-light me-2">View All</Link>
+                      <Link to={`/product/${category.id}`} className="btn btn-light me-2">View All</Link>
                       <Button variant="light" onClick={() => handleQuickView(category)}>Quick View</Button>
                     </div>
                   </div>
@@ -158,8 +164,8 @@ function Beranda() {
                     <div className="sizes mb-4">
                       <h5 className="mb-3">Available Sizes:</h5>
                       <div className="d-flex flex-wrap gap-2">
-                        {selectedProduct.sizes.map((size, index) => (
-                          <span key={index} className="size-badge">{size}</span>
+                        {selectedProduct.sizes.map((sizes, index) => (
+                          <span key={index} className="size-badge">{sizes}</span>
                         ))}
                       </div>
                     </div>

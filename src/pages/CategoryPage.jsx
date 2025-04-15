@@ -2,6 +2,7 @@ import { useParams } from 'react-router-dom';
 import { Container, Row, Col, Card, Button } from 'react-bootstrap';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { CircleLoader, MoonLoader } from 'react-spinners';
 function CategoryPage() {
   const { categoryId } = useParams();
   const [categoryData, setCategoryData] = useState([]);
@@ -41,12 +42,12 @@ function CategoryPage() {
 
   useEffect(() => {
     fetchCategoryData();
-  }, [categoryId]);
+  }, []);
 
   if (loading) {
     return (
-      <Container className="my-5 text-center">
-        <p>Loading...</p>
+      <Container className="my-5 d-flex justify-content-center align-items-center" style={{ height: '50vh' }}>
+        <MoonLoader color="#000000" size={150} />
       </Container>
     );
   }
@@ -59,13 +60,13 @@ function CategoryPage() {
       </div>
 
       <Row>
-        {categoryData.map((product) => (
+        {categoryData?.map((product) => (
           <Col md={4} sm={6} className="mb-4" key={product.id}>
             <Card className="h-100 product-card">
               <div className="position-relative">
                 <Card.Img 
                   variant="top" 
-                  src={product.image} 
+                  src={`${process.env.REACT_APP_API_URL}/${product.gambar}`}
                   className="product-image"
                   style={{ height: '400px', objectFit: 'cover' }}
                 />
@@ -80,18 +81,25 @@ function CategoryPage() {
                 </div>
               </div>
               <Card.Body>
-                <Card.Title className="text-center">{product.title}</Card.Title>
-                <Card.Text className="text-center text-muted">{product.price}</Card.Text>
-                <div className="sizes mb-2 text-center">
-                  <small className="text-muted">Sizes: </small>
-                  {product.sizes.map((size, index) => (
-                    <span key={index} className="me-2 badge bg-secondary">{size}</span>
-                  ))}
+                <Card.Title className="text-left">{product.nama_katalog}</Card.Title>
+                <Card.Text className="text-left text-muted">
+                  {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(product.price)}
+                </Card.Text>
+                <div className="colors mb-2">
+                  <small className="text-muted">Colors:</small>
+                  <div className="d-flex flex-wrap">
+                    {product.colors.map((color) => (
+                      <span key={color.id} className="badge bg-secondary me-2 ">{color.color_name}</span>
+                    ))}
+                  </div>
                 </div>
-                <div className="colors text-center">
-                  <small className="text-muted">Colors: </small>
-                  {product.colors.map((color, index) => (
-                    <span key={index} className="me-2 badge bg-secondary">{color}</span>
+                <div className="colors mb-2">
+                  <small className="text-muted">Size and Stok</small>
+                  {product.colors.map((color) => (
+                    <div key={color.id} className="mb-2">
+                      <span className="me-2 badge bg-secondary">{color.sizes.size}</span>
+                      <span className="me-2 badge bg-secondary">{color.sizes.stok}</span>
+                    </div>
                   ))}
                 </div>
               </Card.Body>

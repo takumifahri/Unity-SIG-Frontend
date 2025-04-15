@@ -1,117 +1,71 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Button, Tabs, Tab, Toast } from 'react-bootstrap';
 import { useCart } from '../context/CartContext';
+import axios from 'axios';
 
 function ProductDetail() {
   const { productId } = useParams();
-  const { addToCart, updateCartCount } = useCart();
+  const { updateCartCount } = useCart();
   const navigate = useNavigate();
+  const [product, setProduct] = useState(null);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [selectedQuantity, setSelectedQuantity] = useState(1);
 
-  // Database produk (nanti bisa diganti dengan API/database)
-  const products = {
-    1: {
-      id: 1,
-      title: "Gamis Modern Cream",
-      images: [
-        "/products/Gamis3.jpeg",
-        // Tambahkan gambar lain dari produk yang sama
-      ],
-      price: "Rp 450.000",
-      sizes: ["S", "M", "L", "XL"],
-      colors: ["Brown", "Black", "Navy"],
-      description: "Dress muslim modern dengan bahan premium cotton",
-      details: [
-        "Bahan: Premium Cotton",
-        "Model: Loose Fit",
-        "Lengan: Panjang",
-        "Tinggi Model: 168cm",
-        "Size yang digunakan model: M"
-      ],
-      careInstructions: [
-        "Cuci dengan air dingin",
-        "Jangan gunakan pemutih",
-        "Setrika suhu sedang",
-        "Dry clean aman"
-      ],
-      sizeGuide: {
-        S: "LD: 96cm, Panjang: 135cm",
-        M: "LD: 100cm, Panjang: 137cm",
-        L: "LD: 104cm, Panjang: 139cm",
-        XL: "LD: 108cm, Panjang: 141cm"
+  // Fetch product data from API
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/catalog/show/${productId}`, {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        console.log('data show',response.data)
+        setProduct(response.data.data);
+      } catch (error) {
+        console.error('Failed to fetch product data:', error);
       }
-    },
-    2: {
-      id: 2,
-      title: "Gamis Classic Brown",
-      images: [
-        "/products/gamis4.jpeg",
-        // Tambahkan gambar lain dari produk yang sama
-      ],
-      price: "Rp 475.000",
-      sizes: ["S", "M", "L", "XL"],
-      colors: ["Cream", "Black", "Navy"],
-      description: "Abaya premium dengan desain modern dan elegan",
-      details: [
-        "Bahan: Premium Crepe",
-        "Model: A-Line Cut",
-        "Lengan: Panjang",
-        "Tinggi Model: 168cm",
-        "Size yang digunakan model: M"
-      ],
-      careInstructions: [
-        "Cuci dengan air dingin",
-        "Jangan gunakan pemutih",
-        "Setrika suhu sedang",
-        "Dry clean aman"
-      ],
-      sizeGuide: {
-        S: "LD: 98cm, Panjang: 140cm",
-        M: "LD: 102cm, Panjang: 142cm",
-        L: "LD: 106cm, Panjang: 144cm",
-        XL: "LD: 110cm, Panjang: 146cm"
-      }
-    }
-  };
+    };
 
-  const product = products[productId];
+    fetchProduct();
+  }, [productId]);
 
-  if (!product) return <div>Product not found</div>;
+  if (!product) return <div>Loading...</div>;
 
   const handleAddToCart = () => {
     try {
-      // Buat objek item untuk cart
+      // Create cart item object
       const cartItem = {
         id: product.id,
         cartId: `${product.id}-${Date.now()}`,
-        name: product.title,
+        name: product.nama_katalog,
         price: product.price,
-        image: product.images[0],
+        image: `${process.env.REACT_APP_API_URL}/${product.gambar}`,
         size: selectedSize,
-        quantity: selectedQuantity
+        color: selectedColor,
+        quantity: selectedQuantity,
       };
 
-      // Ambil cart yang ada
+      // Get current cart from localStorage
       const currentCart = JSON.parse(localStorage.getItem('cart')) || [];
-      
-      // Tambahkan item baru
+
+      // Add new item to cart
       const newCart = [...currentCart, cartItem];
-      
-      // Simpan ke localStorage
+
+      // Save updated cart to localStorage
       localStorage.setItem('cart', JSON.stringify(newCart));
-      
+
       // Update cart count
       updateCartCount();
 
-      // Optional: Tambahkan feedback ke user
-      alert('Produk berhasil ditambahkan ke keranjang');
+      // Show success toast
+      setShowToast(true);
     } catch (error) {
       console.error('Error adding to cart:', error);
-      alert('Gagal menambahkan produk ke keranjang');
+      alert('Failed to add product to cart');
     }
   };
 
@@ -129,51 +83,54 @@ function ProductDetail() {
           <strong className="me-auto">Success!</strong>
         </Toast.Header>
         <Toast.Body>
-          {product.title} ({selectedSize}, {selectedColor}) added to cart!
+          {product.nama_katalog} ({selectedSize}, {selectedColor}) added to cart!
         </Toast.Body>
       </Toast>
 
       <Row>
         <Col md={6}>
           <img 
-            src={product.images[0]} 
-            alt={product.title} 
+            src={`${process.env.REACT_APP_API_URL}/${product.gambar}`} 
+            alt={product.nama_katalog} 
             className="img-fluid mb-3"
-            style={{ width: '100%', height: 'auto' }}
+            style={{ width: '100%', height: 'auto', maxHeight: '500px', objectFit: 'cover' }}
           />
         </Col>
         <Col md={6}>
-          <small className="text-muted">{product.collection}</small>
-          <h2>{product.title}</h2>
-          <h4 className="text-muted mb-4">{product.price}</h4>
+          <small className="text-muted">{product.koleksi}</small>
+          <h2>{product.nama_katalog}</h2>
+          <h4 className="text-muted mb-4">Rp {product.price}</h4>
           
           <div className="mb-4">
-            <h5>Size</h5>
+            <h5>Color</h5>
             <div className="d-flex gap-2">
-              {product.sizes.map((size) => (
+              {product.colors.map((color) => (
                 <Button 
-                  key={size} 
-                  variant={selectedSize === size ? "dark" : "outline-dark"}
-                  className="size-btn"
-                  onClick={() => setSelectedSize(size)}
+                  key={color.id} 
+                  variant={selectedColor === color.color_name ? "dark" : "outline-dark"}
+                  className="color-btn"
+                  onClick={() => {
+                    setSelectedColor(color.color_name);
+                    setSelectedSize(''); // Reset size when color changes
+                  }}
                 >
-                  {size}
+                  {color.color_name}
                 </Button>
               ))}
             </div>
           </div>
 
           <div className="mb-4">
-            <h5>Color</h5>
+            <h5>Size</h5>
             <div className="d-flex gap-2">
-              {product.colors.map((color) => (
-                <Button 
-                  key={color} 
-                  variant={selectedColor === color ? "dark" : "outline-dark"}
-                  className="color-btn"
-                  onClick={() => setSelectedColor(color)}
+              {product.colors.flatMap((color) => color.sizes).map((size, index) => (
+                <Button
+                  key={index}
+                  variant={selectedSize === size.size ? "dark" : "outline-dark"}
+                  className="size-btn"
+                  onClick={() => setSelectedSize(size.size)}
                 >
-                  {color}
+                  {size.size}
                 </Button>
               ))}
             </div>
@@ -184,44 +141,14 @@ function ProductDetail() {
             size="lg" 
             className="w-100 mb-3"
             onClick={handleAddToCart}
-            disabled={!selectedSize || selectedQuantity < 1}
+            disabled={!selectedSize || !selectedColor || selectedQuantity < 1}
           >
             Tambah ke Keranjang
           </Button>
 
           <Tabs defaultActiveKey="details" className="mb-3">
             <Tab eventKey="details" title="Details">
-              <p>{product.description}</p>
-              <ul>
-                {product.details.map((detail, index) => (
-                  <li key={index}>{detail}</li>
-                ))}
-              </ul>
-            </Tab>
-            <Tab eventKey="size-guide" title="Size Guide">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Size</th>
-                    <th>Measurements</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(product.sizeGuide).map(([size, measurements]) => (
-                    <tr key={size}>
-                      <td>{size}</td>
-                      <td>{measurements}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Tab>
-            <Tab eventKey="care" title="Care Instructions">
-              <ul>
-                {product.careInstructions.map((instruction, index) => (
-                  <li key={index}>{instruction}</li>
-                ))}
-              </ul>
+              <p>{product.details}</p>
             </Tab>
           </Tabs>
         </Col>
