@@ -89,7 +89,7 @@ function App() {
 }
 
 // Layout component dengan Navbar dan Footer
-function Layout() {
+function MainLayout() {
   return (
     <>
       <Navbar />
