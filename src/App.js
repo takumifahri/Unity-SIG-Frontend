@@ -21,7 +21,7 @@ import Kontak from './pages/Kontak';
 
 // Layout Components
 import AdminLayout from './components/admin/AdminLayout';
-import Layout from './components/Layout';
+// import Layout from './components/Layout';
 
 // Admin Pages
 import Dashboard from './pages/admin/Dashboard';
