@@ -1,10 +1,10 @@
 import React from 'react';
-import { Container, Row, Col, Card } from 'react-bootstrap';
+import { Container, Row, Col, Card, Spinner } from 'react-bootstrap';
 import { useReview } from '../context/ReviewContext';
 import { FaStar } from 'react-icons/fa';
 
 function Ulasan() {
-  const { reviews } = useReview();
+  const { reviews, loading, error } = useReview();
 
   const renderStars = (rating) => {
     return [...Array(5)].map((_, index) => (
@@ -24,6 +24,29 @@ function Ulasan() {
       day: 'numeric'
     });
   };
+
+  if (loading) {
+    return (
+      <Container className="py-5 text-center">
+        <Spinner animation="border" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </Spinner>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container className="py-5">
+        <Card className="text-center p-5">
+          <Card.Body>
+            <h5>Gagal memuat ulasan</h5>
+            <p>Mohon coba beberapa saat lagi</p>
+          </Card.Body>
+        </Card>
+      </Container>
+    );
+  }
 
   return (
     <Container className="py-5">

@@ -1,4 +1,5 @@
-import  { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import axios from 'axios';
 
 const ReviewContext = createContext();
 
@@ -7,31 +8,59 @@ export function useReview() {
 }
 
 export function ReviewProvider({ children }) {
-  // Mengambil data dari localStorage jika ada
-  const [reviews, setReviews] = useState(() => {
-    const savedReviews = localStorage.getItem('reviews');
-    return savedReviews ? JSON.parse(savedReviews) : [];
-  });
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Menyimpan reviews ke localStorage setiap kali ada perubahan
-  useEffect(() => {
-    localStorage.setItem('reviews', JSON.stringify(reviews));
-  }, [reviews]);
-
-  const addReview = (review) => {
-    setReviews(prevReviews => [
-      ...prevReviews,
-      {
-        ...review,
-        id: Date.now(),
-        date: new Date().toISOString()
+  // Fetch reviews from the backend
+  const fetchReviews = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/reviews`);
+      setReviews(response.data.data || []);
+    } catch (err) {
+      console.error('Error fetching reviews:', err);
+      setError('Failed to fetch reviews');
+      // Fallback to localStorage if API fails
+      const savedReviews = localStorage.getItem('reviews');
+      if (savedReviews) {
+        setReviews(JSON.parse(savedReviews));
       }
-    ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch reviews when component mounts
+  useEffect(() => {
+    fetchReviews();
+  }, []);
+
+  // Save to both API and localStorage
+  const addReview = async (review) => {
+    try {
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/reviews`, review);
+      const newReview = response.data.data;
+      setReviews(prevReviews => [...prevReviews, newReview]);
+      
+      // Backup to localStorage
+      const updatedReviews = [...reviews, newReview];
+      localStorage.setItem('reviews', JSON.stringify(updatedReviews));
+      
+      return { success: true };
+    } catch (err) {
+      console.error('Error adding review:', err);
+      return { success: false, error: err.message };
+    }
   };
 
   const value = {
     reviews,
-    addReview
+    addReview,
+    loading,
+    error,
+    refetchReviews: fetchReviews
   };
 
   return (
