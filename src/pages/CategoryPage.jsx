@@ -1,100 +1,65 @@
-import React from 'react';
 import { useParams } from 'react-router-dom';
 import { Container, Row, Col, Card, Button } from 'react-bootstrap';
-
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 function CategoryPage() {
   const { categoryId } = useParams();
+  const [categoryData, setCategoryData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Data produk berdasarkan kategori
-  const categoryProducts = {
-    malaya: {
-      title: "Gamis Collection",
-      description: "Koleksi busana muslim modern dengan sentuhan elegan",
-      products: [
-        {
-          id: 1,
-          title: "Malaya Dress Brown",
-          image: "/products/Gamis_coklat.jpeg",
-          price: "Rp 450.000",
-          sizes: ["S", "M", "L", "XL"],
-          colors: ["Brown", "Black", "Navy"]
+  const fetchCategoryData = async () => {
+    try {
+      setLoading(true);
+      // Fetch master_jenis data
+      const masterJenisResponse = await axios.get(`${process.env.REACT_APP_API_URL}/api/master_jenis/${categoryId}`, {
+        headers: {
+          "Content-Type": "application/json",
         },
-        // Tambahkan produk lain
-      ]
-    },
-    abaya: {
-      title: "ABAYA LUNA SERIES",
-      description: "Koleksi gamis premium dengan desain modern",
-      products: [
-        {
-          id: 1,
-          title: "Abaya Luna Classic",
-          image: "/products/gamis_krem.jpeg",
-          price: "Rp 475.000",
-          sizes: ["S", "M", "L", "XL"],
-          colors: ["Cream", "Black", "Navy"]
+      });
+
+      const masterJenisData = masterJenisResponse.data.data;
+      console.log('Master Jenis Response:', masterJenisData);
+
+      // Fetch catalog data using the master_jenis ID
+      const catalogResponse = await axios.get(`${process.env.REACT_APP_API_URL}/api/catalog`, {
+        headers: {
+          "Content-Type": "application/json",
         },
-        // Tambahkan produk lain
-      ]
-    },
-    gamis: {
-      title: "GAMIS GIRL COLLECTION",
-      description: "Koleksi gamis modern untuk wanita muslimah",
-      products: [
-        {
-          id: 1,
-          title: "Gamis Modern Cream",
-          image: "/products/gamis3.jpeg",
-          price: "Rp 450.000",
-          description: "Gamis modern dengan desain elegan",
-          sizes: ["S", "M", "L", "XL"],
-          colors: ["Brown", "Black", "Navy"]
+        params: {
+          master_jenis_id: masterJenisData.id, // Assuming the ID is in masterJenisData.id
         },
+      });
 
-        {
-          id: 2,
-          title: "Gamis Classic Brown",
-          image: "/products/gamis4.jpeg",
-          price: "Rp 475.000",
-          description: "Gamis klasik dengan sentuhan modern",
-          sizes: ["S", "M", "L", "XL"],
-          colors: ["Black", "Navy", "Grey"]
-        },
-
-        {
-         id: 3,
-         title: "Malaya Dress Brown",
-         image: "/products/Gamis_coklat.jpeg",
-         price: "Rp 450.000",
-         sizes: ["S", "M", "L", "XL"],
-         colors: ["Brown", "Black", "Navy"]
-        },
-
-        {
-         id: 4,
-         title: "Abaya Luna Classic",
-         image: "/products/gamis_krem.jpeg",
-         price: "Rp 475.000",
-         sizes: ["S", "M", "L", "XL"],
-         colors: ["Cream", "Black", "Navy"]
-         },
-
-
-      ]
+      console.log('Catalog Response:', catalogResponse.data.data);
+      setCategoryData(catalogResponse.data.data);
+    } catch (error) {
+      console.error("Error fetching category data:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const category = categoryProducts[categoryId];
+  useEffect(() => {
+    fetchCategoryData();
+  }, [categoryId]);
+
+  if (loading) {
+    return (
+      <Container className="my-5 text-center">
+        <p>Loading...</p>
+      </Container>
+    );
+  }
 
   return (
     <Container className="my-5">
       <div className="category-header mb-4">
-        <h2 className="text-center">{category?.title}</h2>
-        <p className="text-center text-muted">{category?.description}</p>
+        <h2 className="text-center">{categoryData?.[0]?.master_jenis_id?.nama_jenis_katalog || "Category"}</h2>
+        <p className="text-center text-muted">{categoryData?.[0]?.master_jenis_id?.deskripsi || "Explore our collection"}</p>
       </div>
 
       <Row>
-        {category?.products.map((product) => (
+        {categoryData.map((product) => (
           <Col md={4} sm={6} className="mb-4" key={product.id}>
             <Card className="h-100 product-card">
               <div className="position-relative">

@@ -4,7 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import Swal from 'sweetalert2';
-
+import { BiSolidFaceMask } from "react-icons/bi";
+import { FaCrown } from "react-icons/fa6";
+import { MdOutlineVerifiedUser } from "react-icons/md";
 function Akun() {
   const navigate = useNavigate();
   const { user, isAuth, Logout, token, loading } = useAuth();
@@ -47,7 +49,14 @@ function Akun() {
     total_order: 0,
     role: '',
     google_id: '',
-    facebook_id: ''
+    facebook_id: '',
+    label: '',
+    latitude: 0,
+    longitude: 0,
+    address: '',
+    city: '',
+    region: '',
+    postal_code: ''
   });
 
   const [passwords, setPasswords] = useState({
@@ -126,7 +135,14 @@ function Akun() {
         total_order: user.user.total_order || 0,
         role: user.user.role || '',
         google_id: user.user.google_id || '',
-        facebook_id: user.user.facebook_id || ''
+        facebook_id: user.user.facebook_id || '',
+        label: user.user.location?.label || '',
+        latitude: user.user.location?.latitude || 0,
+        longitude: user.user.location?.longitude || 0,
+        address: user.user.location?.address || '',
+        city: user.user.location?.city || '',
+        region: user.user.location?.region || '',
+        postal_code: user.user.location?.postal_code || ''
       });
       setTempUserInfo({
         nama: user.user.name || '',
@@ -137,7 +153,14 @@ function Akun() {
         total_order: user.user.total_order || 0,
         role: user.user.role || '',
         google_id: user.user.google_id || '',
-        facebook_id: user.user.facebook_id || ''
+        facebook_id: user.user.facebook_id || '',
+        label: user.user.location?.label || '',
+        latitude: user.user.location?.latitude || 0,
+        longitude: user.user.location?.longitude || 0,
+        address: user.user.location?.address || '',
+        city: user.user.location?.city || '',
+        region: user.user.location?.region || '',
+        postal_code: user.user.location?.postal_code || ''
       });
       setProfileLoading(false);
     } else if (user) {
@@ -155,7 +178,14 @@ function Akun() {
         total_order: userData.total_order || 0,
         role: userData.role || '',
         google_id: userData.google_id || '',
-        facebook_id: userData.facebook_id || ''
+        facebook_id: userData.facebook_id || '',
+        label: userData.location?.label || '',
+        latitude: userData.location?.latitude || 0,
+        longitude: userData.location?.longitude || 0,
+        address: userData.location?.address || '',
+        city: userData.location?.city || '',
+        region: userData.location?.region || '',
+        postal_code: userData.location?.postal_code || ''
       });
       setTempUserInfo({
         nama: userData.name || '',
@@ -166,7 +196,14 @@ function Akun() {
         total_order: userData.total_order || 0,
         role: userData.role || '',
         google_id: userData.google_id || '',
-        facebook_id: userData.facebook_id || ''
+        facebook_id: userData.facebook_id || '',
+        label: userData.location?.label || '',
+        latitude: userData.location?.latitude || 0,
+        longitude: userData.location?.longitude || 0,
+        address: userData.location?.address || '',
+        city: userData.location?.city || '',
+        region: userData.location?.region || '',
+        postal_code: userData.location?.postal_code || ''
       });
       setProfileLoading(false);
     } else {
@@ -586,11 +623,17 @@ function Akun() {
                       Edit Foto
                     </Button>
                   </div> */}
-                  <h5 className="mt-3 mb-0">{userInfo.nama}</h5>
+                  <h5 className="mt-3 mb-0">
+                    {userInfo.nama}
+                    {userInfo.role === 'developer' && <MdOutlineVerifiedUser className="text-danger" size={20} />}
+                    {userInfo.role === 'user' && <BiSolidFaceMask className="ms-2 text-primary"  size={20} />}
+                    {userInfo.role === 'owner' && <FaCrown className="ms-2 text-warning"  size={20}/>}
+                    {userInfo.role === 'admin' && <MdOutlineVerifiedUser className="ms-2 text-info"   size={20}/>}
+                  </h5>
                   <p className="text-muted">{userInfo.email}</p>
-                  {user.role && (
-                    <span className="badge bg-info">{user.role}</span>
-                  )}
+                  {/* {userInfo.role && (
+                    <span className="badge bg-info">{userInfo.role}</span>
+                  )} */}
                 </div>
                 <Nav variant="pills" className="flex-column">
                   <Nav.Item>
@@ -734,15 +777,15 @@ function Akun() {
                       </Row>
                       
                       {/* Display user role (read-only) */}
-                      {user.role && (
+                      {userInfo && (
                         <Row>
                           <Col md={6}>
                             <Form.Group className="mb-3">
-                              <Form.Label>Role</Form.Label>
+                              <Form.Label>Address</Form.Label>
                               <Form.Control
                                 type="text"
-                                value={user.role}
-                                disabled
+                                value={isEditing ? tempUserInfo.address : userInfo.address}  
+                                placeholder='contoh: Jl. Raya No. 123'
                                 className="bg-light"
                               />
                             </Form.Group>
@@ -752,15 +795,92 @@ function Akun() {
                               <Form.Label>Jumlah Pesanan</Form.Label>
                               <Form.Control
                                 type="text"
-                                value={user.total_order || 0}
+                                value={userInfo.total_order || 0}
                                 disabled
                                 className="bg-light"
                               />
                             </Form.Group>
                           </Col>
                         </Row>
+          
+                        
                       )}
-                      
+             
+                      <Row>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>Label</Form.Label>
+                            <Form.Control
+                              type="text"
+                              value={isEditing ? tempUserInfo.label : userInfo.label}  
+                              placeholder='contoh: Jl. Raya No. 123'
+                              className="bg-light"
+                            />
+                          </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>latitude</Form.Label>
+                            <Form.Control
+                                type="text"
+                                value={isEditing ? tempUserInfo.latitude : userInfo.latitude}  
+                                placeholder='contoh: Jl. Raya No. 123'
+                                className="bg-light"
+                              />
+                          </Form.Group>
+                        </Col>
+                      </Row>
+
+                      <Row>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>Longitude</Form.Label>
+                            <Form.Control
+                              type="text"
+                              value={isEditing ? tempUserInfo.longitude : userInfo.longitude}  
+                              placeholder='contoh: Jl. Raya No. 123'
+                              className="bg-light"
+                            />
+                          </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>region</Form.Label>
+                            <Form.Control
+                                type="text"
+                                value={isEditing ? tempUserInfo.region : userInfo.region}  
+                                placeholder='contoh: Jl. Raya No. 123'
+                                className="bg-light"
+                              />
+                          </Form.Group>
+                        </Col>
+                      </Row>
+
+                      <Row>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>city</Form.Label>
+                            <Form.Control
+                              type="text"
+                              value={isEditing ? tempUserInfo.city : userInfo.city}  
+                              placeholder='contoh: Jl. Raya No. 123'
+                              className="bg-light"
+                            />
+                          </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>kode pos</Form.Label>
+                            <Form.Control
+                                type="text"
+                                value={isEditing ? tempUserInfo.postal_code : userInfo.postal_code}  
+                                placeholder='contoh: Jl. Raya No. 123'
+                                className="bg-light"
+                              />
+                          </Form.Group>
+                        </Col>
+                      </Row>
+
                       {isEditing && (
                         <div className="d-flex gap-2">
                           <Button type="submit" variant="primary">
