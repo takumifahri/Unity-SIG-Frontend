@@ -54,13 +54,7 @@ function Beranda() {
   useEffect(() => {
     getCatalog();
   }, []);
-  if (loading) {
-    return (
-      <Container className="my-5 d-flex justify-content-center align-items-center" style={{ height: '50vh' }}>
-        <MoonLoader color="#000000" size={150} />
-      </Container>
-    );
-  }
+ 
   const handleQuickView = (category) => {
     setSelectedProduct(category);
     setShowQuickView(true);
@@ -100,7 +94,19 @@ function Beranda() {
         <h2 className="text-center mb-4">Our Collections</h2>
         <Row>
           {loading ? (
-            <p className="text-center">Loading...</p>
+            <Row>
+              {Array.from({ length: 8 }).map((_, index) => (
+                <Col md={3} sm={6} className="mb-4" key={index}>
+                  <Card className="h-100">
+                    <div className="skeleton-image" style={{ height: '400px', backgroundColor: '#e0e0e0' }}></div>
+                    <Card.Body>
+                      <div className="skeleton-text" style={{ height: '20px', width: '70%', backgroundColor: '#e0e0e0', margin: '10px auto' }}></div>
+                      <div className="skeleton-text" style={{ height: '15px', width: '50%', backgroundColor: '#e0e0e0', margin: '10px auto' }}></div>
+                    </Card.Body>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
           ) : (
             items.map((category) => (
               <Col md={3} sm={6} className="mb-4" key={category.id}>
