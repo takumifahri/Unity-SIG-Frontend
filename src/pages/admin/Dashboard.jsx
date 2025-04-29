@@ -27,7 +27,7 @@ ChartJS.register(
   Legend
 );
 
-function Dashboard() {
+const Dashboard = () => {
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalOrders: 0,
@@ -83,49 +83,61 @@ function Dashboard() {
     fetchDashboardData();
   }, []);
 
+  // Dummy data - replace with real data from your API
+  const statsData = [
+    { icon: FaUsers, label: 'Total Users', value: stats.totalUsers },
+    { icon: FaShoppingCart, label: 'Total Orders', value: stats.totalOrders },
+    { icon: FaTshirt, label: 'Products', value: stats.totalProducts },
+    { icon: FaStar, label: 'Reviews', value: stats.averageRating.toFixed(1) },
+  ];
+
   return (
     <div>
-      <h2 className="mb-4">Dashboard</h2>
+      <h2 className="text-2xl font-semibold mb-6">Dashboard Overview</h2>
+      
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {statsData.map((stat, index) => (
+          <div key={index} className="bg-white rounded-lg shadow-sm p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">{stat.label}</p>
+                <h3 className="text-2xl font-bold mt-1">{stat.value}</h3>
+              </div>
+              <stat.icon className="w-8 h-8 text-[#7D5A50]" />
+            </div>
+          </div>
+        ))}
+      </div>
 
-      {/* Statistics Cards */}
-      <Row className="g-4 mb-4">
-        <Col md={3}>
-          <Card className="dashboard-card">
-            <div className="icon">
-              <FaUsers />
+      {/* Recent Activity */}
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
+        <div className="space-y-4">
+          {/* Replace with actual recent activities */}
+          <div className="flex items-center justify-between py-2 border-b">
+            <div>
+              <p className="font-medium">New Order #1234</p>
+              <p className="text-sm text-gray-600">2 items - Rp 500.000</p>
             </div>
-            <h4>Total Users</h4>
-            <h3>{stats.totalUsers}</h3>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="dashboard-card">
-            <div className="icon">
-              <FaShoppingCart />
+            <span className="text-sm text-gray-500">2 minutes ago</span>
+          </div>
+          <div className="flex items-center justify-between py-2 border-b">
+            <div>
+              <p className="font-medium">New User Registration</p>
+              <p className="text-sm text-gray-600">john.doe@example.com</p>
             </div>
-            <h4>Total Orders</h4>
-            <h3>{stats.totalOrders}</h3>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="dashboard-card">
-            <div className="icon">
-              <FaTshirt />
+            <span className="text-sm text-gray-500">1 hour ago</span>
+          </div>
+          <div className="flex items-center justify-between py-2 border-b">
+            <div>
+              <p className="font-medium">New Review</p>
+              <p className="text-sm text-gray-600">5 stars - "Great service!"</p>
             </div>
-            <h4>Total Products</h4>
-            <h3>{stats.totalProducts}</h3>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="dashboard-card">
-            <div className="icon">
-              <FaStar />
-            </div>
-            <h4>Average Rating</h4>
-            <h3>{stats.averageRating.toFixed(1)}</h3>
-          </Card>
-        </Col>
-      </Row>
+            <span className="text-sm text-gray-500">3 hours ago</span>
+          </div>
+        </div>
+      </div>
 
       {/* Charts */}
       <Row className="g-4">
@@ -172,6 +184,6 @@ function Dashboard() {
       </Row>
     </div>
   );
-}
+};
 
 export default Dashboard; 

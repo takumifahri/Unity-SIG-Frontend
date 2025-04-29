@@ -1,66 +1,40 @@
 import React from 'react';
-import { Container, Row, Col, Nav } from 'react-bootstrap';
-import { Link, useNavigate, Outlet } from 'react-router-dom';
-import { FaHome, FaUsers, FaTshirt, FaFabric, FaList, FaMap, FaSignOutAlt } from 'react-icons/fa';
+import { Outlet, Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import './AdminLayout.css';
+import AdminSidebar from './AdminSidebar';
 
-function AdminLayout() {
-  const navigate = useNavigate();
-  const { Logout, user } = useAuth();
+const AdminLayout = () => {
+    const { isAuth, user } = useAuth();
 
-  const handleLogout = () => {
-    Logout();
-    navigate('/login');
-  };
-
-  // Protect admin routes
-  React.useEffect(() => {
-    if (!user || user.role !== 'admin') {
-      navigate('/login');
+    // Redirect if not logged in or not an admin
+    if (!isAuth() || user?.role !== 'admin') {
+        return <Navigate to="/login" replace />;
     }
-  }, [user, navigate]);
 
-  return (
-    <div className="admin-layout">
-      {/* Sidebar */}
-      <div className="admin-sidebar">
-        <div className="sidebar-header">
-          <h3>Admin Panel</h3>
+    return (
+        <div className="flex h-screen bg-gray-100">
+            {/* Sidebar */}
+            <AdminSidebar />
+
+            {/* Main Content */}
+            <div className="flex-1 overflow-auto">
+                {/* Top Navigation */}
+                <nav className="bg-white shadow-sm px-6 py-3">
+                    <div className="flex justify-between items-center">
+                        <h1 className="text-xl font-semibold text-gray-800">Admin Dashboard</h1>
+                        <div className="flex items-center space-x-4">
+                            <span className="text-gray-600">{user?.email}</span>
+                        </div>
+                    </div>
+                </nav>
+
+                {/* Page Content */}
+                <main className="p-6">
+                    <Outlet />
+                </main>
+            </div>
         </div>
-        <Nav className="flex-column">
-          <Nav.Link as={Link} to="/admin/dashboard">
-            <FaHome /> Dashboard
-          </Nav.Link>
-          <Nav.Link as={Link} to="/admin/users">
-            <FaUsers /> Manajemen User
-          </Nav.Link>
-          <Nav.Link as={Link} to="/admin/catalog">
-            <FaTshirt /> Katalog
-          </Nav.Link>
-          <Nav.Link as={Link} to="/admin/materials">
-            <FaFabric /> Bahan Kain
-          </Nav.Link>
-          <Nav.Link as={Link} to="/admin/categories">
-            <FaList /> Kategori
-          </Nav.Link>
-          <Nav.Link as={Link} to="/admin/map">
-            <FaMap /> Peta QGIS
-          </Nav.Link>
-          <Nav.Link onClick={handleLogout} className="mt-auto">
-            <FaSignOutAlt /> Logout
-          </Nav.Link>
-        </Nav>
-      </div>
-
-      {/* Main Content */}
-      <div className="admin-content">
-        <Container fluid>
-          <Outlet />
-        </Container>
-      </div>
-    </div>
-  );
-}
+    );
+};
 
 export default AdminLayout; 

@@ -23,8 +23,9 @@ import Catalog from './pages/Catalog';
 import Register from './pages/Register';
 import About from './pages/About';
 import Galeri from './pages/Galeri';
-// import AdminLayout from './components/admin/AdminLayout';
-// import Dashboard
+import AdminLayout from './components/admin/AdminLayout';
+import Dashboard from './pages/admin/Dashboard';
+
 function App() {
   return (
     <AuthProvider>
@@ -36,6 +37,13 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               
+              {/* Admin Routes */}
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<Dashboard />} />
+                <Route path="dashboard" element={<Dashboard />} />
+                {/* Add other admin routes here */}
+              </Route>
+
               {/* Route lainnya dengan Layout (Navbar dan Footer) */}
               <Route path="/" element={<Layout />}>
                 <Route index element={<Home />} />
@@ -54,8 +62,6 @@ function App() {
                 <Route path="kontak" element={<Kontak />} />
                 <Route path="lokasi" element={<Lokasi />} />
               </Route>
-
-
             </Routes>
           </Router>
         </ReviewProvider>
@@ -69,7 +75,7 @@ function Layout() {
   return (
     <>
       <Navbar />
-      <Outlet /> {/* This replaces the nested Routes component */}
+      <Outlet />
       <Footer />
     </>
   );
