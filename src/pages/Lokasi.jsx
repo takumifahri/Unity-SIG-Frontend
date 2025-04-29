@@ -1,58 +1,62 @@
-import React from 'react';
-import { Container, Row, Col, Card } from 'react-bootstrap';
+import React, { useState } from 'react';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import MapComponent from '../components/MapComponent';
+import '../styles/MapComponent.css';
 
-function Lokasi() {
+const Lokasi = () => {
+  // State untuk menyimpan data input
+  const [namaAlamat, setNamaAlamat] = useState('');
+  const [nomorTelepon, setNomorTelepon] = useState('');
+  const [alamatLengkap, setAlamatLengkap] = useState('');
+  // State untuk koordinat dan hasil geocoding
+  const [position, setPosition] = useState(null);
+  const [address, setAddress] = useState('');
+
+  // Komponen pembantu untuk menangani klik pada peta
+  const MapClickHandler = () => {
+    useMapEvents({
+      click(e) {
+        const { lat, lng } = e.latlng;
+        setPosition(e.latlng);
+        // Lakukan reverse geocoding via Nominatim (OSM)
+        fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
+        )
+          .then((res) => res.json())
+          .then((data) => {
+            if (data && data.display_name) {
+              setAddress(data.display_name);
+            }
+          })
+          .catch((error) => console.error('Error geocoding:', error));
+      },
+    });
+    return null;
+  };
+
+  // Handler saat form disubmit
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const dataDikirim = {
+      namaAlamat,
+      nomorTelepon,
+      alamatLengkap,
+      latitude: position ? position.lat : null,
+      longitude: position ? position.lng : null,
+      address, // hasil reverse geocoding
+    };
+    console.log('Data dikirim:', dataDikirim);
+    // TODO: kirim data ke server atau proses selanjutnya
+  };
+
   return (
-    <Container className="mt-5 pt-5">
-      <Row className="mb-5">
-        <Col>
-          <h2 className="text-center">Lokasi Kami</h2>
-        </Col>
-      </Row>
+    <div className="max-w-md mx-auto p-4">
+      <h2 className="text-xl font-bold mb-4">Lokasi User</h2>
       
-      <Row>
-        <Col md={6} className="mb-4">
-          <Card>
-            <Card.Body>
-              <h4>Alamat</h4>
-              <p>
-                Jl. Contoh No. 123<br />
-                Kota, Provinsi<br />
-                Kode Pos: 12345
-              </p>
-              <h4>Kontak</h4>
-              <p>
-                Telepon: (021) 1234-5678<br />
-                WhatsApp: +62 812-3456-7890<br />
-                Email: info@konveksi.com
-              </p>
-              <h4>Jam Operasional</h4>
-              <p>
-                Senin - Jumat: 08.00 - 17.00<br />
-                Sabtu: 08.00 - 15.00<br />
-                Minggu: Tutup
-              </p>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={6}>
-          <div className="map-container">
-            {/* Ganti src dengan embed map dari Google Maps Anda */}
-            <iframe
-              src="https://maps.app.goo.gl/78N5TvuJhddxQn8EA"
-              width="100%"
-              height="450"
-              style={{ border: 0 }}
-              allowFullScreen=""
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              title="Lokasi Konveksi"
-            ></iframe>
-          </div>
-        </Col>
-      </Row>
-    </Container>
+      <MapComponent />
+    </div>
   );
-}
+};
 
-export default Lokasi; 
+export default Lokasi;

@@ -18,6 +18,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './styles/Footer.css';
 import { AuthProvider } from './context/AuthContext';
 import Kontak from './pages/Kontak';
+import Lokasi from './pages/Lokasi';
 
 function App() {
   return (
@@ -42,6 +43,7 @@ function App() {
                 <Route path="checkout" element={<Checkout />} />
                 <Route path="custom-order" element={<CustomOrder />} />
                 <Route path="kontak" element={<Kontak />} />
+                <Route path="lokasi" element={<Lokasi />} />
               </Route>
             </Routes>
           </Router>

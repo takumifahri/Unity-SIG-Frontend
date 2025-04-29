@@ -1,0 +1,24 @@
+/* Posisikan map container agar legend absolut relatif pada container peta */
+.leaflet-container {
+    width: 100%;
+    height: 500px;
+    position: relative;
+  }
+  
+  /* Kartu legend di pojok kiri bawah */
+  .legend-card {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    z-index: 1000;
+  }
+  
+  /* Kotak warna di legend */
+  .legend-box {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    margin-right: 6px;
+    border: 1px solid #555;
+  }
+  
