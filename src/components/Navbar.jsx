@@ -58,7 +58,7 @@ function NavigationBar() {
           <div className="flex items-center space-x-4">
             {isAuth() ? (
               <>
-                <Link to="/cart" className="text-white">
+                <Link to="/cart" className="text-white flex">
                   <FaShoppingCart className="h-6 w-6" />
                   {cartCount > 0 && (
                     <span className="cart-badge">{cartCount}</span>

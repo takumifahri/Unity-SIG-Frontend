@@ -19,6 +19,7 @@ import './styles/Footer.css';
 import { AuthProvider } from './context/AuthContext';
 import Kontak from './pages/Kontak';
 import Catalog from './pages/Catalog';
+import Register from './pages/Register';
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
             <Routes>
               {/* Route untuk Login tanpa Navbar dan Footer */}
               <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
 
               {/* Route lainnya dengan Layout (Navbar dan Footer) */}
               <Route path="/" element={<Layout />}>
