@@ -14,33 +14,16 @@ import Checkout from './pages/Checkout';
 import Akun from './pages/Akun';
 import Login from './pages/Login';
 import CustomOrder from './pages/CustomOrder';
+import TentangKami from './pages/TentangKami';
+import Galeri from './pages/Galeri';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './styles/Footer.css';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Kontak from './pages/Kontak';
-
-// Layout Components
-import AdminLayout from './components/admin/AdminLayout';
-import Layout from './components/Layout';
-
-// Admin Pages
-import Dashboard from './pages/admin/Dashboard';
-import UserManagement from './pages/admin/UserManagement';
-import CatalogManagement from './pages/admin/CatalogManagement';
-import MaterialManagement from './pages/admin/MaterialManagement';
-import CategoryManagement from './pages/admin/CategoryManagement';
-import MapIntegration from './pages/admin/MapIntegration';
-
-// Protected Route Component
-const ProtectedRoute = ({ children }) => {
-  const { isAuth, user } = useAuth();
-  
-  if (!isAuth() || user?.role !== 'admin') {
-    return <Navigate to="/login" />;
-  }
-  
-  return children;
-};
+import Lokasi from './pages/Lokasi';
+import Catalog from './pages/Catalog';
+import Register from './pages/Register';
+import About from './pages/About';
 
 function App() {
   return (
@@ -49,24 +32,18 @@ function App() {
         <ReviewProvider>
           <Router>
             <Routes>
-              {/* Admin Routes */}
-              <Route path="/admin" element={
-                <ProtectedRoute>
-                  <AdminLayout />
-                </ProtectedRoute>
-              }>
-                <Route index element={<Dashboard />} />
-                <Route path="dashboard" element={<Dashboard />} />
-                <Route path="users" element={<UserManagement />} />
-                <Route path="catalog" element={<CatalogManagement />} />
-                <Route path="materials" element={<MaterialManagement />} />
-                <Route path="categories" element={<CategoryManagement />} />
-                <Route path="map" element={<MapIntegration />} />
-              </Route>
-
-              {/* Public Routes */}
+              {/* Routes without Navbar and Footer */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/about" element={<About />} />
+              
+              {/* Routes with Layout (Navbar and Footer) */}
               <Route path="/" element={<Layout />}>
                 <Route index element={<Home />} />
+                <Route path="akun" element={<Akun />} />
+                <Route path="catalog" element={<Catalog />} />
+                <Route path="tentang-kami" element={<TentangKami />} />
+                <Route path="galeri" element={<Galeri />} />
                 <Route path="contact" element={<ContactUs />} />
                 <Route path="category/:categoryId" element={<CategoryPage />} />
                 <Route path="product/:productId" element={<ProductDetail />} />
@@ -77,9 +54,6 @@ function App() {
                 <Route path="custom-order" element={<CustomOrder />} />
                 <Route path="kontak" element={<Kontak />} />
               </Route>
-
-              {/* Auth Routes */}
-              <Route path="/login" element={<Login />} />
             </Routes>
           </Router>
         </ReviewProvider>
@@ -93,7 +67,7 @@ function Layout() {
   return (
     <>
       <Navbar />
-      <Outlet /> {/* This replaces the nested Routes component */}
+      <Outlet />
       <Footer />
     </>
   );
