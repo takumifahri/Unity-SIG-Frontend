@@ -18,13 +18,12 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './styles/Footer.css';
 import { AuthProvider } from './context/AuthContext';
 import Kontak from './pages/Kontak';
-<<<<<<< HEAD
 import Lokasi from './pages/Lokasi';
-=======
 import Catalog from './pages/Catalog';
 import Register from './pages/Register';
->>>>>>> f7b4879a175753f9f005d51f6052249aff43f19c
-
+import About from './pages/About';
+// import AdminLayout from './components/admin/AdminLayout';
+// import Dashboard
 function App() {
   return (
     <AuthProvider>
@@ -35,7 +34,8 @@ function App() {
               {/* Route untuk Login tanpa Navbar dan Footer */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-
+              <Route path="/about" element={<About />} />
+              
               {/* Route lainnya dengan Layout (Navbar dan Footer) */}
               <Route path="/" element={<Layout />}>
                 <Route index element={<Home />} />
@@ -53,6 +53,8 @@ function App() {
                 <Route path="kontak" element={<Kontak />} />
                 <Route path="lokasi" element={<Lokasi />} />
               </Route>
+
+
             </Routes>
           </Router>
         </ReviewProvider>

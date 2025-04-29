@@ -33,7 +33,40 @@ function ProductDetail() {
     fetchProduct();
   }, [productId]);
 
-  if (!product) return <div>Loading...</div>;
+  if (!product) return (
+    <Container className="my-5">
+      <Row>
+        <Col md={6}>
+          <div className="placeholder-glow">
+            <div className="placeholder" style={{ width: '100%', height: '300px', backgroundColor: '#e0e0e0' }}></div>
+          </div>
+        </Col>
+        <Col md={6}>
+          <div className="placeholder-glow">
+            <h2 className="placeholder" style={{ width: '50%', height: '2rem', backgroundColor: '#e0e0e0' }}></h2>
+            <h4 className="placeholder mt-3" style={{ width: '30%', height: '1.5rem', backgroundColor: '#e0e0e0' }}></h4>
+            <div className="mt-4">
+              <h5 className="placeholder" style={{ width: '20%', height: '1rem', backgroundColor: '#e0e0e0' }}></h5>
+              <div className="d-flex gap-2 mt-2">
+                <div className="placeholder" style={{ width: '50px', height: '30px', backgroundColor: '#e0e0e0' }}></div>
+                <div className="placeholder" style={{ width: '50px', height: '30px', backgroundColor: '#e0e0e0' }}></div>
+              </div>
+            </div>
+            <div className="mt-4">
+              <h5 className="placeholder" style={{ width: '20%', height: '1rem', backgroundColor: '#e0e0e0' }}></h5>
+              <div className="d-flex gap-2 mt-2">
+                <div className="placeholder" style={{ width: '50px', height: '30px', backgroundColor: '#e0e0e0' }}></div>
+                <div className="placeholder" style={{ width: '50px', height: '30px', backgroundColor: '#e0e0e0' }}></div>
+              </div>
+            </div>
+            <div className="mt-4">
+              <div className="placeholder" style={{ width: '100%', height: '40px', backgroundColor: '#e0e0e0' }}></div>
+            </div>
+          </div>
+        </Col>
+      </Row>
+    </Container>
+  );
 
   const handleAddToCart = () => {
     try {

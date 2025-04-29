@@ -58,11 +58,13 @@ function NavigationBar() {
           <div className="flex items-center space-x-4">
             {isAuth() ? (
               <>
-                <Link to="/cart" className="text-white flex">
-                  <FaShoppingCart className="h-6 w-6" />
-                  {cartCount > 0 && (
-                    <span className="cart-badge">{cartCount}</span>
-                  )}
+                <Link to="/cart" className="text-white relative flex">
+                    <FaShoppingCart className="h-6 w-6" />
+                    {cartCount > 0 && (
+                    <span className="absolute -top-3 -right-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">
+                      {cartCount}
+                    </span>
+                    )}
                 </Link>
                 <Link to="/akun" className="text-white">
                   <i className="fas fa-user h-6 w-6"></i>
@@ -134,7 +136,7 @@ function NavigationBar() {
                 </li>
                 <li>
                   <Link
-                    to="/tentang-kami"
+                    to="/about"
                     className="font-medium hover:text-[#7D5A50] transition-colors no-underline  text-black"
                   >
                     Tentang Kami

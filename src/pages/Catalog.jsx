@@ -2,6 +2,7 @@ import axios from "axios"
 import { useEffect, useState } from "react"
 import Pagination from '@mui/material/Pagination';
 import Stack from '@mui/material/Stack';
+import { Link } from "react-router-dom";
 export default function Catalog(){
     const [products, setProducts] = useState([])
     const [loading, setLoading] = useState(true)
@@ -113,20 +114,23 @@ export default function Catalog(){
 
 
                     {/* Product Grid */}
+                    
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
                     {products.length > 0 ? (
                         products.map((product) => (
-                        <div key={product.id} className="text-left border rounded-xl overflow-hidden shadow-sm">
-                            <img
-                            src={`${process.env.REACT_APP_API_URL}/${product.gambar}`}
-                            alt={product.nama_katalog}
-                            className="w-full h-72 object-cover"
-                            />
-                            <div className="p-4">
-                            <h2 className="font-semibold mt-2 text-lg">{product.nama_katalog}</h2>
-                            <p className="text-gray-600 mt-2">Rp{product.price.toLocaleString("id-ID")}</p>
+                       <Link to={`/product/${product.id}`} key={product.id} className="no-underline text-black">
+                            <div key={product.id} className="text-left border rounded-xl overflow-hidden shadow-sm">
+                                <img
+                                src={`${process.env.REACT_APP_API_URL}/${product.gambar}`}
+                                alt={product.nama_katalog}
+                                className="w-full h-72 object-cover"
+                                />
+                                <div className="p-4">
+                                <h2 className="font-semibold mt-2 text-lg">{product.nama_katalog}</h2>
+                                <p className="text-gray-600 mt-2">Rp{product.price.toLocaleString("id-ID")}</p>
+                                </div>
                             </div>
-                        </div>
+                        </Link>
                         ))
                     ) : (
                         <p className="col-span-4 text-center text-gray-500">Produk tidak ditemukan.</p>

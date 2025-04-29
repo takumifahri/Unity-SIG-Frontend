@@ -143,6 +143,109 @@ function Beranda() {
         )}
       </Container>
 
+      {/* Kategori Produk */}
+      <Container className="my-5">
+        <h2 className="text-center mb-4">New Arrivals!</h2>
+        {loading ? (
+          <Row>
+            {Array.from({ length: 8 }).map((_, index) => (
+              <Col md={3} sm={6} className="mb-4" key={index}>
+                <Card className="h-100">
+                  <div className="skeleton-image" style={{ height: '400px', backgroundColor: '#e0e0e0' }}></div>
+                  <Card.Body>
+                    <div className="skeleton-text" style={{ height: '20px', width: '70%', backgroundColor: '#e0e0e0', margin: '10px auto' }}></div>
+                    <div className="skeleton-text" style={{ height: '15px', width: '50%', backgroundColor: '#e0e0e0', margin: '10px auto' }}></div>
+                  </Card.Body>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        ) : items.length === 0 ? (
+          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+            <img src="https://thaka.bing.com/th/id/OIP.wTWyveIMu3qLvi5h96G8AAHaFj?w=241&h=181&c=7&r=0&o=5&pid=1.7" alt="maintenance" />
+            <h1 className="text-2xl font-bold mb-4">Website Sedang Maintenance</h1>
+            <p className="text-gray-600">Mohon maaf atas ketidaknyamanannya. Silakan coba lagi nanti.</p>
+          </div>
+        ) : (
+          <Row>
+            {items.map((category) => (
+              <Col md={3} sm={6} className="mb-4" key={category.id}>
+                <Card className="h-100 product-card">
+                  <div className="position-relative">
+                    <Card.Img
+                      variant="top"
+                      src={category.image}
+                      className="category-image"
+                      style={{ height: '400px', objectFit: 'cover' }}
+                    />
+                    <div className="product-overlay">
+                      <Link to={`/product/${category.id}`} className="btn btn-light me-2">View All</Link>
+                      <Button variant="light" onClick={() => handleQuickView(category)}>Quick View</Button>
+                    </div>
+                  </div>
+                  <Card.Body>
+                    <Card.Title className="text-center">{category.title}</Card.Title>
+                    <Card.Text className="text-center text-muted">{category.description}</Card.Text>
+                  </Card.Body>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        )}
+      </Container>
+
+      {/* Kategori Produk */}
+      <Container className="my-5">
+        <h2 className="text-center mb-4">Best Seller!</h2>
+        {loading ? (
+          <Row>
+            {Array.from({ length: 8 }).map((_, index) => (
+              <Col md={3} sm={6} className="mb-4" key={index}>
+                <Card className="h-100">
+                  <div className="skeleton-image" style={{ height: '400px', backgroundColor: '#e0e0e0' }}></div>
+                  <Card.Body>
+                    <div className="skeleton-text" style={{ height: '20px', width: '70%', backgroundColor: '#e0e0e0', margin: '10px auto' }}></div>
+                    <div className="skeleton-text" style={{ height: '15px', width: '50%', backgroundColor: '#e0e0e0', margin: '10px auto' }}></div>
+                  </Card.Body>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        ) : items.length === 0 ? (
+          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+            <img src="https://thaka.bing.com/th/id/OIP.wTWyveIMu3qLvi5h96G8AAHaFj?w=241&h=181&c=7&r=0&o=5&pid=1.7" alt="maintenance" />
+            <h1 className="text-2xl font-bold mb-4">Website Sedang Maintenance</h1>
+            <p className="text-gray-600">Mohon maaf atas ketidaknyamanannya. Silakan coba lagi nanti.</p>
+          </div>
+        ) : (
+          <Row>
+            {items.map((category) => (
+              <Col md={3} sm={6} className="mb-4" key={category.id}>
+                <Card className="h-100 product-card">
+                  <div className="position-relative">
+                    <Card.Img
+                      variant="top"
+                      src={category.image}
+                      className="category-image"
+                      style={{ height: '400px', objectFit: 'cover' }}
+                    />
+                    <div className="product-overlay">
+                      <Link to={`/product/${category.id}`} className="btn btn-light me-2">View All</Link>
+                      <Button variant="light" onClick={() => handleQuickView(category)}>Quick View</Button>
+                    </div>
+                  </div>
+                  <Card.Body>
+                    <Card.Title className="text-center">{category.title}</Card.Title>
+                    <Card.Text className="text-center text-muted">{category.description}</Card.Text>
+                  </Card.Body>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        )}
+      </Container>
+
+
       {/* Modal Quick View */}
       <Modal show={showQuickView} onHide={() => setShowQuickView(false)} size="lg" centered>
         <Modal.Header closeButton>
