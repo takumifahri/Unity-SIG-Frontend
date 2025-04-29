@@ -1,67 +1,85 @@
-import React from 'react';
-import { Container, Row, Col } from 'react-bootstrap';
+// import React from 'react';
+// import { Container, Row, Col } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import { FaInstagram, FaWhatsapp, FaEnvelope } from 'react-icons/fa';
+// import { FaInstagram, FaWhatsapp, FaEnvelope } from 'react-icons/fa';
+import { MessageCircle, Phone } from "lucide-react"
 
 function Footer() {
   return (
-    <footer className="bg-dark text-light py-4 mt-auto">
-      <Container>
-        <Row className="justify-content-between">
-          <Col md={4} className="mb-4 mb-md-0">
-            <h5>JR Konveksi</h5>
-            <p className="mb-2">
-              Konveksi terpercaya dengan kualitas terbaik untuk kebutuhan pakaian Anda.
-            </p>
-            <div className="social-links">
-              <a href="" target="_blank" rel="noopener noreferrer" className="text-light me-3">
-                <FaInstagram size={24} />
-              </a>
-              <a href="" target="_blank" rel="noopener noreferrer" className="text-light me-3">
-                <FaWhatsapp size={24} />
-              </a>
-              <a href="" className="text-light">
-                <FaEnvelope size={24} />
-              </a>
-            </div>
-          </Col>
-          
-          <Col md={4} className="mb-4 mb-md-0">
-            <h5>Quick Links</h5>
-            <ul className="list-unstyled">
-              <li className="mb-2">
-                <Link to="/" className="text-light text-decoration-none">Home</Link>
+    <footer className="bg-[#E5D3B7] pt-16 pb-8">
+    <div className="container mx-auto px-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {/* Logo and Description */}
+        <div className="md:col-span-1">
+          <Link href="/" className="text-[#7D5A50] font-script text-2xl flex items-center mb-4">
+            <span className="text-3xl mr-1">JR</span>
+            <span className="text-sm mt-2">Konveksi</span>
+          </Link>
+          <p className="text-gray-700 mb-6">
+            Menawarkan berbagai produk pakaian berkualitas dengan desain modern dan bahan pilihan, cocok untuk
+            kebutuhan sehari-hari, formal, maupun pesanan.
+          </p>
+          <div className="flex space-x-3">
+            <Link href="/chat" className="bg-white p-2 rounded-full">
+              <MessageCircle className="h-5 w-5 text-[#7D5A50]" />
+            </Link>
+            <Link href="/call" className="bg-white p-2 rounded-full">
+              <Phone className="h-5 w-5 text-[#7D5A50]" />
+            </Link>
+          </div>
+        </div>
+
+        {/* Links */}
+        <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div>
+            <h3 className="font-bold text-lg mb-4">Terbaru dan Terlaris</h3>
+            <ul className="space-y-2">
+              <li>
+                <Link href="/new-arrival" className="text-gray-700 hover:text-[#7D5A50]">
+                  New Arrival
+                </Link>
               </li>
-              <li className="mb-2">
-                <Link to="/category/gamis" className="text-light text-decoration-none">Gamis Series</Link>
-              </li>
-              <li className="mb-2">
-                <Link to="/category/clothes" className="text-light text-decoration-none">Clothes Series</Link>
-              </li>
-              <li className="mb-2">
-                <Link to="/contact" className="text-light text-decoration-none">Contact Us</Link>
+              <li>
+                <Link href="/best-seller" className="text-gray-700 hover:text-[#7D5A50]">
+                  Best Seller
+                </Link>
               </li>
             </ul>
-          </Col>
-          
-          <Col md={4}>
-            <h5>Contact Info</h5>
-            <p className="mb-1">Jl. Raya Dramaga, Bogor</p>
-            <p className="mb-1">WhatsApp: +62 812-XXXX-XXXX</p>
-            <p className="mb-1">Email: JR@konveksi.com</p>
-            <p>Jam Operasional: Senin - Sabtu (08.00 - 17.00)</p>
-          </Col>
-        </Row>
-        
-        <hr className="my-4" />
-        
-        <Row>
-          <Col className="text-center">
-            <p className="mb-0">&copy; {new Date().getFullYear()} JR Konveksi. All rights reserved.</p>
-          </Col>
-        </Row>
-      </Container>
-    </footer>
+          </div>
+
+          <div>
+            <h3 className="font-bold text-lg mb-4">Toko</h3>
+            <ul className="space-y-2">
+              <li>
+                <Link href="/katalog" className="text-gray-700 hover:text-[#7D5A50]">
+                  Katalog
+                </Link>
+              </li>
+              <li>
+                <Link href="/pemesanan" className="text-gray-700 hover:text-[#7D5A50]">
+                  Pemesanan
+                </Link>
+              </li>
+              <li>
+                <Link href="/galeri" className="text-gray-700 hover:text-[#7D5A50]">
+                  Galeri
+                </Link>
+              </li>
+              <li>
+                <Link href="/tentang-kami" className="text-gray-700 hover:text-[#7D5A50]">
+                  Tentang Kami
+                </Link>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t border-[#7D5A50]/20 mt-12 pt-6 text-center text-gray-600">
+        <p>&copy; {new Date().getFullYear()} JR Konveksi. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
   );
 }
 
