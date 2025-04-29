@@ -35,11 +35,11 @@ function App() {
               {/* Routes without Navbar and Footer */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              <Route path="/about" element={<About />} />
               
               {/* Routes with Layout (Navbar and Footer) */}
               <Route path="/" element={<Layout />}>
                 <Route index element={<Home />} />
+                <Route path="about" element={<About />} />
                 <Route path="akun" element={<Akun />} />
                 <Route path="catalog" element={<Catalog />} />
                 <Route path="tentang-kami" element={<TentangKami />} />
