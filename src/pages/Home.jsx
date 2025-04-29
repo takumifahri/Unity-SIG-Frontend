@@ -4,13 +4,12 @@ import { Link } from 'react-router-dom';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import axios from 'axios';
 import Swal from 'sweetalert2';
-import { MoonLoader } from 'react-spinners';
 function Beranda() {
   const [showQuickView, setShowQuickView] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  const [error, setError] = useState(null);
   const getCatalog = async () => {
     try {
       const resp = await axios.get(`${process.env.REACT_APP_API_URL}/api/catalog`, {
@@ -54,13 +53,7 @@ function Beranda() {
   useEffect(() => {
     getCatalog();
   }, []);
-  if (loading) {
-    return (
-      <Container className="my-5 d-flex justify-content-center align-items-center" style={{ height: '50vh' }}>
-        <MoonLoader color="#000000" size={150} />
-      </Container>
-    );
-  }
+ 
   const handleQuickView = (category) => {
     setSelectedProduct(category);
     setShowQuickView(true);
@@ -69,8 +62,8 @@ function Beranda() {
 
   return (
     <>
-      {/* Hero Section */}
-      <div className="hero-carousel">
+       {/* Hero Section */}
+       <div className="hero-carousel">
         <Carousel
           indicators={true}
           interval={5000}
@@ -79,14 +72,18 @@ function Beranda() {
           nextIcon={<div className="carousel-nav-btn next"><FaChevronRight /></div>}
         >
           <Carousel.Item>
-            <img className="d-block w-100" src="/beranda/jahit.jpeg" alt="First slide" />
+          <div className="carousel-image-wrapper">
+              <img className="d-block w-100" src="/beranda/jahit.jpeg" alt="First slide" style={{ objectFit: 'cover', height: '500px' }} />
+            </div>
             <Carousel.Caption className="text-end carousel-content">
               <h1 className="display-4 fw-bold">PREMIUM SERIES</h1>
               <p className="lead">#KONVEKSIKEREN</p>
             </Carousel.Caption>
           </Carousel.Item>
           <Carousel.Item>
-            <img className="d-block w-100" src="/beranda/jahit.jpeg" alt="Second slide" />
+            <div className="carousel-image-wrapper">
+              <img className="d-block w-100" src="/beranda/jahit2.jpeg" alt="Second slide" style={{ objectFit: 'cover', height: '500px' }} />
+            </div>
             <Carousel.Caption className="text-end carousel-content">
               <h1 className="display-4 fw-bold">ELEGANT COLLECTION</h1>
               <p className="lead">#KONVEKSITOP</p>
@@ -98,11 +95,29 @@ function Beranda() {
       {/* Kategori Produk */}
       <Container className="my-5">
         <h2 className="text-center mb-4">Our Collections</h2>
-        <Row>
-          {loading ? (
-            <p className="text-center">Loading...</p>
-          ) : (
-            items.map((category) => (
+        {loading ? (
+          <Row>
+            {Array.from({ length: 8 }).map((_, index) => (
+              <Col md={3} sm={6} className="mb-4" key={index}>
+                <Card className="h-100">
+                  <div className="skeleton-image" style={{ height: '400px', backgroundColor: '#e0e0e0' }}></div>
+                  <Card.Body>
+                    <div className="skeleton-text" style={{ height: '20px', width: '70%', backgroundColor: '#e0e0e0', margin: '10px auto' }}></div>
+                    <div className="skeleton-text" style={{ height: '15px', width: '50%', backgroundColor: '#e0e0e0', margin: '10px auto' }}></div>
+                  </Card.Body>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        ) : items.length === 0 ? (
+          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+            <img src="https://thaka.bing.com/th/id/OIP.wTWyveIMu3qLvi5h96G8AAHaFj?w=241&h=181&c=7&r=0&o=5&pid=1.7" alt="maintenance" />
+            <h1 className="text-2xl font-bold mb-4">Website Sedang Maintenance</h1>
+            <p className="text-gray-600">Mohon maaf atas ketidaknyamanannya. Silakan coba lagi nanti.</p>
+          </div>
+        ) : (
+          <Row>
+            {items.map((category) => (
               <Col md={3} sm={6} className="mb-4" key={category.id}>
                 <Card className="h-100 product-card">
                   <div className="position-relative">
@@ -123,9 +138,9 @@ function Beranda() {
                   </Card.Body>
                 </Card>
               </Col>
-            ))
-          )}
-        </Row>
+            ))}
+          </Row>
+        )}
       </Container>
 
       {/* Modal Quick View */}

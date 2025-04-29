@@ -623,7 +623,7 @@ function Akun() {
                       Edit Foto
                     </Button>
                   </div> */}
-                  <h5 className="mt-3 mb-0">
+                  <h5 className="flex justify-center  ">
                     {userInfo.nama}
                     {userInfo.role === 'developer' && <MdOutlineVerifiedUser className="text-danger" size={20} />}
                     {userInfo.role === 'user' && <BiSolidFaceMask className="ms-2 text-primary"  size={20} />}

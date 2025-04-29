@@ -18,7 +18,11 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './styles/Footer.css';
 import { AuthProvider } from './context/AuthContext';
 import Kontak from './pages/Kontak';
+<<<<<<< HEAD
 import Lokasi from './pages/Lokasi';
+=======
+import Catalog from './pages/Catalog';
+>>>>>>> f7b4879a175753f9f005d51f6052249aff43f19c
 
 function App() {
   return (
@@ -34,6 +38,8 @@ function App() {
               <Route path="/" element={<Layout />}>
                 <Route index element={<Home />} />
                 <Route path="akun" element={<Akun />} />
+                <Route path="catalog" element={<Catalog />} />
+
                 <Route path="contact" element={<ContactUs />} />
                 <Route path="Collection" element={<CategoryPage />} />
                 <Route path="category/:categoryId" element={<CategoryPage />} />
