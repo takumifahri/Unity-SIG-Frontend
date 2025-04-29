@@ -22,6 +22,7 @@ import Lokasi from './pages/Lokasi';
 import Catalog from './pages/Catalog';
 import Register from './pages/Register';
 import About from './pages/About';
+import Galeri from './pages/Galeri';
 // import AdminLayout from './components/admin/AdminLayout';
 // import Dashboard
 function App() {
@@ -34,14 +35,14 @@ function App() {
               {/* Route untuk Login tanpa Navbar dan Footer */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              <Route path="/about" element={<About />} />
               
               {/* Route lainnya dengan Layout (Navbar dan Footer) */}
               <Route path="/" element={<Layout />}>
                 <Route index element={<Home />} />
+                <Route path="about" element={<About />} />
                 <Route path="akun" element={<Akun />} />
                 <Route path="catalog" element={<Catalog />} />
-
+                <Route path="galeri" element={<Galeri />} />
                 <Route path="contact" element={<ContactUs />} />
                 <Route path="Collection" element={<CategoryPage />} />
                 <Route path="category/:categoryId" element={<CategoryPage />} />
