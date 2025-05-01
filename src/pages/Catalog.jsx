@@ -101,16 +101,30 @@ export default function Catalog(){
                         <h1 className="text-2xl font-bold md:absolute md:left-1/2 md:-translate-x-1/2">Pakaian</h1>
                         <div className="mt-4 md:mt-0 md:ml-auto">
                             <select
-                            value={selectedSort}
-                            onChange={(e) => setSelectedSort(e.target.value)}
-                            className="border rounded-full py-2 px-4"
+                                value={selectedSort}
+                                onChange={(e) => {
+                                    const sortValue = e.target.value;
+                                    setSelectedSort(sortValue);
+                                    if (sortValue === "termurah") {
+                                        setProducts((prevProducts) =>
+                                            [...prevProducts].sort((a, b) => a.price - b.price)
+                                        );
+                                    } else if (sortValue === "termahal") {
+                                        setProducts((prevProducts) =>
+                                            [...prevProducts].sort((a, b) => b.price - a.price)
+                                        );
+                                    } else {
+                                        fetchProducts(); // Re-fetch products to reset sorting
+                                    }
+                                }}
+                                className="border rounded-full py-2 px-4"
                             >
-                            <option value="default">Urutkan</option>
-                            <option value="termurah">Termurah</option>
-                            <option value="termahal">Termahal</option>
+                                <option value="default">Urutkan</option>
+                                <option value="termurah">Termurah</option>
+                                <option value="termahal">Termahal</option>
                             </select>
                         </div>
-                        </div>
+                    </div>
 
 
                     {/* Product Grid */}
