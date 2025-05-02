@@ -14,6 +14,8 @@ import Checkout from './pages/Checkout';
 import Akun from './pages/Akun';
 import Login from './pages/Login';
 import CustomOrder from './pages/CustomOrder';
+import TentangKami from './pages/TentangKami';
+import Galeri from './pages/Galeri';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './styles/Footer.css';
 import { AuthProvider } from './context/AuthContext';
@@ -22,9 +24,6 @@ import Lokasi from './pages/Lokasi';
 import Catalog from './pages/Catalog';
 import Register from './pages/Register';
 import About from './pages/About';
-import Galeri from './pages/Galeri';
-import AdminLayout from './components/admin/AdminLayout';
-import Dashboard from './pages/admin/Dashboard';
 
 function App() {
   return (
@@ -33,23 +32,17 @@ function App() {
         <ReviewProvider>
           <Router>
             <Routes>
-              {/* Route untuk Login tanpa Navbar dan Footer */}
+              {/* Routes without Navbar and Footer */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               
-              {/* Admin Routes */}
-              <Route path="/admin" element={<AdminLayout />}>
-                <Route index element={<Dashboard />} />
-                <Route path="dashboard" element={<Dashboard />} />
-                {/* Add other admin routes here */}
-              </Route>
-
-              {/* Route lainnya dengan Layout (Navbar dan Footer) */}
+              {/* Routes with Layout (Navbar and Footer) */}
               <Route path="/" element={<Layout />}>
                 <Route index element={<Home />} />
                 <Route path="about" element={<About />} />
                 <Route path="akun" element={<Akun />} />
                 <Route path="catalog" element={<Catalog />} />
+                <Route path="tentang-kami" element={<TentangKami />} />
                 <Route path="galeri" element={<Galeri />} />
                 <Route path="contact" element={<ContactUs />} />
                 <Route path="Collection" element={<CategoryPage />} />
