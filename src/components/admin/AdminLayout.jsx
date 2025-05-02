@@ -7,7 +7,7 @@ const AdminLayout = () => {
     const { isAuth, user } = useAuth();
 
     // Redirect if not logged in or not an admin
-    if (!isAuth() || user?.role !== 'admin') {
+    if (!isAuth() || user.user?.role !== 'admin' || user.user?.role !== 'owner' || user.user?.role !== 'developer') {
         return <Navigate to="/login" replace />;
     }
 
