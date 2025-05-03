@@ -7,12 +7,13 @@ import Swal from 'sweetalert2';
 import { BiSolidFaceMask } from "react-icons/bi";
 import { FaCrown } from "react-icons/fa6";
 import { MdOutlineVerifiedUser } from "react-icons/md";
+
 function Akun() {
   const navigate = useNavigate();
   const { user, isAuth, Logout, token, loading } = useAuth();
   const [profileLoading, setProfileLoading] = useState(true);
-  const [imageError, setImageError] = useState(false);
-  const [imageUrl, setImageUrl] = useState("");
+  // const [imageError, setImageError] = useState(false);
+  // const [imageUrl, setImageUrl] = useState("");
   
   // Check if user is logged in and fetch data
   useEffect(() => {
