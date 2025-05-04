@@ -54,7 +54,7 @@ const Kontak = () => {
                     <div className="w-full h-64 bg-gray-200 mb-4 rounded-lg">
                         <iframe
                             title="JR Konveksi Location"
-                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3963.4721877565483!2d106.8061131!3d-6.5847463!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e69c5b3927dcbf3%3A0x500c5e5d2d5e0f0!2sJR%20Konveksi!5e0!3m2!1sen!2sid!4v1620120000000!5m2!1sen!2sid"
+                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d126875.13274175681!2d106.67647087919927!3d-6.413583848270743!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e69e9000b2ae0db%3A0x43461f59f5af9d27!2sJR%20Konveksi!5e0!3m2!1sen!2sid!4v1746321615003!5m2!1sen!2sid   "
                             width="100%"
                             height="100%"
                             style={{ border: 0 }}
@@ -66,7 +66,7 @@ const Kontak = () => {
                     
                     {/* Address */}
                     <p className="text-gray-600 text-sm mb-4">
-                        Jl. Lodaya II, RT.02/RW.06, Babakan, Kecamatan Bogor Tengah, Kota Bogor, Jawa Barat 16128, Indonesia.
+                        Jln. Haji Sulaiman Bedahan, Perumahan Griya Perigi Blk. B1 No.12 RT06, RW.08, KelBedahanKec, Kec. Sawangan, Kota Depok, Jawa Barat 16519
                     </p>
 
                     {/* WhatsApp Contact */}
@@ -76,10 +76,10 @@ const Kontak = () => {
                             href="https://wa.me/your-whatsapp-number"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center space-x-2 bg-[#7D5A50] text-white px-4 py-2 rounded-md hover:bg-[#6d4c42] transition-colors"
+                            className="inline-flex no-underline items-center space-x-2 bg-[#7D5A50] text-white px-4 py-2 rounded-md hover:bg-[#6d4c42] transition-colors"
                         >
                             <FaWhatsapp className="text-xl" />
-                            <span>WhatsApp</span>
+                            <span className=' no-underline'>WhatsApp</span>
                         </a>
                     </div>
                 </div>

@@ -7,12 +7,13 @@ import Swal from 'sweetalert2';
 import { BiSolidFaceMask } from "react-icons/bi";
 import { FaCrown } from "react-icons/fa6";
 import { MdOutlineVerifiedUser } from "react-icons/md";
+
 function Akun() {
   const navigate = useNavigate();
   const { user, isAuth, Logout, token, loading } = useAuth();
   const [profileLoading, setProfileLoading] = useState(true);
-  const [imageError, setImageError] = useState(false);
-  const [imageUrl, setImageUrl] = useState("");
+  // const [imageError, setImageError] = useState(false);
+  // const [imageUrl, setImageUrl] = useState("");
   
   // Check if user is logged in and fetch data
   useEffect(() => {
@@ -104,6 +105,9 @@ function Akun() {
         type: 'success',
         message: 'Foto profil berhasil diperbarui!'
       });
+
+      // Refresh the page
+      window.location.reload();
     } catch (error) {
       console.error("Error updating photo:", error);
       setFeedback({
@@ -253,6 +257,16 @@ function Akun() {
       if (token) {
         try {
           setOrdersLoading(true);
+          const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/order/history`, {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`
+            }
+          });
+
+          console.log("Order history response:", response.data.data);
+          setOrderHistory(response.data.data || []);
+
           // Example API call to fetch order history
           // const response = await axios.get(
           //   `${process.env.REACT_APP_API_URL}/api/orders/history`,
@@ -548,11 +562,54 @@ function Akun() {
   // Show loading while checking authentication or fetching profile
   if (loading || profileLoading) {
     return (
-      <Container className="py-5 text-center">
-        <div className="spinner-border" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
-        <p className="mt-3">Memuat informasi pengguna...</p>
+      <Container className="py-5">
+      <Row>
+        <Col md={3}>
+        <Card className="mb-4">
+          <Card.Body>
+          <div className="text-center mb-3">
+            <div
+            className="rounded-circle mx-auto my-3 bg-secondary bg-opacity-25 shimmer"
+            style={{ width: '100px', height: '100px' }}
+            ></div>
+            <h5
+            className="mt-3 shimmer shimmer-text"
+            style={{ width: '60%', margin: '10px auto', height: '20px' }}
+            ></h5>
+            <p
+            className="text-muted shimmer shimmer-text"
+            style={{ width: '80%', margin: '10px auto', height: '15px' }}
+            ></p>
+          </div>
+          <Nav variant="pills" className="flex-column">
+            {[...Array(4)].map((_, index) => (
+            <Nav.Item key={index} className="mb-2">
+              <span
+              className="shimmer shimmer-text"
+              style={{ width: '80%', height: '15px', display: 'block', margin: '0 auto' }}
+              ></span>
+            </Nav.Item>
+            ))}
+          </Nav>
+          </Card.Body>
+        </Card>
+        </Col>
+
+        <Col md={9}>
+        <Card>
+          <Card.Body>
+          <h4
+            className="mb-4 shimmer shimmer-text"
+            style={{ width: '50%', height: '25px' }}
+          ></h4>
+          <div
+            className="shimmer shimmer-block"
+            style={{ height: '200px', borderRadius: '10px' }}
+          ></div>
+          </Card.Body>
+        </Card>
+        </Col>
+      </Row>
       </Container>
     );
   }
@@ -659,7 +716,6 @@ function Akun() {
             <Card>
               <Card.Body>
                 <Tab.Content>
-                  {/* Riwayat Pesanan */}
                   <Tab.Pane eventKey="history">
                     <h4 className="mb-4">Riwayat Pesanan</h4>
                     {ordersLoading ? (
@@ -673,20 +729,57 @@ function Akun() {
                       <Table responsive>
                         <thead>
                           <tr>
-                            <th>Order ID</th>
+                            <th>No.</th>
                             <th>Tanggal</th>
-                            <th>Items</th>
-                            <th>Total</th>
+                            <th>Nama Produk</th>
+                            <th>Gambar</th>
+                            <th>Jumlah</th>
+                            <th>Total Harga</th>
                             <th>Status</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {orderHistory.map((order) => (
-                            <tr key={order.id}>
-                              <td>{order.id}</td>
-                              <td>{order.date}</td>
-                              <td>{Array.isArray(order.items) ? order.items.join(', ') : order.items}</td>
-                              <td>{order.total}</td>
+                          {orderHistory.map((order, index) => (
+                            <tr key={index}>
+                              <td>{index + 1}</td>
+                              <td>{new Date(order.date).toLocaleDateString('id-ID', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}</td>
+                              <td>
+                                {Array.isArray(order.items) ? (
+                                    order.items.map((item, itemIndex) => (
+                                      <td>{item.product_name}</td>
+                                    ))
+                                  ) : (
+                                    order.items
+                                )}
+                              </td>
+                              <td>
+                                {Array.isArray(order.items) ? (
+                                  order.items.map((item, itemIndex) => (
+                                    <img
+                                      key={itemIndex}
+                                      src={`${process.env.REACT_APP_API_URL}/${item.image}`}
+                                      alt={item.product_name}
+                                      style={{ width: '50px', height: '50px', objectFit: 'cover' }} // Ukuran kecil
+                                    />
+                                  ))
+                                ) : (
+                                  order.items
+                                )}
+                              </td>
+                              <td>
+                                {Array.isArray(order.items) ? (
+                                    order.items.map((item, itemIndex) => (
+                                      <td>{item.quantity}</td>
+                                    ))
+                                  ) : (
+                                    order.items
+                                )}
+                              </td>
+                              <td>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(order.total_amount)}</td>
                               <td>
                                 <span className={`badge bg-${
                                   order.status === 'Selesai' ? 'success' : 
@@ -706,8 +799,6 @@ function Akun() {
                       </Alert>
                     )}
                   </Tab.Pane>
-
-                  {/* Informasi Akun */}
                   <Tab.Pane eventKey="account">
                     <div className="d-flex justify-content-between align-items-center mb-4">
                       <h4 className="mb-0">Informasi Akun</h4>

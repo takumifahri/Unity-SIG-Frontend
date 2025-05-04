@@ -1,0 +1,36 @@
+.table-container {
+  overflow-x: auto;
+}
+
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-active {
+  background-color: #DEF7EC;
+  color: #03543F;
+}
+
+.status-inactive {
+  background-color: #FDE8E8;
+  color: #9B1C1C;
+}
+
+.modal-overlay {
+  background-color: rgba(0, 0, 0, 0.5);
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+}
+
+.modal-content {
+  background-color: white;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  max-width: 32rem;
+  width: 100%;
+  margin: 2rem auto;
+}

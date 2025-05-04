@@ -136,7 +136,7 @@ function NavigationBar() {
                 </li>
                 <li>
                   <Link
-                    to="/about"
+                    to="/tentang-kami"
                     className="font-medium hover:text-[#7D5A50] transition-colors no-underline  text-black"
                   >
                     Tentang Kami

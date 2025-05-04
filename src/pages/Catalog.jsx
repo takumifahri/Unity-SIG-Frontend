@@ -70,108 +70,99 @@ export default function Catalog(){
           </div>
         );
       }
-    return(
+    return (
         <>
             <main className="flex-1 container mx-auto p-6">
-            {loading ? (
-                <div className="flex-1 container mx-auto p-6">
-                    {/* Heading Skeleton */}
-                    <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-                    <div className="h-8 w-48 bg-[#e0e0e0] rounded mb-4 md:mb-0"></div>
-                    <div className="h-10 w-32 bg-[#e0e0e0] rounded"></div>
-                    </div>
-
-                    {/* Skeleton Product Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {Array.from({ length: 8 }).map((_, index) => (
-                        <div key={index} className="bg-white rounded-md overflow-hidden shadow-sm border border-gray-200">
-                        <div className="h-[300px] bg-[#e0e0e0]"></div>
-                        <div className="p-4">
-                            <div className="h-5 w-[70%] bg-[#e0e0e0] mx-auto my-2.5 rounded"></div>
-                            <div className="h-4 w-[50%] bg-[#e0e0e0] mx-auto my-2.5 rounded"></div>
-                        </div>
-                        </div>
-                    ))}
+                {/* Heading */}
+                <div className="relative flex flex-col md:flex-row items-center justify-center mb-6">
+                    <h1 className="text-2xl font-bold md:absolute md:left-1/2 md:-translate-x-1/2">Pakaian</h1>
+                    <div className="mt-4 md:mt-0 md:ml-auto">
+                        <select
+                            value={selectedSort}
+                            onChange={(e) => {
+                                const sortValue = e.target.value;
+                                setSelectedSort(sortValue);
+                                if (sortValue === "termurah") {
+                                    setProducts((prevProducts) =>
+                                        [...prevProducts].sort((a, b) => a.price - b.price)
+                                    );
+                                } else if (sortValue === "termahal") {
+                                    setProducts((prevProducts) =>
+                                        [...prevProducts].sort((a, b) => b.price - a.price)
+                                    );
+                                } else {
+                                    fetchProducts(); // Re-fetch products to reset sorting
+                                }
+                            }}
+                            className="border rounded-full py-2 px-4"
+                        >
+                            <option value="default">Urutkan</option>
+                            <option value="termurah">Termurah</option>
+                            <option value="termahal">Termahal</option>
+                        </select>
                     </div>
                 </div>
-                ) : (
-                <>
-                    {/* Heading */}
-                    <div className="relative flex flex-col md:flex-row items-center justify-center mb-6">
-                        <h1 className="text-2xl font-bold md:absolute md:left-1/2 md:-translate-x-1/2">Pakaian</h1>
-                        <div className="mt-4 md:mt-0 md:ml-auto">
-                            <select
-                                value={selectedSort}
-                                onChange={(e) => {
-                                    const sortValue = e.target.value;
-                                    setSelectedSort(sortValue);
-                                    if (sortValue === "termurah") {
-                                        setProducts((prevProducts) =>
-                                            [...prevProducts].sort((a, b) => a.price - b.price)
-                                        );
-                                    } else if (sortValue === "termahal") {
-                                        setProducts((prevProducts) =>
-                                            [...prevProducts].sort((a, b) => b.price - a.price)
-                                        );
-                                    } else {
-                                        fetchProducts(); // Re-fetch products to reset sorting
-                                    }
-                                }}
-                                className="border rounded-full py-2 px-4"
-                            >
-                                <option value="default">Urutkan</option>
-                                <option value="termurah">Termurah</option>
-                                <option value="termahal">Termahal</option>
-                            </select>
-                        </div>
-                    </div>
 
-
-                    {/* Product Grid */}
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-                    {products.length > 0 ? (
-                        products.map((product) => (
-                       <Link to={`/product/${product.id}`} key={product.id} className="no-underline text-black">
-                            <div key={product.id} className="text-left border rounded-xl overflow-hidden shadow-sm">
-                                <img
-                                src={`${process.env.REACT_APP_API_URL}/${product.gambar}`}
-                                alt={product.nama_katalog}
-                                className="w-full h-72 object-cover"
-                                />
+                {/* Product Grid */}
+                    {loading ? (
+                        Array.from({ length: 8 }).map((_, index) => (
+                            <div key={index} className="bg-white rounded-md overflow-hidden shadow-sm border border-gray-200">
+                                <div className="h-[300px] bg-[#e0e0e0]"></div>
                                 <div className="p-4">
-                                <h2 className="font-semibold mt-2 text-lg">{product.nama_katalog}</h2>
-                                <p className="text-gray-600 mt-2">Rp{product.price.toLocaleString("id-ID")}</p>
+                                    <div className="h-5 w-[70%] bg-[#e0e0e0] mx-auto my-2.5 rounded"></div>
+                                    <div className="h-4 w-[50%] bg-[#e0e0e0] mx-auto my-2.5 rounded"></div>
                                 </div>
                             </div>
-                        </Link>
+                        ))
+                    ) : products.length > 0 ? (
+                        currentProducts.map((product) => (
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+
+                                <Link to={`/product/${product.id}`} key={product.id} className="no-underline text-black">
+                                    <div className="text-left border rounded-xl overflow-hidden shadow-sm">
+                                        <img
+                                            src={`${process.env.REACT_APP_API_URL}/${product.gambar}`}
+                                            alt={product.nama_katalog}
+                                            className="w-full h-72 object-cover"
+                                        />
+                                        <div className="p-4">
+                                            <h2 className="font-semibold mt-2 text-lg">{product.nama_katalog}</h2>
+                                            <p className="text-gray-600 mt-2">Rp{product.price.toLocaleString("id-ID")}</p>
+                                        </div>
+                                    </div>
+                                </Link>
+                            </div>
+
                         ))
                     ) : (
-                        <p className="col-span-4 text-center text-gray-500">Produk tidak ditemukan.</p>
+                        <>
+                            <div className="grid grid-cols-1  gap-8">
+                                <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+                                    <img src="https://cdn-icons-png.flaticon.com/512/7486/7486747.png" alt="maintenance" />
+                                    <h1 className="text-2xl font-bold mb-4">Website Sedang Maintenance</h1>
+                                    <p className="col-span-4 text-center text-gray-500">Produk masih kosong, mohon tunggu sebentar ya.</p>
+                                </div>
+                            </div>
+                        </>
+                       
                     )}
-                    </div>
 
-                    {/* Pagination */}
-                    {totalPages > 1 && (
-                        <div className="flex justify-center items-center mt-8">
-                            <Stack spacing={2} className="mt-4">
+                {/* Pagination */}
+                {totalPages > 1 && (
+                    <div className="flex justify-center items-center mt-8">
+                        <Stack spacing={2} className="mt-4">
                             <Pagination
-                                    count={totalPages}
-                                    page={currentPage}
-                                    onChange={(event, page) => handlePageChange(page)}
-                                    color="primary"
-                                    siblingCount={1}
-                                    boundaryCount={1}
-                                />
-                            </Stack>
-                        </div>
-                    )}
-                </>
+                                count={totalPages}
+                                page={currentPage}
+                                onChange={(event, page) => handlePageChange(page)}
+                                color="primary"
+                                siblingCount={1}
+                                boundaryCount={1}
+                            />
+                        </Stack>
+                    </div>
                 )}
-
-            {/* Heading and Sort */}
-                
             </main>
         </>
-    )
+    );
 }
