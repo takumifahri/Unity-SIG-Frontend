@@ -119,13 +119,13 @@ function Footer() {
             <h3 className="font-bold text-lg mb-5 text-[#7D5A50] border-b border-[#7D5A50]/20 pb-2">Toko Kami</h3>
             <ul className="space-y-3">
               <li>
-                <Link to="/katalog" className="text-gray-700 hover:text-[#7D5A50] flex items-center group">
+                <Link to="/Catalog" className="text-gray-700 hover:text-[#7D5A50] flex items-center group">
                   <span className="w-1.5 h-1.5 bg-[#7D5A50] rounded-full mr-2 group-hover:w-3 transition-all duration-300"></span>
                   Katalog
                 </Link>
               </li>
               <li>
-                <Link to="/pemesanan" className="text-gray-700 hover:text-[#7D5A50] flex items-center group">
+                <Link to="/custom-order" className="text-gray-700 hover:text-[#7D5A50] flex items-center group">
                   <span className="w-1.5 h-1.5 bg-[#7D5A50] rounded-full mr-2 group-hover:w-3 transition-all duration-300"></span>
                   Pemesanan
                 </Link>
