@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { usePakaian } from '../context/PakaianContext';
 import { useBahan } from '../context/BahanContext';
 import { usePemesanan } from '../context/PemesananContext';
 import TambahPesananModal from './TambahPesananModal';
+import axios from 'axios';
 
 const Pemesanan = () => {
   const { pakaianList } = usePakaian();
@@ -11,6 +12,7 @@ const Pemesanan = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [order, setOrder] = useState([]);
 
   const handleStatusChange = (id, newStatus) => {
     updatePesanan(id, { status: newStatus });
@@ -41,6 +43,21 @@ const Pemesanan = () => {
   const handleAddPesanan = (newPesanan) => {
     setPesananList(prev => [...prev, { ...newPesanan, id: Date.now() }]);
   };
+
+  const ambildata = async() => {
+    const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/order/custom`,{
+      headers: {
+        'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${localStorage.getItem("token")}`
+
+      }
+    });
+    console.log("data order",response.data.data)
+    setOrder(response.data.data)
+  } 
+  useEffect(() =>{
+    ambildata()
+  },[])
 
   return (
     <div className="p-6 bg-white rounded-lg shadow-md">
@@ -126,9 +143,6 @@ const Pemesanan = () => {
                 Bahan
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Warna
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Ukuran
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -152,34 +166,27 @@ const Pemesanan = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {pesananList
-              // .filter(item =>
-              //   Object.values(item).some(
-              //     value => value && value.toString().toLowerCase().includes(searchTerm.toLowerCase())
-              //   )
-              // )
-              .map((pesanan) => (
+            {order?.map((pesanan) => (
                 <tr key={pesanan.id}>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {pesanan.tanggalPesan ? new Date(pesanan.tanggalPesan).toLocaleDateString() : '-'}
+                    {pesanan.created_at ? new Date(pesanan.created_at).toLocaleDateString() : '-'}
                   </td>
                   {/* Untuk muthia */}
-                  <td className="px-6 py-4">{pesanan.jenisPakaian || '-'}</td>
-                  <td className="px-6 py-4">{pesanan.bahan || '-'}</td>
-                  <td className="px-6 py-4">{pesanan.warna || '-'}</td>
+                  <td className="px-6 py-4">{pesanan.jenis_baju || '-'}</td>
+                  <td className="px-6 py-4">{pesanan.detail_bahan || '-'}</td>
                   <td className="px-6 py-4">{pesanan.ukuran || '-'}</td>
                   <td className="px-6 py-4">{pesanan.jumlah || 0}</td>
                   <td className="px-6 py-4">
-                    {pesanan.referensiFoto && (
+                    {pesanan.gambar_referensi && (
                       <img
-                        src={pesanan.referensiFoto}
+                        src={`${process.env.REACT_APP_API_URL}/${pesanan.gambar_referensi || '-'}`}
                         alt="Referensi"
                         className="h-12 w-12 object-cover rounded"
                       />
                     )}
                   </td>
-                  <td className="px-6 py-4">{pesanan.catatanTambahan || '-'}</td>
-                  <td className="px-6 py-4">{formatCurrency(pesanan.totalHarga)}</td>
+                  <td className="px-6 py-4">{pesanan.catatan || '-'}</td>
+                  <td className="px-6 py-4">{formatCurrency(pesanan.total_harga)}</td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeColor(pesanan.status)}`}>
                       {pesanan.status || 'Pending'}

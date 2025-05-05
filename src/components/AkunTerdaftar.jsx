@@ -1,6 +1,26 @@
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FaEdit, FaTrash, FaUserPlus } from 'react-icons/fa';
 import '../styles/akun-terdaftar.css';
+import axios from 'axios';
+import {
+  Container,
+  Typography,
+  Card,
+  CardContent,
+  Box,
+  Rating,
+  CircularProgress,
+  Divider,
+  Paper,
+  Modal,
+  IconButton,
+  useMediaQuery,
+  Grid,
+} from "@mui/material"
+import Badge from "@mui/material/Badge"
+import Avatar from "@mui/material/Avatar"
+import { styled } from "@mui/material/styles"
+import { Person, Close, ArrowBackIos, ArrowForwardIos, ZoomIn } from "@mui/icons-material"
 
 const AkunTerdaftar = () => {
   const [accounts, setAccounts] = useState([
@@ -14,7 +34,7 @@ const AkunTerdaftar = () => {
       status: 'Aktif'
     }
   ]);
-
+  const [akun, setAkun] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
     photo: '',
@@ -61,7 +81,6 @@ const AkunTerdaftar = () => {
       setAccounts(accounts.filter(account => account.id !== id));
     }
   };
-
   const handleStatusChange = (id) => {
     setAccounts(accounts.map(account => {
       if (account.id === id) {
@@ -73,6 +92,49 @@ const AkunTerdaftar = () => {
       return account;
     }));
   };
+  const StyledBadge = styled(Badge)(({ theme }) => ({
+    "& .MuiBadge-badge": {
+      backgroundColor: "#44b700",
+      color: "#44b700",
+      boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
+      "&::after": {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+        borderRadius: "50%",
+        animation: "ripple 1.2s infinite ease-in-out",
+        border: "1px solid currentColor",
+        content: '""',
+      },
+    },
+    "@keyframes ripple": {
+      "0%": {
+        transform: "scale(.8)",
+        opacity: 1,
+      },
+      "100%": {
+        transform: "scale(2.4)",
+        opacity: 0,
+      },
+    },
+  }))
+  
+  const akunterdaftar = async() => {
+    const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/users`,{
+      headers: {
+        'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${localStorage.getItem("token")}`
+
+      }
+    });
+    console.log("akun terdaftar",response.data.data)
+    setAkun(response.data.data)
+  } 
+  useEffect(() =>{
+    akunterdaftar()
+  },[])
 
   return (
     <div className="p-6">
@@ -106,13 +168,19 @@ const AkunTerdaftar = () => {
                   Email
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Gender
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Alamat
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Nomor Telepon
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
+                  Total Order
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Role
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Aksi
@@ -120,29 +188,60 @@ const AkunTerdaftar = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {accounts.map((account, index) => (
+              {akun.map((account, index) => (
                 <tr key={account.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {index + 1}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <img
-                      src={account.photo}
+                    {/* <img
+                      src={`${process.env.REACT_APP_API_URL}/${account.profile_photo || '-'}`}
                       alt={account.username}
                       className="h-10 w-10 rounded-full"
-                    />
+                    /> */}
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                        {account.isActive ? (
+                          <StyledBadge
+                            overlap="circular"
+                            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                            variant="dot"
+                          >
+                            <Avatar alt={account.name} src={`${process.env.REACT_APP_API_URL}/${account.profile_photo || '-'}`}>
+                              {!account.profile_photo && <Person />}
+                            </Avatar>
+                          </StyledBadge>
+                        ) : (
+                          <Avatar alt={account.name} src={account.profile_photo || ""}>
+                            {!account.profile_photo && <Person />}
+                          </Avatar>
+                        )}
+
+                      </Box>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {account.username}
+                    {account.name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {account.email}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {account.gender}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900">
                     {account.alamat}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {account.telepon}
+                    <a
+                      href={`https://wa.me/${account.phone.replace(/^0/, '62').replace(/[^0-9]/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-500 hover:underline"
+                    >
+                      {account.phone}
+                    </a>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {account.total_order}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
@@ -152,7 +251,7 @@ const AkunTerdaftar = () => {
                           : 'bg-red-100 text-red-800'
                       }`}
                     >
-                      {account.status}
+                      {account.role}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
