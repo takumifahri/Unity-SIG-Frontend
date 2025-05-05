@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Tab, Nav, Form, Button, Table, Alert } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -700,6 +700,9 @@ function Akun() {
                     <Nav.Link eventKey="account">Informasi Akun</Nav.Link>
                   </Nav.Item>
                   <Nav.Item>
+                    <Nav.Link eventKey="password">Tracking Ordermu</Nav.Link>
+                  </Nav.Item>
+                              <Nav.Item>
                     <Nav.Link eventKey="password">Ubah Password</Nav.Link>
                   </Nav.Item>
                   <Nav.Item>

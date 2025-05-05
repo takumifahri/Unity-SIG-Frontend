@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }) => {  // Perbaikan: "children" (huruf
                         }
                     }
                 );
-                console.log("Fetched user data:", response.data);
+                console.log("Fetched user data:", response);
                 setUser(response.data);
             } catch (error) {
                 console.error("Error fetching user data:", error);

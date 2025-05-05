@@ -15,6 +15,7 @@ export default function Catalog(){
             const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/catalog`, {
                 headers: {
                     "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
                 },
             })
             setProducts(response.data.data)
