@@ -33,6 +33,7 @@ const Pemesanan = () => {
     }
   };
 
+
   const formatCurrency = (amount) => {
     return amount ? `Rp ${amount.toLocaleString()}` : 'Rp 0';
   };
@@ -162,6 +163,7 @@ const Pemesanan = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     {pesanan.tanggalPesan ? new Date(pesanan.tanggalPesan).toLocaleDateString() : '-'}
                   </td>
+                  {/* Untuk muthia */}
                   <td className="px-6 py-4">{pesanan.jenisPakaian || '-'}</td>
                   <td className="px-6 py-4">{pesanan.bahan || '-'}</td>
                   <td className="px-6 py-4">{pesanan.warna || '-'}</td>
