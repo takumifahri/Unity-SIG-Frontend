@@ -53,17 +53,11 @@ const LocationMarker = ({ position, setPosition, setUserInfo }) => {
   ) : null;
 };
 
-// 4. Di dalam komponen Akun, tambahkan state untuk peta:
-const [mapPosition, setMapPosition] = useState(
-  userInfo.latitude && userInfo.longitude 
-    ? [userInfo.latitude, userInfo.longitude] 
-    : [-6.9147, 107.6098] // Default: Bandung
-);
-
 function Akun() {
   const navigate = useNavigate();
   const { user, isAuth, Logout, token, loading } = useAuth();
   const [profileLoading, setProfileLoading] = useState(true);
+  const [mapPosition, setMapPosition] = useState([-6.9147, 107.6098]); // Default: Bandung
   // const [imageError, setImageError] = useState(false);
   // const [imageUrl, setImageUrl] = useState("");
   
@@ -200,71 +194,13 @@ function Akun() {
         region: user.user.location?.region || '',
         postal_code: user.user.location?.postal_code || ''
       });
-      setTempUserInfo({
-        nama: user.user.name || '',
-        email: user.user.email || '',
-        telepon: user.user.phone || '',
-        gender: user.user.gender || '',
-        profile_photo: user.user.profile_photo || '' || `${process.env.REACT_APP_API_URL}/${user.profile_photo}`,
-        total_order: user.user.total_order || 0,
-        role: user.user.role || '',
-        google_id: user.user.google_id || '',
-        facebook_id: user.user.facebook_id || '',
-        label: user.user.location?.label || '',
-        latitude: user.user.location?.latitude || 0,
-        longitude: user.user.location?.longitude || 0,
-        address: user.user.location?.address || '',
-        city: user.user.location?.city || '',
-        region: user.user.location?.region || '',
-        postal_code: user.user.location?.postal_code || ''
-      });
-      setProfileLoading(false);
-    } else if (user) {
-      // Handle if user structure is different
-      console.log("User exists but structure is different than expected:", user);
-      // Try to extract user info based on actual structure
-      // This might be necessary if your API returns a different structure
-      const userData = user.user || user;
-      setUserInfo({
-        nama: userData.name || '',
-        email: userData.email || '',
-        telepon: userData.phone || userData.telepon || '',
-        gender: userData.gender || '',
-        profile_photo: userData.profile_photo || `${process.env.REACT_APP_API_URL}/${userData.profile_photo}` || '',
-        total_order: userData.total_order || 0,
-        role: userData.role || '',
-        google_id: userData.google_id || '',
-        facebook_id: userData.facebook_id || '',
-        label: userData.location?.label || '',
-        latitude: userData.location?.latitude || 0,
-        longitude: userData.location?.longitude || 0,
-        address: userData.location?.address || '',
-        city: userData.location?.city || '',
-        region: userData.location?.region || '',
-        postal_code: userData.location?.postal_code || ''
-      });
-      setTempUserInfo({
-        nama: userData.name || '',
-        email: userData.email || '',
-        telepon: userData.phone || userData.telepon || '',
-        gender: userData.gender || '',
-        profile_photo: userData.profile_photo || `${process.env.REACT_APP_API_URL}/${userData.profile_photo}` || '',
-        total_order: userData.total_order || 0,
-        role: userData.role || '',
-        google_id: userData.google_id || '',
-        facebook_id: userData.facebook_id || '',
-        label: userData.location?.label || '',
-        latitude: userData.location?.latitude || 0,
-        longitude: userData.location?.longitude || 0,
-        address: userData.location?.address || '',
-        city: userData.location?.city || '',
-        region: userData.location?.region || '',
-        postal_code: userData.location?.postal_code || ''
-      });
-      setProfileLoading(false);
-    } else {
-      console.log("No user data available yet");
+
+      // Update map position if we have valid coordinates
+      if (user.user.location?.latitude && user.user.location?.longitude) {
+        setMapPosition([user.user.location.latitude, user.user.location.longitude]);
+      }
     }
+    setProfileLoading(false);
   }, [user]);
 
   console.log('poto',userInfo.profile_photo)

@@ -43,6 +43,10 @@ import KeuanganPemasukan from './components/KeuanganPemasukan';
 import KeuanganPengeluaran from './components/KeuanganPengeluaran';
 import CustomerDistribution from './components/CustomerDistribution';
 import AkunTerdaftar from './components/AkunTerdaftar';
+import PesananCatalog from './pages/admin/PesananCatalog';
+import PesananCustom from './pages/admin/PesananCustom';
+import Pakaian from './pages/admin/Pakaian';
+import Bahan from './pages/admin/Bahan';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './styles/Footer.css';
@@ -65,7 +69,11 @@ function App() {
                         <Route path="/register" element={<Register />} />
 
                         {/* Routes dengan Layout (Navbar dan Footer) */}
-                        <Route path="/" element={<Layout />}>
+                        <Route path="/" element={<>
+                          <Navbar />
+                          <Outlet />
+                          <Footer />
+                        </>}>
                           <Route index element={<Home />} />
                           <Route path="about" element={<About />} />
                           <Route path="akun" element={<Akun />} />
@@ -85,17 +93,14 @@ function App() {
                         </Route>
 
                         {/* Admin Routes */}
-                        <Route path="/admin/*" element={<AdminLayout />} >
+                        <Route path="/admin" element={<AdminLayout />}>
+                          <Route index element={<Dashboard />} />
                           <Route path="dashboard" element={<Dashboard />} />
-                          <Route path="pakaian/tambah" element={<TambahPakaian />} />
-                          <Route path="pakaian/tabel" element={<TabelPakaian />} />
-                          <Route path="bahan/tambah" element={<TambahBahan />} />
-                          <Route path="bahan/tabel" element={<TabelBahan />} />
-                          <Route path="pemesanan" element={<Pemesanan />} />
-                          <Route path="pesanan/:id" element={<AdminPesanan />} />
+                          <Route path="pakaian" element={<Pakaian />} />
+                          <Route path="bahan" element={<Bahan />} />
+                          <Route path="pemesanan/catalog" element={<PesananCatalog />} />
+                          <Route path="pemesanan/custom" element={<PesananCustom />} />
                           <Route path="keuangan" element={<Keuangan />} />
-                          <Route path="keuangan/pemasukan" element={<KeuanganPemasukan />} />
-                          <Route path="keuangan/pengeluaran" element={<KeuanganPengeluaran />} />
                           <Route path="sebaran-pelanggan" element={<CustomerDistribution />} />
                           <Route path="akun-terdaftar" element={<AkunTerdaftar />} />
                         </Route>
@@ -109,17 +114,6 @@ function App() {
         </ReviewProvider>
       </CartProvider>
     </AuthProvider>
-  );
-}
-
-// Layout component dengan Navbar dan Footer
-function Layout() {
-  return (
-    <>
-      <Navbar />
-      <Outlet />
-      <Footer />
-    </>
   );
 }
 
