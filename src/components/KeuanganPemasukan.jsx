@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import  { useState, useEffect } from 'react';
 import { utils, writeFile } from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useKeuangan } from '../context/KeuanganContext';
-
+import axios from 'axios';
 const KeuanganPemasukan = () => {
   const { keuanganList } = useKeuangan();
   const pemasukanList = keuanganList.filter(item => item.jenisKeuangan === 'Pemasukan');
-
+  const [pemasukan, setPemasukan] = useState([]);
   const exportToExcel = () => {
     const ws = utils.json_to_sheet(pemasukanList.map(item => ({
       No: item.id,
@@ -22,6 +22,17 @@ const KeuanganPemasukan = () => {
     utils.book_append_sheet(wb, ws, 'Laporan Keuangan');
     writeFile(wb, 'laporan_keuangan.xlsx');
   };
+
+  const FetchPemasukan = async() => {
+    const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/keuangan`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    console.log('pemasukan masuk : ', res.data )
+  }
 
   const exportToPDF = () => {
     const doc = new jsPDF();
@@ -59,6 +70,9 @@ const KeuanganPemasukan = () => {
     doc.save('laporan_keuangan.pdf');
   };
 
+  useEffect(() =>{
+    FetchPemasukan();
+  }, [])
   return (
     <div className="p-6">
       <div className="mb-6">

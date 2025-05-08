@@ -9,7 +9,7 @@ import Swal from 'sweetalert2';
 import { Eye, EyeOff } from "lucide-react"
 function Login() {
   const navigate = useNavigate();
-  const { Login } = useAuth(); // Gunakan login dari AuthContext, perhatikan huruf kecil 'login'
+  const { Login, GoogleLogin } = useAuth(); // Gunakan Login dan GoogleLogin dari AuthContext
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -80,22 +80,97 @@ function Login() {
   };
 
   // Redirect ke endpoint Google login di Laravel
-  const handleGoogleLogin = () => {
-    window.location.href = `${process.env.REACT_APP_API_URL}/auth/google`;
+  // Anda memiliki dua opsi untuk Google login:
+  // 1. Opsi dengan redirect ke Google - seperti yang Anda implementasikan sebelumnya
+  // 2. Opsi dengan Google API client dan menggunakan GoogleLogin dari AuthContext
+  
+  // Opsi 1: Redirect ke endpoint backend (backend mengurus OAuth flow)
+  const handleGoogleLoginRedirect = () => {
+    window.location.href = `${process.env.REACT_APP_API_URL}  /auth/google`;
+  };
+  
+  // Opsi 2: Menggunakan Google API client di frontend (jika Anda menggunakan gapi)
+  const handleGoogleLogin = async (response) => {
+    try {
+      // Jika menggunakan Google API client atau Google Sign-In button
+      // yang mengembalikan token langsung
+      if (response && (response.access_token || response.credential)) {
+        const result = await GoogleLogin(response);
+        
+        if (result.success) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Login Berhasil',
+            text: 'Anda akan diarahkan ke halaman akun.',
+            timer: 2000,
+            showConfirmButton: false
+          }).then(() => {
+            navigate('/akun');
+          });
+        } else {
+          setError(result.message || 'Login dengan Google gagal');
+        }
+      } else {
+        // Fallback ke opsi redirect jika tidak ada response
+        handleGoogleLoginRedirect();
+      }
+    } catch (err) {
+      console.error('Google login error:', err);
+      setError('Terjadi kesalahan saat login dengan Google');
+    }
   };
 
+  // Facebook login dengan redirect
   const handleFacebookLogin = () => {
-    window.location.href = `${process.env.REACT_APP_API_URL}/auth/facebook`;
+    window.location.href = `${process.env.REACT_APP_API_URL}/api/auth/facebook`;
   };
 
-  // Cek apakah ada parameter error di URL (dari redirect)
+  // Cek apakah ada parameter dari OAuth callback
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const error = params.get('error');
+    const token = params.get('token');
+    const googleToken = params.get('google_token');
+    
     if (error) {
-        alert('Login dengan Google gagal, silakan coba lagi');
+      setError('Login dengan social media gagal, silakan coba lagi');
     }
-  }, []);
+    
+    // Jika ada token dari OAuth redirect
+    if (token) {
+      // Gunakan format Bearer token
+      const fullToken = `Bearer ${token}`;
+      localStorage.setItem('token', fullToken);
+      
+      // Refresh halaman atau arahkan ke halaman akun
+      navigate('/akun');
+    }
+    
+    // Jika ada token Google dari redirect (OAuth callback)
+    if (googleToken) {
+      // Gunakan fungsi GoogleLogin dari AuthContext
+      GoogleLogin(googleToken)
+        .then(result => {
+          if (result.success) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Login Berhasil',
+              text: 'Anda akan diarahkan ke halaman akun.',
+              timer: 2000,
+              showConfirmButton: false
+            }).then(() => {
+              navigate('/akun');
+            });
+          } else {
+            setError(result.message || 'Login dengan Google gagal');
+          }
+        })
+        .catch(err => {
+          console.error('Error processing Google token:', err);
+          setError('Terjadi kesalahan saat memproses login Google');
+        });
+    }
+  }, [navigate, GoogleLogin]);
 
   return (
     <div

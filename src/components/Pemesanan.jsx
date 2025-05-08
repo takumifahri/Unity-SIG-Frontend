@@ -13,7 +13,9 @@ const Pemesanan = () => {
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [order, setOrder] = useState([]);
-
+  const [custom, setCustom] = useState([]);
+  const [transaction, setTransaction] = useState([]);
+  const [catalog, setcatalog] = useState([]);
   const handleStatusChange = (id, newStatus) => {
     updatePesanan(id, { status: newStatus });
   };
@@ -44,8 +46,9 @@ const Pemesanan = () => {
     setPesananList(prev => [...prev, { ...newPesanan, id: Date.now() }]);
   };
 
+
   const ambildata = async() => {
-    const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/order/custom`,{
+    const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/order`,{
       headers: {
         'Content-Type': 'multipart/form-data',
             Authorization: `Bearer ${localStorage.getItem("token")}`
@@ -53,7 +56,11 @@ const Pemesanan = () => {
       }
     });
     console.log("data order",response.data.data)
-    setOrder(response.data.data)
+    setOrder(response.data.data )
+    setCustom(response.data.data.custom_orders)
+    setTransaction(response.data.data.transaction)  
+    setcatalog(response.data.data.catalog)
+    // setApproved(response.data.data.custom_orders.approved_by_user)   
   } 
   useEffect(() =>{
     ambildata()
@@ -172,20 +179,20 @@ const Pemesanan = () => {
                     {pesanan.created_at ? new Date(pesanan.created_at).toLocaleDateString() : '-'}
                   </td>
                   {/* Untuk muthia */}
-                  <td className="px-6 py-4">{pesanan.jenis_baju || '-'}</td>
-                  <td className="px-6 py-4">{pesanan.detail_bahan || '-'}</td>
-                  <td className="px-6 py-4">{pesanan.ukuran || '-'}</td>
-                  <td className="px-6 py-4">{pesanan.jumlah || 0}</td>
+                  <td className="px-6 py-4">{pesanan.custom_order?.jenis_baju || pesanan.catalog?.nama_katalog ||'-'}</td>
+                  <td className="px-6 py-4">{pesanan.custom_order?.detail_bahan || pesanan.catalog?.bahan  || '-'}</td>
+                  <td className="px-6 py-4">{pesanan.custom_order?.ukuran || pesanan.catalog?.nama_katalog  || '-'}</td>
+                  <td className="px-6 py-4">{pesanan.custom_order?.jumlah || 0}</td>
                   <td className="px-6 py-4">
-                    {pesanan.gambar_referensi && (
+                    {pesanan.custom_order?.gambar_referensi && (
                       <img
-                        src={`${process.env.REACT_APP_API_URL}/${pesanan.gambar_referensi || '-'}`}
+                        src={`${process.env.REACT_APP_API_URL}/${pesanan.custom_order?.gambar_referensi || pesanan.catalog?.nama_katalog  || '-'}`}
                         alt="Referensi"
                         className="h-12 w-12 object-cover rounded"
                       />
                     )}
                   </td>
-                  <td className="px-6 py-4">{pesanan.catatan || '-'}</td>
+                  <td className="px-6 py-4">{pesanan.custom_order?.catatan || pesanan.catalog?.nama_katalog  || '-'}</td>
                   <td className="px-6 py-4">{formatCurrency(pesanan.total_harga)}</td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeColor(pesanan.status)}`}>

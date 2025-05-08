@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Tab, Nav, Form, Button, Table, Alert } from 'react-bootstrap';
+import { Container, Row, Col, Card, Tab, Nav, Form, Table, Alert } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
@@ -7,40 +7,68 @@ import Swal from 'sweetalert2';
 import { BiSolidFaceMask } from "react-icons/bi";
 import { FaCrown } from "react-icons/fa6";
 import { MdOutlineVerifiedUser } from "react-icons/md";
-
+import { Box, Typography, Select, MenuItem, FormControl, Divider, Grid, Paper, Link } from "@mui/material"
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown"
+import { get } from 'jquery';
+import Button from '@mui/material/Button';
 function Akun() {
   const navigate = useNavigate();
   const { user, isAuth, Logout, token, loading } = useAuth();
   const [profileLoading, setProfileLoading] = useState(true);
-  // const [imageError, setImageError] = useState(false);
-  // const [imageUrl, setImageUrl] = useState("");
+  const [filterType, setFilterType] = useState("Custom")
+  const [orders, setOrders] = useState([]);
+  
+  // Utility function to safely access nested properties
+  const safeGet = (obj, path, fallback = '') => {
+    try {
+      return path.split('.').reduce((o, key) => o[key], obj) || fallback;
+    } catch (e) {
+      return fallback;
+    }
+  };
+  
+  const getOrder = async() => {
+    try {
+      const resp = await axios.get(`${process.env.REACT_APP_API_URL}/api/order/tracking`, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}`
+        }
+      });
+      console.log('order data:', resp.data.data);
+      setOrders(resp.data.data);
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+    }
+  }
   
   // Check if user is logged in and fetch data
   useEffect(() => {
-    const fetchUserData = async () => {
-      if (isAuth() && token) {
-        try {
-          setProfileLoading(true);
-          // If you need additional user data outside of what's in AuthContext, fetch it here
-          console.log("User authenticated, token available");
-          // When using just AuthContext data, we'll set profileLoading to false in the user effect below
-        } catch (error) {
-          console.error("Error fetching additional user data:", error);
-          setProfileLoading(false);
-        }
-      }
-    };
-
     if (!loading) {
       if (!isAuth() || !token) {
         console.log("No auth or token, redirecting to login");
         navigate('/login');
       } else {
-        fetchUserData();
+        getOrder();
+        setProfileLoading(false);
       }
     }
   }, [isAuth, navigate, token, loading]);
 
+  const filteredOrders = filterType === "Default" 
+    ? [...(orders?.custom_orders || []), ...(orders?.order || [])] 
+    : filterType === "Custom" 
+      ? orders?.custom_orders 
+      : orders?.order;
+
+  const handleFilterChange = (event) => {
+    setFilterType(event.target.value)
+  }
+
+  const handleDetailClick = (orderId) => {
+    navigate(`/pesanan/${orderId}`)
+  }
+  
   const [userInfo, setUserInfo] = useState({
     nama: '',
     email: '',
@@ -66,7 +94,7 @@ function Akun() {
     confirmPassword: ''
   });
 
-  // State untuk feedback
+  // State for feedback
   const [feedback, setFeedback] = useState({
     type: '',
     message: ''
@@ -91,7 +119,7 @@ function Akun() {
         {
           headers: {
             'Content-Type': 'multipart/form-data',
-            Authorization: `Bearer ${token}`
+            Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}`
           }
         }
       );
@@ -121,102 +149,67 @@ function Akun() {
     }, 3000);
   };
   
-  // State untuk mode edit dan temporary data
+  // State for edit mode and temporary data
   const [isEditing, setIsEditing] = useState(false);
   const [tempUserInfo, setTempUserInfo] = useState({...userInfo});
 
   // Update user info when auth user changes
   useEffect(() => {
-    console.log("User data in Akun component:", user);
-    if (user && user.user) {
-      console.log("User data structure received:", user);
-      setUserInfo({
-        nama: user.user.name || '',
-        email: user.user.email || '',
-        telepon: user.user.phone || '',
-        gender: user.user.gender || '',
-        profile_photo: user.user.profile_photo || '' || `${process.env.REACT_APP_API_URL}/${user.profile_photo}` ,
-        total_order: user.user.total_order || 0,
-        role: user.user.role || '',
-        google_id: user.user.google_id || '',
-        facebook_id: user.user.facebook_id || '',
-        label: user.user.location?.label || '',
-        latitude: user.user.location?.latitude || 0,
-        longitude: user.user.location?.longitude || 0,
-        address: user.user.location?.address || '',
-        city: user.user.location?.city || '',
-        region: user.user.location?.region || '',
-        postal_code: user.user.location?.postal_code || ''
-      });
-      setTempUserInfo({
-        nama: user.user.name || '',
-        email: user.user.email || '',
-        telepon: user.user.phone || '',
-        gender: user.user.gender || '',
-        profile_photo: user.user.profile_photo || '' || `${process.env.REACT_APP_API_URL}/${user.profile_photo}`,
-        total_order: user.user.total_order || 0,
-        role: user.user.role || '',
-        google_id: user.user.google_id || '',
-        facebook_id: user.user.facebook_id || '',
-        label: user.user.location?.label || '',
-        latitude: user.user.location?.latitude || 0,
-        longitude: user.user.location?.longitude || 0,
-        address: user.user.location?.address || '',
-        city: user.user.location?.city || '',
-        region: user.user.location?.region || '',
-        postal_code: user.user.location?.postal_code || ''
-      });
-      setProfileLoading(false);
-    } else if (user) {
-      // Handle if user structure is different
-      console.log("User exists but structure is different than expected:", user);
-      // Try to extract user info based on actual structure
-      // This might be necessary if your API returns a different structure
+    if (user) {
+      console.log("User data in Akun component:", user);
+      
+      // Extract user data regardless of structure
       const userData = user.user || user;
+      
+      // Extract location data safely
+      const location = userData.location || {};
+      
       setUserInfo({
-        nama: userData.name || '',
-        email: userData.email || '',
-        telepon: userData.phone || userData.telepon || '',
-        gender: userData.gender || '',
-        profile_photo: userData.profile_photo || `${process.env.REACT_APP_API_URL}/${userData.profile_photo}` || '',
-        total_order: userData.total_order || 0,
-        role: userData.role || '',
-        google_id: userData.google_id || '',
-        facebook_id: userData.facebook_id || '',
-        label: userData.location?.label || '',
-        latitude: userData.location?.latitude || 0,
-        longitude: userData.location?.longitude || 0,
-        address: userData.location?.address || '',
-        city: userData.location?.city || '',
-        region: userData.location?.region || '',
-        postal_code: userData.location?.postal_code || ''
+        nama: safeGet(userData, 'name') || safeGet(userData, 'email', ''),
+        email: safeGet(userData, 'email', ''),
+        telepon: safeGet(userData, 'phone') || safeGet(userData, 'telepon', ''),
+        gender: safeGet(userData, 'gender', ''),
+        profile_photo: safeGet(userData, 'profile_photo') || `${process.env.REACT_APP_API_URL}/${safeGet(userData, 'profile_photo', '')}`,
+        total_order: safeGet(userData, 'total_order', 0),
+        role: safeGet(userData, 'role', ''),
+        google_id: safeGet(userData, 'google_id', ''),
+        facebook_id: safeGet(userData, 'facebook_id', ''),
+        label: safeGet(location, 'label', ''),
+        latitude: safeGet(location, 'latitude', 0),
+        longitude: safeGet(location, 'longitude', 0),
+        address: safeGet(location, 'address', ''),
+        city: safeGet(location, 'city', ''),
+        region: safeGet(location, 'region', ''),
+        postal_code: safeGet(location, 'postal_code', '')
       });
+      
+      // Also update tempUserInfo for editing
       setTempUserInfo({
-        nama: userData.name || '',
-        email: userData.email || '',
-        telepon: userData.phone || userData.telepon || '',
-        gender: userData.gender || '',
-        profile_photo: userData.profile_photo || `${process.env.REACT_APP_API_URL}/${userData.profile_photo}` || '',
-        total_order: userData.total_order || 0,
-        role: userData.role || '',
-        google_id: userData.google_id || '',
-        facebook_id: userData.facebook_id || '',
-        label: userData.location?.label || '',
-        latitude: userData.location?.latitude || 0,
-        longitude: userData.location?.longitude || 0,
-        address: userData.location?.address || '',
-        city: userData.location?.city || '',
-        region: userData.location?.region || '',
-        postal_code: userData.location?.postal_code || ''
+        nama: safeGet(userData, 'name') || safeGet(userData, 'email', ''),
+        email: safeGet(userData, 'email', ''),
+        telepon: safeGet(userData, 'phone') || safeGet(userData, 'telepon', ''),
+        gender: safeGet(userData, 'gender', ''),
+        profile_photo: safeGet(userData, 'profile_photo') || `${process.env.REACT_APP_API_URL}/${safeGet(userData, 'profile_photo', '')}`,
+        total_order: safeGet(userData, 'total_order', 0),
+        role: safeGet(userData, 'role', ''),
+        google_id: safeGet(userData, 'google_id', ''),
+        facebook_id: safeGet(userData, 'facebook_id', ''),
+        label: safeGet(location, 'label', ''),
+        latitude: safeGet(location, 'latitude', 0),
+        longitude: safeGet(location, 'longitude', 0),
+        address: safeGet(location, 'address', ''),
+        city: safeGet(location, 'city', ''),
+        region: safeGet(location, 'region', ''),
+        postal_code: safeGet(location, 'postal_code', '')
       });
+      
       setProfileLoading(false);
-    } else {
-      console.log("No user data available yet");
     }
   }, [user]);
 
-  console.log('poto',userInfo.profile_photo)
-  // State untuk validasi password
+  console.log('profile photo path:', userInfo.profile_photo);
+  
+  // Password validation state
   const [passwordValidation, setPasswordValidation] = useState({
     length: false,
     number: false,
@@ -224,28 +217,27 @@ function Akun() {
     lowercase: false
   });
 
-  // State untuk visibility toggle
+  // State for visibility toggle
   const [showPasswords, setShowPasswords] = useState({
     current: false,
     new: false,
     confirm: false
   });
 
-  // Contoh data pesanan (nanti bisa diambil dari API/database)
+  // Order history state
   const [orderHistory, setOrderHistory] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   
-  // Handle token from URL (untuk kasus reset password dll)
+  // Handle token from URL (for password reset cases, etc.)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const urlToken = params.get('token');
   
     if (urlToken) {
       console.log("Found token in URL, storing it");
-      // Simpan token ke localStorage atau ke AuthContext
       localStorage.setItem('token', urlToken);
       
-      // Bersihkan token dari URL agar tidak terlihat
+      // Clean token from URL for security
       const cleanUrl = window.location.origin + window.location.pathname;
       window.history.replaceState({}, document.title, cleanUrl);
     }
@@ -260,23 +252,12 @@ function Akun() {
           const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/order/history`, {
             headers: {
               'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`
+              Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}`
             }
           });
 
           console.log("Order history response:", response.data.data);
           setOrderHistory(response.data.data || []);
-
-          // Example API call to fetch order history
-          // const response = await axios.get(
-          //   `${process.env.REACT_APP_API_URL}/api/orders/history`,
-          //   {
-          //     headers: {
-          //       Authorization: `Bearer ${token}`
-          //     }
-          //   }
-          // );
-          // setOrderHistory(response.data);
           setOrdersLoading(false);
         } catch (error) {
           console.error("Error fetching order history:", error);
@@ -288,22 +269,22 @@ function Akun() {
     fetchOrderHistory();
   }, [token]);
 
-  // Validasi email
+  // Validate email
   const validateEmail = (email) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
   };
 
-  // Validasi nomor telepon
+  // Validate phone number
   const validatePhone = (phone) => {
-    if (!phone) return true; // Allow empty phone for now
+    if (!phone) return true; // Allow empty phone
     const re = /^[0-9]{10,13}$/;
     return re.test(phone);
   };
 
   const handleEditToggle = () => {
     if (isEditing) {
-      // Jika sedang dalam mode edit dan klik batal, kembalikan ke data asli
+      // If in edit mode and clicked cancel, revert to original data
       setTempUserInfo({...userInfo});
     }
     setIsEditing(!isEditing);
@@ -332,7 +313,7 @@ function Akun() {
   const handleInfoUpdate = async (e) => {
     e.preventDefault();
     
-    // Validasi input
+    // Validate input
     if (!tempUserInfo.nama.trim()) {
       setFeedback({
         type: 'danger',
@@ -341,7 +322,7 @@ function Akun() {
       return;
     }
 
-    // Validasi email
+    // Validate email
     if (!validateEmail(tempUserInfo.email)) {
       setFeedback({
         type: 'danger',
@@ -376,7 +357,7 @@ function Akun() {
         {
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
+            Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}`
           }
         }
       );
@@ -389,7 +370,7 @@ function Akun() {
         message: 'Informasi akun berhasil diperbarui!'
       });
 
-      // Nonaktifkan mode edit
+      // Disable edit mode
       setIsEditing(false);
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -416,7 +397,7 @@ function Akun() {
   const handlePasswordChange = async (e) => {
     e.preventDefault();
 
-    // Validasi semua rules terpenuhi
+    // Validate all rules are met
     const allRulesMet = Object.values(passwordValidation).every(rule => rule);
     
     if (!allRulesMet) {
@@ -452,7 +433,7 @@ function Akun() {
         {
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
+            Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}`
           }
         }
       );
@@ -462,7 +443,7 @@ function Akun() {
         message: 'Password berhasil diubah!'
       });
 
-      // Reset form dan feedback
+      // Reset form and feedback
       setPasswords({
         currentPassword: '',
         newPassword: '',
@@ -524,7 +505,7 @@ function Akun() {
         {
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
+            Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}`
           },
         }
       );
@@ -619,7 +600,6 @@ function Akun() {
     return null; // The useEffect will handle redirection
   }
 
-
   return (
     <Container className="py-5">
       <Tab.Container defaultActiveKey="history">
@@ -700,11 +680,12 @@ function Akun() {
                     <Nav.Link eventKey="account">Informasi Akun</Nav.Link>
                   </Nav.Item>
                   <Nav.Item>
-                    <Nav.Link eventKey="password">Tracking Ordermu</Nav.Link>
+                    <Nav.Link eventKey="order">Tracking Ordermu</Nav.Link>
                   </Nav.Item>
-                              <Nav.Item>
+                  <Nav.Item>
                     <Nav.Link eventKey="password">Ubah Password</Nav.Link>
                   </Nav.Item>
+                  
                   <Nav.Item>
                     <Nav.Link onClick={handleLogout} className="text-danger">
                       Logout
@@ -986,6 +967,100 @@ function Akun() {
                         </div>
                       )}
                     </Form>
+                  </Tab.Pane>
+
+                  {/* Trackiing order */}
+                  <Tab.Pane eventKey="order">
+                    <Typography variant="h4" component="h2" align="center" gutterBottom sx={{ color: "#D2B48C", mb: 4 }}>
+                      Pesanan
+                    </Typography>
+                      
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+                      <Typography variant="subtitle1" fontWeight="bold">
+                        Item
+                      </Typography>
+                      <FormControl variant="standard" sx={{ minWidth: 120 }}>
+                        <Select
+                          value={filterType}
+                          onChange={handleFilterChange}
+                          IconComponent={KeyboardArrowDownIcon}
+                          disableUnderline
+                          sx={{
+                            fontWeight: "medium",
+                            "& .MuiSelect-select": {
+                              pr: 4,
+                              py: 0,
+                            },
+                          }}
+                        >
+                          <MenuItem value="Custom">Custom</MenuItem>
+                          <MenuItem value="Catalog">Catalog</MenuItem>
+                          <MenuItem value="Default">Default</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Box>
+
+                    <Divider sx={{ mb: 3 }}  />
+
+                    {filteredOrders?.map((order) => (
+                      <Paper
+                        key={order.id}
+                        elevation={1}
+                        sx={{
+                          mb: 3,
+                          p: 2,
+                          borderRadius: 2,
+                          "&:last-child": { mb: 0 },
+                        }}
+                      >
+                        <Grid container spacing={2}>
+                          <Grid item>
+                            <Box
+                              component="img"
+                              src={`${process.env.REACT_APP_API_URL}/${order?.gambar_referensi || 'default-image-path.jpg'}`}
+                              alt="Product"
+                              sx={{
+                                width: 100,
+                                height: 100,
+                                objectFit: "cover",
+                                borderRadius: 1,
+                              }}
+                            />
+                          </Grid>
+                          <Grid item xs>
+                            <Box sx={{ display: "flex", flexDirection: "column", justifyContent: "center", height: "100%" }}>
+                              <Box sx={{ mb: 1 }}>
+                                <Typography variant="body2" color="text.secondary" component="span">
+                                  Tanggal Pemesanan :
+                                </Typography>{" "}
+                                <Typography variant="body2" component="span">
+                                  {new Date(order?.created_at || order?.created_at).toLocaleDateString('id-ID', {
+                                    weekday: 'long', // Nama hari
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric'
+                                  })}
+                                </Typography>
+                              </Box>
+                              <Typography variant="body3" fontWeight="bold" sx={{ mb: 1 }}>
+                                {order.price || 'harga belum terbit'}
+                              </Typography>
+                              <Link
+                                href="#"
+                                underline="none"
+                                color="primary"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  handleDetailClick(order?.id || order?.id)
+                                }}
+                              >
+                                <Button variant="outlined" color='#6D4C3D' size='large'>Detail</Button>
+                              </Link>
+                            </Box>
+                          </Grid>
+                        </Grid>
+                      </Paper>
+                    ))}
                   </Tab.Pane>
 
                   {/* Ubah Password */}
