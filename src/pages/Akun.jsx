@@ -852,109 +852,37 @@ function Akun() {
                       </Row>
                       
                       {/* Display user role (read-only) */}
-                      {userInfo && (
-                        <Row>
-                          <Col md={6}>
-                            <Form.Group className="mb-3">
-                              <Form.Label>Address</Form.Label>
-                              <Form.Control
-                                type="text"
-                                value={isEditing ? tempUserInfo.address : userInfo.address}  
-                                placeholder='contoh: Jl. Raya No. 123'
-                                className="bg-light"
-                              />
-                            </Form.Group>
-                          </Col>
-                          <Col md={6}>
-                            <Form.Group className="mb-3">
-                              <Form.Label>Jumlah Pesanan</Form.Label>
-                              <Form.Control
-                                type="text"
-                                value={userInfo.total_order || 0}
-                                disabled
-                                className="bg-light"
-                              />
-                            </Form.Group>
-                          </Col>
-                        </Row>
-          
-                        
-                      )}
-             
-                      <Row>
-                        <Col md={6}>
-                          <Form.Group className="mb-3">
-                            <Form.Label>Label</Form.Label>
-                            <Form.Control
-                              type="text"
-                              value={isEditing ? tempUserInfo.label : userInfo.label}  
-                              placeholder='contoh: Jl. Raya No. 123'
-                              className="bg-light"
-                            />
-                          </Form.Group>
-                        </Col>
-                        <Col md={6}>
-                          <Form.Group className="mb-3">
-                            <Form.Label>latitude</Form.Label>
-                            <Form.Control
-                                type="text"
-                                value={isEditing ? tempUserInfo.latitude : userInfo.latitude}  
-                                placeholder='contoh: Jl. Raya No. 123'
-                                className="bg-light"
-                              />
-                          </Form.Group>
-                        </Col>
-                      </Row>
+                      <Form.Group className="mb-3">
+  <Form.Label>Alamat Lengkap</Form.Label>
+  <Form.Control
+    as="textarea"
+    rows={2}
+    name="address"
+    value={isEditing ? tempUserInfo.address : userInfo.address}
+    onChange={handleInputChange}
+    disabled={!isEditing}
+  />
+</Form.Group>
 
-                      <Row>
-                        <Col md={6}>
-                          <Form.Group className="mb-3">
-                            <Form.Label>Longitude</Form.Label>
-                            <Form.Control
-                              type="text"
-                              value={isEditing ? tempUserInfo.longitude : userInfo.longitude}  
-                              placeholder='contoh: Jl. Raya No. 123'
-                              className="bg-light"
-                            />
-                          </Form.Group>
-                        </Col>
-                        <Col md={6}>
-                          <Form.Group className="mb-3">
-                            <Form.Label>region</Form.Label>
-                            <Form.Control
-                                type="text"
-                                value={isEditing ? tempUserInfo.region : userInfo.region}  
-                                placeholder='contoh: Jl. Raya No. 123'
-                                className="bg-light"
-                              />
-                          </Form.Group>
-                        </Col>
-                      </Row>
-
-                      <Row>
-                        <Col md={6}>
-                          <Form.Group className="mb-3">
-                            <Form.Label>city</Form.Label>
-                            <Form.Control
-                              type="text"
-                              value={isEditing ? tempUserInfo.city : userInfo.city}  
-                              placeholder='contoh: Jl. Raya No. 123'
-                              className="bg-light"
-                            />
-                          </Form.Group>
-                        </Col>
-                        <Col md={6}>
-                          <Form.Group className="mb-3">
-                            <Form.Label>kode pos</Form.Label>
-                            <Form.Control
-                                type="text"
-                                value={isEditing ? tempUserInfo.postal_code : userInfo.postal_code}  
-                                placeholder='contoh: Jl. Raya No. 123'
-                                className="bg-light"
-                              />
-                          </Form.Group>
-                        </Col>
-                      </Row>
+{isEditing && (
+  <div className="mb-4" style={{ height: '300px', borderRadius: '10px', overflow: 'hidden' }}>
+    <MapContainer 
+      center={mapPosition} 
+      zoom={15} 
+      style={{ height: '100%', width: '100%' }}
+    >
+      <TileLayer
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      />
+      <LocationMarker 
+        position={mapPosition} 
+        setPosition={setMapPosition}
+        setUserInfo={setTempUserInfo} 
+      />
+    </MapContainer>
+  </div>
+)}
 
                       {isEditing && (
                         <div className="d-flex gap-2">
