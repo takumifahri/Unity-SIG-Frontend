@@ -25,6 +25,7 @@ import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
 import Ulasan from './pages/Ulasan';
 import Checkout from './pages/Checkout';
+import Payment from './pages/Payment';
 import CustomOrder from './pages/CustomOrder';
 import Kontak from './pages/Kontak';
 import Lokasi from './pages/Lokasi';
@@ -87,6 +88,7 @@ function App() {
                           <Route path="cart" element={<Cart />} />
                           <Route path="ulasan" element={<Ulasan />} />
                           <Route path="checkout" element={<Checkout />} />
+                          <Route path="payment" element={<Payment />} />
                           <Route path="custom-order" element={<CustomOrder />} />
                           <Route path="kontak" element={<Kontak />} />
                           <Route path="lokasi" element={<Lokasi />} />

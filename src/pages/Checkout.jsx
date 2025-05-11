@@ -53,10 +53,10 @@ function Checkout() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    alert('Pembayaran berhasil!');
-    localStorage.removeItem('cart');
-    localStorage.removeItem('cartTotal');
-    navigate('/');
+    // Store payment method and total for the payment page
+    localStorage.setItem('paymentMethod', formData.paymentMethod);
+    localStorage.setItem('cartTotal', calculateTotal());
+    navigate('/payment');
   };
 
   const handleChange = (e) => {
