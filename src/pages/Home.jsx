@@ -41,11 +41,6 @@ function Beranda() {
       setItems(mappedData);
     } catch (error) {
       console.log('failed to fetch data', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Failed to fetch data from server',
-      });
     } finally {
       setLoading(false);
     }

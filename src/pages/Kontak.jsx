@@ -1,24 +1,50 @@
-import React from 'react';
+import { Box, Button, TextField } from '@mui/material';
+import axios from 'axios';
+import React, { useEffect, useState } from 'react';
 import { FaWhatsapp } from 'react-icons/fa';
 
 const Kontak = () => {
+    const [ulasam, setUlasan] = useState([])
+    const sendUlasan = async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+        console.log(data);
+
+        try {
+            const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/contact-us`, data, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            if (response.status === 200) {
+                alert('Pesan berhasil dikirim!');
+            } else {
+                alert('Gagal mengirim pesan.');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Terjadi kesalahan saat mengirim pesan.');
+        }
+    };
+
+    useEffect(() => {
+        // Any initialization logic if needed
+    }, []);
     return (
         <div className="container mx-auto px-4 py-8 max-w-4xl">
             <div className="bg-white rounded-lg shadow-sm p-6">
                 {/* Contact Form Section */}
                 <div className="mb-8">
                     <h2 className="text-2xl font-semibold mb-6">Kirimkan Pesanmu di Sini!</h2>
-                    <form className="space-y-4">
-                        <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                            <input
-                                type="email"
-                                id="email"
-                                className="w-full p-2 border border-gray-300 rounded-md bg-[#F5E6E0]"
-                                required
-                            />
-                        </div>
-                        <div>
+                    <form action={sendUlasan} className="space-y-4">
+                        <Box sx={{ width: 1500, maxWidth: '100%' }}>
+                            <TextField fullWidth label="Nama" placeholder='Contoh : Rafii Alexander' id="name"  />
+                        </Box>
+                        <Box sx={{ width: 1500, maxWidth: '100%' }}>
+                            <TextField fullWidth label="email" placeholder='Contoh : Rafi@gmail.com' id="email"/>
+                        </Box>
+                        {/* <div>
                             <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">Nomor Telfon</label>
                             <input
                                 type="tel"
@@ -26,23 +52,32 @@ const Kontak = () => {
                                 className="w-full p-2 border border-gray-300 rounded-md bg-[#F5E6E0]"
                                 required
                             />
-                        </div>
-                        <div>
+                        </div> */}
+                        <Box sx={{ width: 1500, maxWidth: '100%' }}>
+                            <TextField fullWidth label="phone" placeholder='Contoh : 081232312312' id="phone" required />
+                        </Box>
+                        {/* <div>
                             <label htmlFor="pesan" className="block text-sm font-medium text-gray-700 mb-1">Pesan</label>
                             <textarea
                                 id="pesan"
                                 rows="4"
                                 className="w-full p-2 border border-gray-300 rounded-md bg-[#F5E6E0]"
                                 required
-                            ></textarea>
-                        </div>
+                            ></textarea> */}
+                        <Box sx={{ width: 1500, maxWidth: '100%' }}>
+                            <TextField fullWidth label="pesan" id="pesan" />
+                        </Box>
+
+                        {/* </div> */}
                         <div className="text-right">
-                            <button
+                            <Button
+                                variant='contained'
                                 type="submit"
-                                className="bg-[#7D5A50] text-white px-6 py-2 rounded-md hover:bg-[#6d4c42] transition-colors"
+                                style={{backgroundColor: '#7D5A50'}}
+                                className=" text-white w-[100%] px-6 py-2 rounded-md hover:bg-[#6d4c42] transition-colors"
                             >
                                 Kirim
-                            </button>
+                            </Button>
                         </div>
                     </form>
                 </div>

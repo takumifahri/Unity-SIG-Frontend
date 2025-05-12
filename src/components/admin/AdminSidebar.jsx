@@ -46,9 +46,7 @@ function AdminSidebar({ className, isMobile = false, onClose }) {
   const navigate = useNavigate()
 
   const handleToUserPage = async () => {
-    // Implement your logout logic here
-    // For example:
-    // await logout();
+
     navigate("/akun")
     // Close mobile sidebar if applicable
     if (isMobile && onClose) {
@@ -93,6 +91,15 @@ function AdminSidebar({ className, isMobile = false, onClose }) {
       path: "/admin/pemesanan",
       icon: <MdShoppingCart size={20} />,
       title: "Pemesanan",
+      hasSubmenu: true,
+      SubmenuKey: "pemesanan",
+      submenuItems: [
+        { path: "/admin/pemesanan", title: "Pemesanan keseluruhan" },
+        { path: "/admin/pemesanan/jadi", title: "Pemesanan Jadi" },
+        { path: "/admin/pemesanan/khusus", title: "Pemesanan Kustom" },
+        { path: "/admin/pemesanan/pengajuan", title: "Pengajuan Pemesanan Kustom" },
+
+      ],
     },
     {
       title: "Keuangan",
@@ -132,7 +139,7 @@ function AdminSidebar({ className, isMobile = false, onClose }) {
             {item.hasSubmenu ? (
               // Menu with submenu
               <div>
-                <button
+                <Link
                   onClick={() => toggleSubmenu(item.submenuKey)}
                   className={cn(
                     "w-full flex items-center justify-between px-6 py-3 text-sm transition-colors duration-200",
@@ -146,7 +153,7 @@ function AdminSidebar({ className, isMobile = false, onClose }) {
                     <span className="font-medium">{item.title}</span>
                   </div>
                   {openSubmenus[item.submenuKey] ? <FaChevronDown size={16} /> : <FaChevronRight size={16} />}
-                </button>
+                </Link>
                 {/* Submenu */}
                 <div
                   className={cn(

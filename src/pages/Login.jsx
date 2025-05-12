@@ -86,7 +86,7 @@ function Login() {
   
   // Opsi 1: Redirect ke endpoint backend (backend mengurus OAuth flow)
   const handleGoogleLoginRedirect = () => {
-    window.location.href = `${process.env.REACT_APP_API_URL}  /auth/google`;
+    window.location.href = `${process.env.REACT_APP_API_URL}/auth/google`;
   };
   
   // Opsi 2: Menggunakan Google API client di frontend (jika Anda menggunakan gapi)

@@ -276,7 +276,7 @@ statuses.forEach((status, index) => {
                       }}
                     >
                       <Typography variant="h6" sx={{ fontWeight: 500, color: "#75584A" }}>
-                        Harga: Rp 130.000
+                        Harga: {order.price ? `Rp ${order.price.toLocaleString("id-ID")}` : "pending"}
                       </Typography>
                     </Paper>
                   </Box>

@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }) => {
                 password,
             });
     
-            const { access_token, user, token_type } = response.data;
+            const { access_token, user, token_type, expires_in } = response.data;
             console.log('Login response:', response.data);
             
             if (!access_token) {
@@ -68,6 +68,12 @@ export const AuthProvider = ({ children }) => {
     
             const fullToken = `${token_type || 'Bearer'} ${access_token}`;
             localStorage.setItem('token', fullToken);
+            
+            // Set token expiration to a maximum of 2 days
+            const maxExpiration = 2 * 24 * 60 * 60 * 1000; // 2 days in milliseconds
+            const expirationTime = Math.min(expires_in * 1000, maxExpiration);
+            const expirationDate = new Date().getTime() + expirationTime;
+            localStorage.setItem('token_expiration', expirationDate);
             
             // Set user and token in context
             setUser(user ? { user } : response.data);
@@ -87,6 +93,19 @@ export const AuthProvider = ({ children }) => {
             };
         }
     };
+
+    // Check token expiration on mount or when token changes
+    useEffect(() => {
+        const checkTokenExpiration = () => {
+            const expirationDate = localStorage.getItem('token_expiration');
+            if (expirationDate && new Date().getTime() > expirationDate) {
+                console.log('Token has expired.');
+                Logout();
+            }
+        };
+
+        checkTokenExpiration();
+    }, [token]);
 
     // Google OAuth login handler
     const GoogleLogin = async (tokenResponse) => {

@@ -7,17 +7,29 @@ import Swal from 'sweetalert2';
 import { BiSolidFaceMask } from "react-icons/bi";
 import { FaCrown } from "react-icons/fa6";
 import { MdOutlineVerifiedUser } from "react-icons/md";
-import { Box, Typography, Select, MenuItem, FormControl, Divider, Grid, Paper, Link } from "@mui/material"
+import { Box, Typography, Select, MenuItem, FormControl, Divider, Grid, Paper } from "@mui/material"
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown"
-import { get } from 'jquery';
 import Button from '@mui/material/Button';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import Pagination from '@mui/material/Pagination';
+import { Link } from 'react-router-dom';
+
 function Akun() {
   const navigate = useNavigate();
   const { user, isAuth, Logout, token, loading } = useAuth();
   const [profileLoading, setProfileLoading] = useState(true);
   const [filterType, setFilterType] = useState("Custom")
   const [orders, setOrders] = useState([]);
-  
+  const [mapPosition, setMapPosition] = useState([0, 0]);
+  const [page, setPage] = useState(() => {
+    const savedPage = localStorage.getItem('currentOrderPage');
+    return savedPage ? parseInt(savedPage, 10) : 1;
+  });
+  useEffect(() => {
+    localStorage.setItem('currentOrderPage', page);
+  }, [page]);
+    
+  const itemsPerPage = 5;
   // Utility function to safely access nested properties
   const safeGet = (obj, path, fallback = '') => {
     try {
@@ -338,7 +350,22 @@ function Akun() {
       });
       return;
     }
-
+    const LocationMarker = ({ position, setPosition }) => {
+      return (
+        <Marker
+          position={position}
+          draggable={true}
+          eventHandlers={{
+            dragend: (event) => {
+              const newPosition = event.target.getLatLng();
+              setPosition([newPosition.lat, newPosition.lng]);
+            },
+          }}
+        >
+          <Popup>Geser untuk memilih lokasi</Popup>
+        </Marker>
+      );
+    };
     try {
       setFeedback({
         type: 'info',
@@ -539,7 +566,22 @@ function Akun() {
       setFeedback({ type: '', message: '' });
     }, 3000);
   };
-
+  const LocationMarker = ({ position, setPosition }) => {
+    return (
+      <Marker
+        position={position}
+        draggable={true}
+        eventHandlers={{
+          dragend: (event) => {
+            const newPosition = event.target.getLatLng();
+            setPosition([newPosition.lat, newPosition.lng]);
+          },
+        }}
+      >
+        <Popup>Geser untuk memilih lokasi</Popup>
+      </Marker>
+    );
+  };
   // Show loading while checking authentication or fetching profile
   if (loading || profileLoading) {
     return (
@@ -685,7 +727,16 @@ function Akun() {
                   <Nav.Item>
                     <Nav.Link eventKey="password">Ubah Password</Nav.Link>
                   </Nav.Item>
-                  
+                  {['owner', 'developer', 'admin'].includes(userInfo.role) && (
+                    <Nav.Item>
+                      <Nav.Link
+                        onClick={() => navigate('/admin/dashboard')}
+                        className=" text-black"
+                      >
+                        Menuju Admin
+                      </Nav.Link>
+                  </Nav.Item>
+                  )}
                   <Nav.Item>
                     <Nav.Link onClick={handleLogout} className="text-danger">
                       Logout
@@ -853,36 +904,36 @@ function Akun() {
                       
                       {/* Display user role (read-only) */}
                       <Form.Group className="mb-3">
-  <Form.Label>Alamat Lengkap</Form.Label>
-  <Form.Control
-    as="textarea"
-    rows={2}
-    name="address"
-    value={isEditing ? tempUserInfo.address : userInfo.address}
-    onChange={handleInputChange}
-    disabled={!isEditing}
-  />
-</Form.Group>
+                        <Form.Label>Alamat Lengkap</Form.Label>
+                        <Form.Control
+                          as="textarea"
+                          rows={2}
+                          name="address"
+                          value={isEditing ? tempUserInfo.address : userInfo.address}
+                          onChange={handleInputChange}
+                          disabled={!isEditing}
+                        />
+                      </Form.Group>
 
-{isEditing && (
-  <div className="mb-4" style={{ height: '300px', borderRadius: '10px', overflow: 'hidden' }}>
-    <MapContainer 
-      center={mapPosition} 
-      zoom={15} 
-      style={{ height: '100%', width: '100%' }}
-    >
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      />
-      <LocationMarker 
-        position={mapPosition} 
-        setPosition={setMapPosition}
-        setUserInfo={setTempUserInfo} 
-      />
-    </MapContainer>
-  </div>
-)}
+                      {isEditing && (
+                        <div className="mb-4" style={{ height: '300px', borderRadius: '10px', overflow: 'hidden' }}>
+                          <MapContainer 
+                            center={mapPosition} 
+                            zoom={15} 
+                            style={{ height: '100%', width: '100%' }}
+                          >
+                            <TileLayer
+                              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                            />
+                            <LocationMarker 
+                              position={mapPosition} 
+                              setPosition={setMapPosition}
+                              setUserInfo={setTempUserInfo} 
+                            />
+                          </MapContainer>
+                        </div>
+                      )}
 
                       {isEditing && (
                         <div className="d-flex gap-2">
@@ -930,7 +981,9 @@ function Akun() {
 
                     <Divider sx={{ mb: 3 }}  />
 
-                    {filteredOrders?.map((order) => (
+                    {filteredOrders
+                      ?.slice((page - 1) * itemsPerPage, page * itemsPerPage)
+                      .map((order) => (
                       <Paper
                         key={order.id}
                         elevation={1}
@@ -989,6 +1042,16 @@ function Akun() {
                         </Grid>
                       </Paper>
                     ))}
+                    <Box display="flex" justifyContent="center" mt={4}>
+                    <Pagination
+                      count={Math.ceil(filteredOrders?.length / itemsPerPage)}
+                      page={page}
+                      onChange={(event, value) => setPage(value)}
+                      color="primary"
+                    />
+
+                    </Box>
+
                   </Tab.Pane>
 
                   {/* Ubah Password */}

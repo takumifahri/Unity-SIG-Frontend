@@ -6,7 +6,7 @@ import TambahPesananModal from './TambahPesananModal';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-const Pemesanan = () => {
+const PemesananKhusus = () => {
   const { pakaianList } = usePakaian();
   const { bahanList } = useBahan();
   const { pesananList, updatePesanan, deletePesanan, setPesananList } = usePemesanan();
@@ -50,54 +50,46 @@ const Pemesanan = () => {
   };
 
 
-  const ambildata = async() => {
-    const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/order`,{
-      headers: {
-        'Content-Type': 'multipart/form-data',
-            Authorization: `Bearer ${localStorage.getItem("token")}`
+//   const ambildata = async() => {
+//     const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/order`,{
+//       headers: {
+//         'Content-Type': 'multipart/form-data',
+//             Authorization: `Bearer ${localStorage.getItem("token")}`
 
-      }
-    });
-    console.log("data order",response.data.data)
-    setOrder(response.data.data )
-    // setCustom(response.data.data.custom_orders)
-    // setTransaction(response.data.data.transaction)  
-    // setcatalog(response.data.data.catalog)
-    // setApproved(response.data.data.custom_orders.approved_by_user)   
-  } 
+//       }
+//     });
+//     console.log("data order",response.data.data)
+//     setOrder(response.data.data )
+//     setCustom(response.data.data.custom_orders)
+//     setTransaction(response.data.data.transaction)  
+//     setcatalog(response.data.data.catalog)
+//     // setApproved(response.data.data.custom_orders.approved_by_user)   
+//   } 
 
-  const ambilDataCustom = async() => {
-    const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/order/custom`,{
-      headers: {
-        'Content-Type': 'multipart/form-data',
-            Authorization: `Bearer ${localStorage.getItem("token")}`
-
-      }
-    });
-    console.log("data custom",response.data.data)
-    setCustom(response.data.data )
-  }
-
-  const ambilDataTransaction = async() => {
-    const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/order/transaction`,{
-      headers: {
-        'Content-Type': 'multipart/form-data',
-        Authorization: `Bearer ${localStorage.getItem("token")}`
-      
-      }}
-    );
-    console.log("data transaction",response.data.data)
-    setTransaction(response.data.data )
-  }
-  const handleDetail = (id) => {
-    // Navigasi ke halaman detail pesanan
-    navigate(`/pesanan/${id}`);
-  };
-  useEffect(() =>{
-    ambildata();
-    ambilDataCustom();
-    ambilDataTransaction();
-  },[])
+    const proposeOrder = async() =>{
+        try {
+            const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/order/custom`, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+                Authorization: `Bearer ${localStorage.getItem("token")}`
+            }
+            });
+            console.log("data order", response.data.data);
+            setOrder(response.data.data);
+            setCustom(response.data.data.custom_orders);
+            setTransaction(response.data.data.transaction);
+            setcatalog(response.data.data.catalog);
+        } catch (error) {
+            console.error('Error fetching order data:', error);
+        }
+    }
+    const handleDetail = (id) => {
+        // Navigasi ke halaman detail pesanan
+        navigate(`/pesanan/${id}`);
+    };
+    useEffect(() =>{
+        proposeOrder()
+    },[])
 
   return (
     <div className="p-6 bg-white rounded-lg shadow-md">
@@ -341,4 +333,4 @@ const Pemesanan = () => {
   );
 };
 
-export default Pemesanan; 
+export default PemesananKhusus; 

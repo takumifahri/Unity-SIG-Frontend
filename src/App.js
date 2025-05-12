@@ -49,6 +49,8 @@ import './styles/Footer.css';
 import AdminLayout from './components/admin/AdminLayout';
 import axios from 'axios';
 import CustomOrderDetail from './pages/OrderDetail';
+import PemesananKhusus from './components/PemesananKhusus';
+import Pengajuan from './pages/Pengajuan';
 
 function App() {
   return (
@@ -95,6 +97,8 @@ function App() {
                           <Route path="bahan/tambah" element={<TambahBahan />} />
                           <Route path="bahan/tabel" element={<TabelBahan />} />
                           <Route path="pemesanan" element={<Pemesanan />} />
+                          <Route path="pemesanan/khusus" element={<PemesananKhusus />} />
+                          <Route path="pemesanan/pengajuan" element={<Pengajuan />} />
                           <Route path="pesanan/:id" element={<AdminPesanan />} />
                           <Route path="keuangan" element={<Keuangan />} />
                           <Route path="keuangan/pemasukan" element={<KeuanganPemasukan />} />
