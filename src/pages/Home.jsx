@@ -10,6 +10,7 @@ function Beranda() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [bestSeller, setBestSeller] = useState([]);
   const getCatalog = async () => {
     try {
       const resp = await axios.get(`${process.env.REACT_APP_API_URL}/api/catalog`, {
@@ -41,17 +42,38 @@ function Beranda() {
       setItems(mappedData);
     } catch (error) {
       console.log('failed to fetch data', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Failed to fetch data from server',
-      });
     } finally {
       setLoading(false);
     }
   };
+const getBestSeller = async () => {
+  try {
+    const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/catalog/bestSeller`, {
+      headers: {
+        "Content-Type": "application/json",
+      }
+    });
+    console.log('res', res.data.data);
+    if (res.data.data.length === 0) {
+      console.log('Tidak ada baju yang dijual');
+      setBestSeller([]);
+    } else {
+      setBestSeller(res.data.data);
+    }
+  } catch (error) {
+    console.log('failed to fetch data', error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Gagal',
+      text: 'Gagal memuat data Best Seller.',
+      timer: 3000,
+      showConfirmButton: false,
+    });
+  }
+};
   useEffect(() => {
     getCatalog();
+    getBestSeller();
   }, []);
  
   const handleQuickView = (category) => {
@@ -211,7 +233,7 @@ function Beranda() {
               </Col>
             ))}
           </Row>
-        ) : items.length === 0 ? (
+        ) : bestSeller.length === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
             <img src="https://thaka.bing.com/th/id/OIP.wTWyveIMu3qLvi5h96G8AAHaFj?w=241&h=181&c=7&r=0&o=5&pid=1.7" alt="maintenance" />
             <h1 className="text-2xl font-bold mb-4">Website Sedang Maintenance</h1>
@@ -219,24 +241,24 @@ function Beranda() {
           </div>
         ) : (
           <Row>
-            {items.map((category) => (
-              <Col md={3} sm={6} className="mb-4" key={category.id}>
+            {bestSeller.map((product) => (
+              <Col md={3} sm={6} className="mb-4" key={product.id}>
                 <Card className="h-100 product-card">
                   <div className="position-relative">
                     <Card.Img
                       variant="top"
-                      src={category.image}
+                      src={`${process.env.REACT_APP_API_URL}/${product.gambar}`}
                       className="category-image"
                       style={{ height: '400px', objectFit: 'cover' }}
                     />
                     <div className="product-overlay">
-                      <Link to={`/product/${category.id}`} className="btn btn-light me-2">View All</Link>
-                      <Button variant="light" onClick={() => handleQuickView(category)}>Quick View</Button>
+                      <Link to={`/product/${product.id}`} className="btn btn-light me-2">View All</Link>
+                      <Button variant="light" onClick={() => handleQuickView(product)}>Quick View</Button>
                     </div>
                   </div>
                   <Card.Body>
-                    <Card.Title className="text-center">{category.title}</Card.Title>
-                    <Card.Text className="text-center text-muted">{category.description}</Card.Text>
+                    <Card.Title className="text-center">{product.nama_katalog}</Card.Title>
+                    <Card.Text className="text-center text-muted">{product.deskripsi}</Card.Text>
                   </Card.Body>
                 </Card>
               </Col>
@@ -244,9 +266,6 @@ function Beranda() {
           </Row>
         )}
       </Container>
-
-
-      {/* Modal Quick View */}
       <Modal show={showQuickView} onHide={() => setShowQuickView(false)} size="lg" centered>
         <Modal.Header closeButton>
           <Modal.Title>{selectedProduct?.title}</Modal.Title>

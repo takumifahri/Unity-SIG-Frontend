@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import { ReviewProvider } from './context/ReviewContext';
 import { CartProvider } from './context/CartContext';
@@ -43,10 +43,17 @@ import KeuanganPemasukan from './components/KeuanganPemasukan';
 import KeuanganPengeluaran from './components/KeuanganPengeluaran';
 import CustomerDistribution from './components/CustomerDistribution';
 import AkunTerdaftar from './components/AkunTerdaftar';
-
+import CustomOrders from './pages/cusstomBackup';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './styles/Footer.css';
 import AdminLayout from './components/admin/AdminLayout';
+import axios from 'axios';
+import CustomOrderDetail from './pages/OrderDetail';
+import PemesananKhusus from './components/PemesananKhusus';
+import Pengajuan from './pages/Pengajuan';
+import PaymentPage from './pages/PaymentDetail';
+import PaymentAdminPage from './pages/admin/PembayaranClient';
+import PaymentDetail from './pages/admin/PaymentDetailClient';
 
 function App() {
   return (
@@ -79,9 +86,11 @@ function App() {
                           <Route path="cart" element={<Cart />} />
                           <Route path="ulasan" element={<Ulasan />} />
                           <Route path="checkout" element={<Checkout />} />
-                          <Route path="custom-order" element={<CustomOrder />} />
+                          <Route path="custom-order" element={<CustomOrders />} />
                           <Route path="kontak" element={<Kontak />} />
                           <Route path="lokasi" element={<Lokasi />} />
+                          <Route path="pesanan/:id" element={<CustomOrderDetail />} />
+                          <Route path="payment/:id" element={<PaymentPage />} />
                         </Route>
 
                         {/* Admin Routes */}
@@ -92,7 +101,11 @@ function App() {
                           <Route path="bahan/tambah" element={<TambahBahan />} />
                           <Route path="bahan/tabel" element={<TabelBahan />} />
                           <Route path="pemesanan" element={<Pemesanan />} />
+                          <Route path="pemesanan/khusus" element={<PemesananKhusus />} />
+                          <Route path="pemesanan/pengajuan" element={<Pengajuan />} />
                           <Route path="pesanan/:id" element={<AdminPesanan />} />
+                          <Route path="pembayaran" element={<PaymentAdminPage />} />
+                          <Route path="pembayaran/:id" element={<PaymentDetail />} />
                           <Route path="keuangan" element={<Keuangan />} />
                           <Route path="keuangan/pemasukan" element={<KeuanganPemasukan />} />
                           <Route path="keuangan/pengeluaran" element={<KeuanganPengeluaran />} />
@@ -114,6 +127,22 @@ function App() {
 
 // Layout component dengan Navbar dan Footer
 function Layout() {
+  const trackVisitor = async() => {
+    try{
+      const urlVisited = window.location.pathname;
+      axios.post('http://localhost:8000/api/track-visitor', {
+        url_visited: urlVisited,
+      });
+
+      return null;
+    }catch(error){
+      console.error("Error tracking visitor:", error);
+    }
+  }
+
+  useEffect(() => {
+    trackVisitor();
+  }, []);
   return (
     <>
       <Navbar />

@@ -1,4 +1,4 @@
-import React from 'react';
+import {useState, useEffect} from 'react';
 import { Line } from 'react-chartjs-2';
 import { Doughnut } from 'react-chartjs-2';
 import {
@@ -13,6 +13,9 @@ import {
   ArcElement
 } from 'chart.js';
 
+import axios from 'axios';
+import { get } from 'jquery';
+
 // Register ChartJS components
 ChartJS.register(
   CategoryScale,
@@ -25,14 +28,62 @@ ChartJS.register(
   ArcElement
 );
 
+
 const Dashboard = () => {
+  const [order, setOrder] = useState([]);
+  const [user, setUser] = useState([]);
+  const [visitor, setVisitor] = useState([]);
+  const [money, setMoney] = useState([]);
+  const getOrder = async () => {
+    const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/order/monthly`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    console.log('order masuk : ', res.data.data);
+    setOrder(res.data.data);
+  }
+
+  const getUser = async () => {
+    const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/users/count`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    console.log('user masuk : ', res.data.data);
+    setUser(res.data.data);
+  }
+
+  const getVisitor = async () => {
+    const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/users/count/visitor`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    console.log('visitor masuk : ', res.data.data);
+    setVisitor(res.data.data);
+  }
+
+  const getMoney = async () => {
+    const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/keuangan/ProfitLossMonthly`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    console.log('money masuk : ', res.data.data);
+    setMoney(res.data.data);
+  }
   // Data untuk grafik pendapatan
   const pendapatanData = {
-    labels: ['Jan', 'Mar', 'May', 'Jul', 'Sep', 'Nov'],
+    labels: money?.labels || [],
     datasets: [
       {
         label: 'Pendapatan',
-        data: [0, 10000, 15000, 20000, 25000, 40000],
+        data: money?.datasets?.[0]?.data.map(value => Math.min(value, 10000000)) || [],
         fill: false,
         borderColor: 'rgb(75, 192, 192)',
         tension: 0.1
@@ -55,6 +106,15 @@ const Dashboard = () => {
     ]
   };
 
+  
+
+  useEffect(() => {
+    getOrder();
+    getUser();
+    getMoney();
+    getVisitor();
+  }, []);
+  
   return (
     <div className="container mx-auto px-4">
       {/* Header */}
@@ -70,7 +130,7 @@ const Dashboard = () => {
             <div>
               <p className="text-sm font-medium text-brown-600">TOTAL ORDER</p>
               <p className="text-sm font-medium text-brown-600">(BULAN INI)</p>
-              <h3 className="text-2xl font-bold mt-2">12</h3>
+              <h3 className="text-2xl font-bold mt-2">{order?.current_month_order_count} Pesanan</h3>
             </div>
             <div className="bg-brown-100 p-3 rounded-lg">
               <svg className="w-6 h-6 text-brown-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -86,7 +146,7 @@ const Dashboard = () => {
             <div>
               <p className="text-sm font-medium text-emerald-600">TOTAL PENDAPATAN</p>
               <p className="text-sm font-medium text-emerald-600">(BULAN INI)</p>
-              <h3 className="text-2xl font-bold mt-2">Rp350.000</h3>
+              <h3 className="text-2xl font-bold mt-2">{order?.current_month_revenue?.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</h3>
             </div>
             <div className="bg-emerald-100 p-3 rounded-lg">
               <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -102,7 +162,7 @@ const Dashboard = () => {
             <div>
               <p className="text-sm font-medium text-blue-600">JUMLAH AKUN</p>
               <p className="text-sm font-medium text-blue-600">TERDAFTAR</p>
-              <h3 className="text-2xl font-bold mt-2">10</h3>
+              <h3 className="text-2xl font-bold mt-2">{user} Akun</h3>
             </div>
             <div className="bg-blue-100 p-3 rounded-lg">
               <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -118,7 +178,7 @@ const Dashboard = () => {
             <div>
               <p className="text-sm font-medium text-yellow-600">JUMLAH PENGUNJUNG</p>
               <p className="text-sm font-medium text-yellow-600">WEBSITE</p>
-              <h3 className="text-2xl font-bold mt-2">18</h3>
+              <h3 className="text-2xl font-bold mt-2">{visitor?.current_month_visitors} Pengunjung</h3>
             </div>
             <div className="bg-yellow-100 p-3 rounded-lg">
               <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

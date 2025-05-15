@@ -5,6 +5,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Person } from '@mui/icons-material';
 function NavigationBar() {
   const { cartCount } = useCart();
   const { isAuth } = useAuth();
@@ -39,8 +40,7 @@ function NavigationBar() {
         <div className="container mx-auto flex justify-between items-center">
           {/* Logo */}
           <Link to="/" className="text-white font-script text-2xl flex items-center">
-            <span className="text-3xl mr-1">JR</span>
-            <span className="text-sm mt-2">Konveksi</span>
+            <img src="/logo2.png" alt="Logo" className="h-11 mr-2" />
           </Link>
 
           {/* Search Bar */}
@@ -59,7 +59,7 @@ function NavigationBar() {
             {isAuth() ? (
               <>
                 <Link to="/cart" className="text-white relative flex">
-                    <FaShoppingCart className="h-6 w-6" />
+                    <FaShoppingCart className="text-3xl" />
                     {cartCount > 0 && (
                     <span className="absolute -top-3 -right-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">
                       {cartCount}
@@ -67,7 +67,7 @@ function NavigationBar() {
                     )}
                 </Link>
                 <Link to="/akun" className="text-white">
-                  <i className="fas fa-user h-6 w-6"></i>
+                  <Person style={{ fontSize: '2.5rem' }} /> {/* Ukuran diperbesar */}
                 </Link>
               </>
             ) : (
@@ -161,24 +161,24 @@ function NavigationBar() {
               </ul>
 
               {/* Mobile Search */}
-          <div
-            className={`md:hidden px-4 pb-4 ${
-              isMenuOpen ? "block" : "hidden"
-            }`}
-          >
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search..."
-                className="w-full py-2 px-4 pr-10 rounded-full border focus:outline-none"
-              />
-              <button className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                <i className="fas fa-search text-gray-500"></i>
-              </button>
+            <div
+              className={`md:hidden px-4 pb-4 ${
+                isMenuOpen ? "block" : "hidden"
+              }`}
+            >
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  className="w-full py-2 px-4 pr-10 rounded-full border focus:outline-none"
+                />
+                <button className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <i className="fas fa-search text-gray-500"></i>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      </nav>
+        </nav>
     </header>
   );
 }
