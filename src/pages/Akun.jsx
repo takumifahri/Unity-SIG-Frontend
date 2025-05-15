@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Tab, Nav, Form, Button, Table, Alert } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -7,65 +7,12 @@ import Swal from 'sweetalert2';
 import { BiSolidFaceMask } from "react-icons/bi";
 import { FaCrown } from "react-icons/fa6";
 import { MdOutlineVerifiedUser } from "react-icons/md";
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
-
-const LocationMarker = ({ position, setPosition, setUserInfo }) => {
-  const map = useMapEvents({
-    click(e) {
-      const { lat, lng } = e.latlng;
-      setPosition([lat, lng]);
-      
-      // Update state sesuai struktur kode Anda
-      setUserInfo(prev => ({
-        ...prev,
-        latitude: lat,
-        longitude: lng
-      }));
-
-      // Reverse geocoding
-      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
-        .then(res => res.json())
-        .then(data => {
-          setUserInfo(prev => ({
-            ...prev,
-            address: data.display_name || '',
-            city: data.address?.city || '',
-            region: data.address?.state || '',
-            postal_code: data.address?.postcode || ''
-          }));
-        });
-    }
-  });
-
-  return position ? (
-    <Marker position={position}>
-      <Popup>Lokasi terpilih</Popup>
-    </Marker>
-  ) : null;
-};
-
-// 4. Di dalam komponen Akun, tambahkan state untuk peta:
-const [mapPosition, setMapPosition] = useState(
-  userInfo.latitude && userInfo.longitude 
-    ? [userInfo.latitude, userInfo.longitude] 
-    : [-6.9147, 107.6098] // Default: Bandung
-);
-
 function Akun() {
   const navigate = useNavigate();
   const { user, isAuth, Logout, token, loading } = useAuth();
   const [profileLoading, setProfileLoading] = useState(true);
-  // const [imageError, setImageError] = useState(false);
-  // const [imageUrl, setImageUrl] = useState("");
+  const [imageError, setImageError] = useState(false);
+  const [imageUrl, setImageUrl] = useState("");
   
   // Check if user is logged in and fetch data
   useEffect(() => {
@@ -157,9 +104,6 @@ function Akun() {
         type: 'success',
         message: 'Foto profil berhasil diperbarui!'
       });
-
-      // Refresh the page
-      window.location.reload();
     } catch (error) {
       console.error("Error updating photo:", error);
       setFeedback({
@@ -309,16 +253,6 @@ function Akun() {
       if (token) {
         try {
           setOrdersLoading(true);
-          const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/order/history`, {
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`
-            }
-          });
-
-          console.log("Order history response:", response.data.data);
-          setOrderHistory(response.data.data || []);
-
           // Example API call to fetch order history
           // const response = await axios.get(
           //   `${process.env.REACT_APP_API_URL}/api/orders/history`,
@@ -614,54 +548,11 @@ function Akun() {
   // Show loading while checking authentication or fetching profile
   if (loading || profileLoading) {
     return (
-      <Container className="py-5">
-      <Row>
-        <Col md={3}>
-        <Card className="mb-4">
-          <Card.Body>
-          <div className="text-center mb-3">
-            <div
-            className="rounded-circle mx-auto my-3 bg-secondary bg-opacity-25 shimmer"
-            style={{ width: '100px', height: '100px' }}
-            ></div>
-            <h5
-            className="mt-3 shimmer shimmer-text"
-            style={{ width: '60%', margin: '10px auto', height: '20px' }}
-            ></h5>
-            <p
-            className="text-muted shimmer shimmer-text"
-            style={{ width: '80%', margin: '10px auto', height: '15px' }}
-            ></p>
-          </div>
-          <Nav variant="pills" className="flex-column">
-            {[...Array(4)].map((_, index) => (
-            <Nav.Item key={index} className="mb-2">
-              <span
-              className="shimmer shimmer-text"
-              style={{ width: '80%', height: '15px', display: 'block', margin: '0 auto' }}
-              ></span>
-            </Nav.Item>
-            ))}
-          </Nav>
-          </Card.Body>
-        </Card>
-        </Col>
-
-        <Col md={9}>
-        <Card>
-          <Card.Body>
-          <h4
-            className="mb-4 shimmer shimmer-text"
-            style={{ width: '50%', height: '25px' }}
-          ></h4>
-          <div
-            className="shimmer shimmer-block"
-            style={{ height: '200px', borderRadius: '10px' }}
-          ></div>
-          </Card.Body>
-        </Card>
-        </Col>
-      </Row>
+      <Container className="py-5 text-center">
+        <div className="spinner-border" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+        <p className="mt-3">Memuat informasi pengguna...</p>
       </Container>
     );
   }
@@ -752,9 +643,6 @@ function Akun() {
                     <Nav.Link eventKey="account">Informasi Akun</Nav.Link>
                   </Nav.Item>
                   <Nav.Item>
-                    <Nav.Link eventKey="password">Tracking Ordermu</Nav.Link>
-                  </Nav.Item>
-                              <Nav.Item>
                     <Nav.Link eventKey="password">Ubah Password</Nav.Link>
                   </Nav.Item>
                   <Nav.Item>
@@ -771,6 +659,7 @@ function Akun() {
             <Card>
               <Card.Body>
                 <Tab.Content>
+                  {/* Riwayat Pesanan */}
                   <Tab.Pane eventKey="history">
                     <h4 className="mb-4">Riwayat Pesanan</h4>
                     {ordersLoading ? (
@@ -784,57 +673,20 @@ function Akun() {
                       <Table responsive>
                         <thead>
                           <tr>
-                            <th>No.</th>
+                            <th>Order ID</th>
                             <th>Tanggal</th>
-                            <th>Nama Produk</th>
-                            <th>Gambar</th>
-                            <th>Jumlah</th>
-                            <th>Total Harga</th>
+                            <th>Items</th>
+                            <th>Total</th>
                             <th>Status</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {orderHistory.map((order, index) => (
-                            <tr key={index}>
-                              <td>{index + 1}</td>
-                              <td>{new Date(order.date).toLocaleDateString('id-ID', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric'
-                              })}</td>
-                              <td>
-                                {Array.isArray(order.items) ? (
-                                    order.items.map((item, itemIndex) => (
-                                      <td>{item.product_name}</td>
-                                    ))
-                                  ) : (
-                                    order.items
-                                )}
-                              </td>
-                              <td>
-                                {Array.isArray(order.items) ? (
-                                  order.items.map((item, itemIndex) => (
-                                    <img
-                                      key={itemIndex}
-                                      src={`${process.env.REACT_APP_API_URL}/${item.image}`}
-                                      alt={item.product_name}
-                                      style={{ width: '50px', height: '50px', objectFit: 'cover' }} // Ukuran kecil
-                                    />
-                                  ))
-                                ) : (
-                                  order.items
-                                )}
-                              </td>
-                              <td>
-                                {Array.isArray(order.items) ? (
-                                    order.items.map((item, itemIndex) => (
-                                      <td>{item.quantity}</td>
-                                    ))
-                                  ) : (
-                                    order.items
-                                )}
-                              </td>
-                              <td>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(order.total_amount)}</td>
+                          {orderHistory.map((order) => (
+                            <tr key={order.id}>
+                              <td>{order.id}</td>
+                              <td>{order.date}</td>
+                              <td>{Array.isArray(order.items) ? order.items.join(', ') : order.items}</td>
+                              <td>{order.total}</td>
                               <td>
                                 <span className={`badge bg-${
                                   order.status === 'Selesai' ? 'success' : 
@@ -854,6 +706,8 @@ function Akun() {
                       </Alert>
                     )}
                   </Tab.Pane>
+
+                  {/* Informasi Akun */}
                   <Tab.Pane eventKey="account">
                     <div className="d-flex justify-content-between align-items-center mb-4">
                       <h4 className="mb-0">Informasi Akun</h4>
@@ -923,37 +777,109 @@ function Akun() {
                       </Row>
                       
                       {/* Display user role (read-only) */}
-                      <Form.Group className="mb-3">
-  <Form.Label>Alamat Lengkap</Form.Label>
-  <Form.Control
-    as="textarea"
-    rows={2}
-    name="address"
-    value={isEditing ? tempUserInfo.address : userInfo.address}
-    onChange={handleInputChange}
-    disabled={!isEditing}
-  />
-</Form.Group>
+                      {userInfo && (
+                        <Row>
+                          <Col md={6}>
+                            <Form.Group className="mb-3">
+                              <Form.Label>Address</Form.Label>
+                              <Form.Control
+                                type="text"
+                                value={isEditing ? tempUserInfo.address : userInfo.address}  
+                                placeholder='contoh: Jl. Raya No. 123'
+                                className="bg-light"
+                              />
+                            </Form.Group>
+                          </Col>
+                          <Col md={6}>
+                            <Form.Group className="mb-3">
+                              <Form.Label>Jumlah Pesanan</Form.Label>
+                              <Form.Control
+                                type="text"
+                                value={userInfo.total_order || 0}
+                                disabled
+                                className="bg-light"
+                              />
+                            </Form.Group>
+                          </Col>
+                        </Row>
+          
+                        
+                      )}
+             
+                      <Row>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>Label</Form.Label>
+                            <Form.Control
+                              type="text"
+                              value={isEditing ? tempUserInfo.label : userInfo.label}  
+                              placeholder='contoh: Jl. Raya No. 123'
+                              className="bg-light"
+                            />
+                          </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>latitude</Form.Label>
+                            <Form.Control
+                                type="text"
+                                value={isEditing ? tempUserInfo.latitude : userInfo.latitude}  
+                                placeholder='contoh: Jl. Raya No. 123'
+                                className="bg-light"
+                              />
+                          </Form.Group>
+                        </Col>
+                      </Row>
 
-{isEditing && (
-  <div className="mb-4" style={{ height: '300px', borderRadius: '10px', overflow: 'hidden' }}>
-    <MapContainer 
-      center={mapPosition} 
-      zoom={15} 
-      style={{ height: '100%', width: '100%' }}
-    >
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      />
-      <LocationMarker 
-        position={mapPosition} 
-        setPosition={setMapPosition}
-        setUserInfo={setTempUserInfo} 
-      />
-    </MapContainer>
-  </div>
-)}
+                      <Row>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>Longitude</Form.Label>
+                            <Form.Control
+                              type="text"
+                              value={isEditing ? tempUserInfo.longitude : userInfo.longitude}  
+                              placeholder='contoh: Jl. Raya No. 123'
+                              className="bg-light"
+                            />
+                          </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>region</Form.Label>
+                            <Form.Control
+                                type="text"
+                                value={isEditing ? tempUserInfo.region : userInfo.region}  
+                                placeholder='contoh: Jl. Raya No. 123'
+                                className="bg-light"
+                              />
+                          </Form.Group>
+                        </Col>
+                      </Row>
+
+                      <Row>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>city</Form.Label>
+                            <Form.Control
+                              type="text"
+                              value={isEditing ? tempUserInfo.city : userInfo.city}  
+                              placeholder='contoh: Jl. Raya No. 123'
+                              className="bg-light"
+                            />
+                          </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>kode pos</Form.Label>
+                            <Form.Control
+                                type="text"
+                                value={isEditing ? tempUserInfo.postal_code : userInfo.postal_code}  
+                                placeholder='contoh: Jl. Raya No. 123'
+                                className="bg-light"
+                              />
+                          </Form.Group>
+                        </Col>
+                      </Row>
 
                       {isEditing && (
                         <div className="d-flex gap-2">
