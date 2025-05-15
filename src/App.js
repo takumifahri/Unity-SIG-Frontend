@@ -51,6 +51,9 @@ import axios from 'axios';
 import CustomOrderDetail from './pages/OrderDetail';
 import PemesananKhusus from './components/PemesananKhusus';
 import Pengajuan from './pages/Pengajuan';
+import PaymentPage from './pages/PaymentDetail';
+import PaymentAdminPage from './pages/admin/PembayaranClient';
+import PaymentDetail from './pages/admin/PaymentDetailClient';
 
 function App() {
   return (
@@ -87,6 +90,7 @@ function App() {
                           <Route path="kontak" element={<Kontak />} />
                           <Route path="lokasi" element={<Lokasi />} />
                           <Route path="pesanan/:id" element={<CustomOrderDetail />} />
+                          <Route path="payment/:id" element={<PaymentPage />} />
                         </Route>
 
                         {/* Admin Routes */}
@@ -100,6 +104,8 @@ function App() {
                           <Route path="pemesanan/khusus" element={<PemesananKhusus />} />
                           <Route path="pemesanan/pengajuan" element={<Pengajuan />} />
                           <Route path="pesanan/:id" element={<AdminPesanan />} />
+                          <Route path="pembayaran" element={<PaymentAdminPage />} />
+                          <Route path="pembayaran/:id" element={<PaymentDetail />} />
                           <Route path="keuangan" element={<Keuangan />} />
                           <Route path="keuangan/pemasukan" element={<KeuanganPemasukan />} />
                           <Route path="keuangan/pengeluaran" element={<KeuanganPengeluaran />} />

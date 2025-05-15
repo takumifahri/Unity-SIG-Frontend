@@ -102,6 +102,11 @@ function AdminSidebar({ className, isMobile = false, onClose }) {
       ],
     },
     {
+      path: "/admin/pembayaran",
+      icon: <MdLocationOn size={20} />,
+      title: "Pembayaran Pelanggan",
+    },
+    {
       title: "Keuangan",
       icon: <MdAttachMoney size={20} />,
       hasSubmenu: true,
@@ -126,7 +131,7 @@ function AdminSidebar({ className, isMobile = false, onClose }) {
   const isActive = (path) => (path ? pathname === path : false)
 
   return (
-    <div className={cn("h-[100dvh] w-64 bg-[#5D4037] text-white shadow-lg flex flex-col", className)}>
+    <div className={cn(" xl:h-[100%] h-[100dvh] w-64 bg-[#5D4037] text-white shadow-lg flex flex-col", className)}>
       {/* Header */}
       <div className="p-6 border-b border-[#795548] flex items-center justify-between">
         <h1 className="text-xl md:text-2xl font-bold tracking-wider">Admin Panel</h1>
@@ -142,7 +147,7 @@ function AdminSidebar({ className, isMobile = false, onClose }) {
                 <Link
                   onClick={() => toggleSubmenu(item.submenuKey)}
                   className={cn(
-                    "w-full flex items-center justify-between px-6 py-3 text-sm transition-colors duration-200",
+                    "w-full flex items-center justify-between no-underline px-6 py-3 text-sm transition-colors duration-200",
                     isActive(item.path)
                       ? "bg-[#3E2723] text-white"
                       : "text-gray-300 hover:bg-[#4E342E] hover:text-white",
@@ -150,14 +155,14 @@ function AdminSidebar({ className, isMobile = false, onClose }) {
                 >
                   <div className="flex items-center space-x-4">
                     <span className="w-6">{item.icon}</span>
-                    <span className="font-medium">{item.title}</span>
+                    <span className="font-medium no-underline">{item.title}</span>
                   </div>
                   {openSubmenus[item.submenuKey] ? <FaChevronDown size={16} /> : <FaChevronRight size={16} />}
                 </Link>
                 {/* Submenu */}
                 <div
                   className={cn(
-                    "transition-all duration-300 overflow-hidden",
+                    "transition-all duration-300 overflow-hidden no-underline",
                     openSubmenus[item.submenuKey] ? "max-h-40" : "max-h-0",
                   )}
                 >
@@ -167,7 +172,7 @@ function AdminSidebar({ className, isMobile = false, onClose }) {
                       to={subItem.path}
                       onClick={handleNavigation}
                       className={cn(
-                        "flex items-center pl-16 pr-6 py-2 text-sm transition-colors duration-200",
+                        "flex items-center pl-16 pr-6 py-2 text-sm transition-colors duration-200 no-underline",
                         isActive(subItem.path)
                           ? "bg-[#3E2723] text-white"
                           : "text-gray-300 hover:bg-[#4E342E] hover:text-white",

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Tab, Nav, Form, Table, Alert } from 'react-bootstrap';
+import { Container, Row, Col, Card, Tab, Nav, Form, Table,  } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
@@ -13,6 +13,11 @@ import Button from '@mui/material/Button';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import Pagination from '@mui/material/Pagination';
 import { Link } from 'react-router-dom';
+import {
+  CircularProgress,
+  Alert,
+  Chip,
+} from "@mui/material"
 
 function Akun() {
   const navigate = useNavigate();
@@ -68,18 +73,22 @@ function Akun() {
   }, [isAuth, navigate, token, loading]);
 
   const filteredOrders = filterType === "Default" 
-    ? [...(orders?.custom_orders || []), ...(orders?.order || [])] 
+    ? [...(orders?.custom_orders || []), ...(orders?.orders || [])] 
     : filterType === "Custom" 
       ? orders?.custom_orders 
-      : orders?.order;
+      : orders?.orders;
 
   const handleFilterChange = (event) => {
     setFilterType(event.target.value)
   }
 
   const handleDetailClick = (orderId) => {
-    navigate(`/pesanan/${orderId}`)
-  }
+    if (filterType === "Custom") {
+      navigate(`/pesanan/${orderId}`);
+    } else if (filterType === "Catalog") {
+      navigate(`/pesananJadi/${orderId}`);
+    }
+  };
   
   const [userInfo, setUserInfo] = useState({
     nama: '',
@@ -636,6 +645,19 @@ function Akun() {
       </Container>
     );
   }
+  // Helper function to determine chip color based on status
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "Selesai":
+        return "success"
+      case "Dikirim":
+        return "primary"
+      case "Dibatalkan":
+        return "error"
+      default:
+        return "warning"
+    }
+  }
 
   // Redirect if not authenticated
   if (!isAuth() || !user) {
@@ -752,6 +774,7 @@ function Akun() {
               <Card.Body>
                 <Tab.Content>
                   <Tab.Pane eventKey="history">
+                  
                     <h4 className="mb-4">Riwayat Pesanan</h4>
                     {ordersLoading ? (
                       <div className="text-center py-4">
@@ -998,7 +1021,7 @@ function Akun() {
                           <Grid item>
                             <Box
                               component="img"
-                              src={`${process.env.REACT_APP_API_URL}/${order?.gambar_referensi || 'default-image-path.jpg'}`}
+                              src={`${process.env.REACT_APP_API_URL}/${order?.gambar_referensi || order?.catalog.gambar || 'default-image-path.jpg'}`}
                               alt="Product"
                               sx={{
                                 width: 100,
@@ -1024,7 +1047,7 @@ function Akun() {
                                 </Typography>
                               </Box>
                               <Typography variant="body3" fontWeight="bold" sx={{ mb: 1 }}>
-                                {order.price || 'harga belum terbit'}
+                              {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(order.price || order.total_harga || 0)}
                               </Typography>
                               <Link
                                 href="#"
