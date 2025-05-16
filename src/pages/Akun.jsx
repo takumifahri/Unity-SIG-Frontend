@@ -389,6 +389,7 @@ function Akun() {
           email: tempUserInfo.email,
           phone: tempUserInfo.telepon,
           gender: tempUserInfo.gender,
+          address: tempUserInfo.address,
         },
         {
           headers: {
@@ -932,7 +933,7 @@ function Akun() {
                           as="textarea"
                           rows={2}
                           name="address"
-                          value={isEditing ? tempUserInfo.address : userInfo.address}
+                          value={isEditing ? (typeof tempUserInfo.address === 'string' ? tempUserInfo.address : JSON.stringify(tempUserInfo.address)) : (typeof userInfo.address === 'string' ? userInfo.address : JSON.stringify(userInfo.address))}
                           onChange={handleInputChange}
                           disabled={!isEditing}
                         />
