@@ -43,10 +43,16 @@ function MapComponent() {
 
 
   return (
+    
     <MapContainer 
-      center={[-6.2000, 106.8167]} zoom={12} 
-      style={{ height: '800px', width: '100%' }} 
-      ref={mapRef}
+     center={[-6.2, 106.8167]}
+    zoom={12}
+    style={{
+      height: '800px',
+      width: '100vw', // Lebar penuh layar (viewport)
+      marginLeft: 'calc(-50vw + 50%)', // Trik agar map bisa full-width meskipun di dalam container terbatas
+    }}
+    ref={mapRef}
     >
       {/* Tile layer OpenStreetMap */} 
       <TileLayer

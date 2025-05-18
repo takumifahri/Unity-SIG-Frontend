@@ -26,6 +26,7 @@
     "jspdf-autotable": "^5.0.2",
     "konveksi-website": "file:",
     "leaflet": "^1.9.4",
+    "leaflet-control-geocoder": "^3.1.0",
     "lucide-react": "^0.503.0",
     "react": "^19.0.0",
     "react-bootstrap": "^2.10.9",
