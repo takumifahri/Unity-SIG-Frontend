@@ -1,10 +1,11 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import axios from "axios"
 import Dropzone from "react-dropzone"
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet"
+import "leaflet/dist/leaflet.css"
 
 // MUI Components
 import {
@@ -292,6 +293,7 @@ function PaymentPage() {
               color: "white",
               py: 2,
             }}
+
           />
 
           <CardContent sx={{ p: 3 }}>
@@ -668,6 +670,52 @@ function PaymentPage() {
           </Card>
         )}
 
+        {/* Tracking Map Section */}
+        {transaction.delivery_location && (
+          <Card variant="outlined" sx={{ mb: 3 }}>
+            <CardHeader
+              title="Tracking Paket"
+              sx={{
+                bgcolor: "#6B4A3D",
+                color: "white",
+                py: 2,
+              }}
+            />
+            <CardContent>
+              <Typography variant="body2" color="text.secondary" mb={2}>
+                Lokasi paket Anda saat ini:
+              </Typography>
+              <div style={{ height: 300, width: "100%", borderRadius: 8, overflow: "hidden" }}>
+                <MapContainer
+                  center={[
+                    transaction.delivery_location.latitude,
+                    transaction.delivery_location.longitude,
+                  ]}
+                  zoom={15}
+                  style={{ height: "100%", width: "100%" }}
+                  scrollWheelZoom={false}
+                >
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  />
+                  <Marker
+                    position={[
+                      transaction.delivery_location.latitude,
+                      transaction.delivery_location.longitude,
+                    ]}
+                  >
+                    <Popup>
+                      Paket sedang {transaction.delivery_location.status || "dikirim"}.
+                    </Popup>
+                  </Marker>
+                </MapContainer>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Tombol View All Orders */}
         <Box textAlign="center">
           <Button variant="outlined" onClick={() => navigate("/orders")} sx={{ px: 3, py: 1 }}>
             View All Orders
