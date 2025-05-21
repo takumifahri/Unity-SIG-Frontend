@@ -54,6 +54,10 @@ import Pengajuan from './pages/Pengajuan';
 import PaymentPage from './pages/PaymentDetail';
 import PaymentAdminPage from './pages/admin/PembayaranClient';
 import PaymentDetail from './pages/admin/PaymentDetailClient';
+import DetailCustomPesanan from './pages/pesananCustom';
+import DetailPesanan from './pages/pesananCatalog';
+import PesananCatalog from './pages/pesananCatalog';
+import PesananCustom from './pages/pesananCustom';
 
 function App() {
   return (
@@ -106,6 +110,10 @@ function App() {
                           <Route path="pesanan/:id" element={<AdminPesanan />} />
                           <Route path="pembayaran" element={<PaymentAdminPage />} />
                           <Route path="pembayaran/:id" element={<PaymentDetail />} />
+                          <Route path="custom-order/:orderUniqueId" element={< PesananCustom/>} />
+                          <Route path="CatalogPesan/:orderUniqueId" element={< PesananCatalog/>} />
+
+
                           <Route path="keuangan" element={<Keuangan />} />
                           <Route path="keuangan/pemasukan" element={<KeuanganPemasukan />} />
                           <Route path="keuangan/pengeluaran" element={<KeuanganPengeluaran />} />

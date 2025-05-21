@@ -1,5 +1,3 @@
-"use client"
-
 import axios from "axios"
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
@@ -20,43 +18,47 @@ const PaymentAdmin = () => {
         message: "",
         severity: "success", // success, error, warning, info
     });
+    
     useEffect(() => {
         fetchPayments()
     }, [statusFilter, dateFilter])
 
     const fetchPayments = async () => {
         try {
-        setLoading(true)
+          setLoading(true)
 
-        // Fetch data from API
-        const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/transaction`, {
-            headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-        })
+          // Fetch data from API
+          const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/transaction`, {
+              headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+          })
 
-        console.log("API response:", response.data)
+          console.log("API response:", response.data)
 
-        // Ensure we're setting an array
-        const transactionsData = response.data.data || []
+          // Ensure we're setting an array
+          const transactionsData = response.data.data || []
 
-        // Check if transactionsData is an array, if not, convert to array or use empty array
-        const transactionsArray = Array.isArray(transactionsData)
-            ? transactionsData
-            : transactionsData
-            ? [transactionsData]
-            : []
+          // Check if transactionsData is an array, if not, convert to array or use empty array
+          const transactionsArray = Array.isArray(transactionsData)
+              ? transactionsData
+              : transactionsData
+              ? [transactionsData]
+              : []
 
-        setPayments(transactionsArray)
+          setPayments(transactionsArray)
         } catch (error) {
-        console.error("Error fetching payments:", error)
-        setError("An error occurred while fetching payments")
-        setPayments([]) // Set to empty array on error
+          console.error("Error fetching payments:", error)
+          setError("An error occurred while fetching payments")
+          setPayments([]) // Set to empty array on error
         } finally {
-        setLoading(false)
+          setLoading(false)
         }
     }
+
+    // Membuat array skeleton untuk loading
+    const skeletonRows = Array(5).fill(0); // Tampilkan 5 baris skeleton
 
     const formatCurrency = (amount) => {
         return amount ? `Rp ${amount.toLocaleString()}` : "Rp 0"
@@ -69,36 +71,36 @@ const PaymentAdmin = () => {
 
     const handleStatusChange = async (id, newStatus) => {
         try {
-        // Call API to update status
-        await axios.post(
-            `${process.env.REACT_APP_API_URL}/api/order/admin/verif/${id}`,
-            { status: newStatus === "Diproses" ? "approve" : "reject" },
-            {
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-            }
-        );
-    
-        // Refresh data after update
-        fetchPayments();
-    
-        // Show success message
-        setSnackbar({
-            open: true,
-            message: `Status pembayaran berhasil diubah menjadi "${newStatus}".`,
-            severity: "success",
-        });
+          // Call API to update status
+          await axios.post(
+              `${process.env.REACT_APP_API_URL}/api/order/admin/verif/${id}`,
+              { status: newStatus === "Diproses" ? "approve" : "reject" },
+              {
+              headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+              }
+          );
+      
+          // Refresh data after update
+          fetchPayments();
+      
+          // Show success message
+          setSnackbar({
+              open: true,
+              message: `Status pembayaran berhasil diubah menjadi "${newStatus}".`,
+              severity: "success",
+          });
         } catch (error) {
-        console.error("Error updating payment status:", error);
-    
-        // Show error message
-        setSnackbar({
-            open: true,
-            message: "Gagal mengubah status pembayaran.",
-            severity: "error",
-        });
+          console.error("Error updating payment status:", error);
+      
+          // Show error message
+          setSnackbar({
+              open: true,
+              message: "Gagal mengubah status pembayaran.",
+              severity: "error",
+          });
         }
     };
 
@@ -296,14 +298,6 @@ const PaymentAdmin = () => {
         return `Order #${order.id}`
     }
 
-    if (loading && (!Array.isArray(payments) || payments.length === 0)) {
-        return (
-        <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brown-600"></div>
-        </div>
-        )
-    }
-
     if (error) {
         return (
         <div className="p-6 bg-red-50 rounded-lg text-center">
@@ -423,7 +417,48 @@ const PaymentAdmin = () => {
                 </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-                {!Array.isArray(currentPayments) || currentPayments.length === 0 ? (
+                {loading ? (
+                  // Skeleton rows untuk loading
+                  skeletonRows.map((_, index) => (
+                    <tr key={`skeleton-${index}`}>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="h-4 bg-gray-200 rounded animate-pulse w-28"></div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="h-4 bg-gray-200 rounded animate-pulse w-32 mb-2"></div>
+                        <div className="h-3 bg-gray-200 rounded animate-pulse w-24"></div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="h-4 bg-gray-200 rounded animate-pulse w-16 mb-2"></div>
+                        <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <div className="h-4 bg-gray-200 rounded animate-pulse w-6 mx-auto"></div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="h-6 bg-gray-200 rounded-full animate-pulse w-24"></div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <div className="h-6 bg-gray-200 rounded animate-pulse w-16"></div>
+                          <div className="h-6 bg-gray-200 rounded animate-pulse w-16"></div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : !Array.isArray(currentPayments) || currentPayments.length === 0 ? (
                 <tr>
                     <td colSpan="10" className="px-4 py-4 text-center text-gray-500">
                     No payment data found
@@ -502,8 +537,34 @@ const PaymentAdmin = () => {
 
         {/* Card view for small screens */}
         <div className="md:hidden space-y-4">
-            {!Array.isArray(currentPayments) || currentPayments.length === 0 ? (
-            <div className="p-4 text-center text-gray-500 bg-gray-50 rounded-lg">No payment data found</div>
+            {loading ? (
+              // Skeleton cards untuk mobile
+              skeletonRows.map((_, index) => (
+                <div key={`skeleton-mobile-${index}`} className="bg-white border rounded-lg shadow-sm overflow-hidden">
+                  <div className="p-4 border-b">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="h-4 bg-gray-200 rounded animate-pulse w-24 mb-2"></div>
+                        <div className="h-3 bg-gray-200 rounded animate-pulse w-16"></div>
+                      </div>
+                      <div className="h-6 bg-gray-200 rounded-full animate-pulse w-24"></div>
+                    </div>
+                  </div>
+                  <div className="p-4 space-y-3">
+                    {[1, 2, 3, 4, 5, 6].map(item => (
+                      <div key={`detail-${index}-${item}`} className="flex justify-between">
+                        <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
+                        <div className="h-4 bg-gray-200 rounded animate-pulse w-28"></div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="p-4 bg-gray-50 flex flex-wrap gap-2">
+                    <div className="h-8 bg-gray-200 rounded animate-pulse w-full"></div>
+                  </div>
+                </div>
+              ))
+            ) : !Array.isArray(currentPayments) || currentPayments.length === 0 ? (
+              <div className="p-4 text-center text-gray-500 bg-gray-50 rounded-lg">No payment data found</div>
             ) : (
             currentPayments.map((payment) => (
                 <div key={payment.id} className="bg-white border rounded-lg shadow-sm overflow-hidden">
@@ -607,7 +668,7 @@ const PaymentAdmin = () => {
             <button
                 className="px-3 py-1 border rounded disabled:opacity-50 text-sm"
                 onClick={() => paginate(currentPage - 1)}
-                disabled={currentPage === 1}
+                disabled={currentPage === 1 || loading}
             >
                 Previous
             </button>
@@ -626,6 +687,7 @@ const PaymentAdmin = () => {
                     className={`px-3 py-1 ${
                     currentPage === number + 1 ? "bg-brown-600 text-white" : "border"
                     } rounded text-sm`}
+                    disabled={loading}
                 >
                     {number + 1}
                 </button>
@@ -633,7 +695,7 @@ const PaymentAdmin = () => {
             <button
                 className="px-3 py-1 border rounded disabled:opacity-50 text-sm"
                 onClick={() => paginate(currentPage + 1)}
-                disabled={currentPage === totalPages}
+                disabled={currentPage === totalPages || loading}
             >
                 Next
             </button>

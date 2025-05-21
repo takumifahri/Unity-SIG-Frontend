@@ -1,67 +1,98 @@
-"use client"
-
-import { useEffect, useRef } from "react"
-import L from "leaflet"
-import "leaflet/dist/leaflet.css"
+import { useEffect, useRef } from "react";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 const LocationMap = ({ position, setPosition }) => {
-  const mapRef = useRef(null)
-  const markerRef = useRef(null)
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const markerRef = useRef(null);
+
+  // Check if position is valid (has valid coordinates)
+  const hasValidPosition = Array.isArray(position) && position.length >= 2 && 
+    typeof position[0] === 'number' && !isNaN(position[0]) &&
+    typeof position[1] === 'number' && !isNaN(position[1]);
+  
+  // Default position (Jakarta, Indonesia) if no valid position is provided
+  const defaultPosition = [-6.200000, 106.816666];
+  
+  // Use valid position or default
+  const mapPosition = hasValidPosition ? position : defaultPosition;
 
   useEffect(() => {
-    // Initialize map if it doesn't exist
-    if (!mapRef.current) {
-      // Fix Leaflet icon issues
-      delete L.Icon.Default.prototype._getIconUrl
-      L.Icon.Default.mergeOptions({
-        iconRetinaUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png",
-        iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
-        shadowUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png",
-      })
+    // Only initialize if map instance doesn't exist
+    if (!mapInstanceRef.current && mapRef.current) {
+      // Initialize map
+      mapInstanceRef.current = L.map(mapRef.current).setView(mapPosition, 13);
 
-      // Create map
-      const map = L.map("location-map").setView(position, 13)
-
-      // Add tile layer
+      // Add OpenStreetMap tile layer
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      }).addTo(map)
+      }).addTo(mapInstanceRef.current);
 
-      // Add click handler to map
-      map.on("click", (e) => {
-        const { lat, lng } = e.latlng
-        setPosition([lat, lng])
-      })
+      // Add marker at initial position if valid
+      if (hasValidPosition) {
+        markerRef.current = L.marker(mapPosition, { draggable: true })
+          .addTo(mapInstanceRef.current)
+          .on("dragend", (e) => {
+            const marker = e.target;
+            const position = marker.getLatLng();
+            setPosition([position.lat, position.lng]);
+          });
+      }
 
-      // Create marker
-      markerRef.current = L.marker(position, { draggable: true }).addTo(map)
+      // Handle click on map to set marker
+      mapInstanceRef.current.on("click", (e) => {
+        const { lat, lng } = e.latlng;
+        
+        // Update marker position or create a new one if it doesn't exist
+        if (markerRef.current) {
+          markerRef.current.setLatLng([lat, lng]);
+        } else {
+          markerRef.current = L.marker([lat, lng], { draggable: true })
+            .addTo(mapInstanceRef.current)
+            .on("dragend", (e) => {
+              const marker = e.target;
+              const position = marker.getLatLng();
+              setPosition([position.lat, position.lng]);
+            });
+        }
 
-      // Add drag end event
-      markerRef.current.on("dragend", () => {
-        const { lat, lng } = markerRef.current.getLatLng()
-        setPosition([lat, lng])
-      })
-
-      mapRef.current = map
+        // Update position state
+        setPosition([lat, lng]);
+      });
     }
 
-    // Update marker position when position prop changes
-    if (markerRef.current && mapRef.current) {
-      markerRef.current.setLatLng(position)
-      mapRef.current.setView(position, mapRef.current.getZoom())
-    }
-
-    // Cleanup
+    // Clean up function to prevent memory leaks
     return () => {
-      if (mapRef.current) {
-        mapRef.current.remove()
-        mapRef.current = null
-        markerRef.current = null
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+        markerRef.current = null;
+      }
+    };
+  }, [mapRef]); // Only run on mount and unmount
+
+  // Update map view when position changes and map is already initialized
+  useEffect(() => {
+    if (mapInstanceRef.current && hasValidPosition) {
+      mapInstanceRef.current.setView(mapPosition, 13);
+      
+      // Update marker position or create new marker
+      if (markerRef.current) {
+        markerRef.current.setLatLng(mapPosition);
+      } else {
+        markerRef.current = L.marker(mapPosition, { draggable: true })
+          .addTo(mapInstanceRef.current)
+          .on("dragend", (e) => {
+            const marker = e.target;
+            const position = marker.getLatLng();
+            setPosition([position.lat, position.lng]);
+          });
       }
     }
-  }, [position, setPosition])
+  }, [position]);
 
-  return <div id="location-map" style={{ height: "400px", width: "100%", borderRadius: "8px" }}></div>
-}
+  return <div ref={mapRef} style={{ height: "400px", width: "100%" }} />;
+};
 
-export default LocationMap
+export default LocationMap;

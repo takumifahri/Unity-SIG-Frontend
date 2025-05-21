@@ -1,4 +1,4 @@
-"use client"
+// Fixed component code that properly handles undefined/null coordinates
 
 import { useEffect, useState } from "react"
 import axios from "axios"
@@ -18,7 +18,11 @@ const LocationInfo = ({ position, isEditing, address }) => {
 
   useEffect(() => {
     const fetchLocationInfo = async () => {
-      if (!position || !position[0] || !position[1]) return
+      // Check if position contains valid coordinates
+      if (!position || !Array.isArray(position) || position.length < 2 || 
+          typeof position[0] !== 'number' || typeof position[1] !== 'number') {
+        return;
+      }
 
       setLoading(true)
       try {
@@ -41,6 +45,14 @@ const LocationInfo = ({ position, isEditing, address }) => {
     fetchLocationInfo()
   }, [position])
 
+  // Check if position is a valid array with two numeric elements
+  const hasValidCoordinates = Array.isArray(position) && 
+    position.length >= 2 && 
+    typeof position[0] === 'number' && 
+    !isNaN(position[0]) &&
+    typeof position[1] === 'number' && 
+    !isNaN(position[1]);
+
   return (
     <div className="mt-3 mb-4 p-3 border rounded bg-light">
       <h6 className="mb-2">Informasi Lokasi</h6>
@@ -54,9 +66,15 @@ const LocationInfo = ({ position, isEditing, address }) => {
         </div>
       ) : (
         <div>
-          <div className="mb-2">
-            <strong>Koordinat:</strong> {position[0].toFixed(6)}, {position[1].toFixed(6)}
-          </div>
+          {hasValidCoordinates ? (
+            <div className="mb-2">
+              <strong>Koordinat:</strong> {position[0].toFixed(6)}, {position[1].toFixed(6)}
+            </div>
+          ) : (
+            <div className="mb-2 text-muted">
+              <strong>Koordinat:</strong> Tidak tersedia
+            </div>
+          )}
 
           {address ? (
             <div className="mb-2">

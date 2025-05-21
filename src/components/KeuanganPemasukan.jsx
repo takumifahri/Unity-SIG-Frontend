@@ -4,6 +4,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import axios from 'axios';
 import { Avatar } from '@mui/material';
+
 const KeuanganPemasukan = () => {
   const [pemasukanList, setPemasukanList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,6 +17,9 @@ const KeuanganPemasukan = () => {
     bulanLalu: 0,
     selisih: 0
   });
+
+  // Skeleton rows untuk loading
+  const skeletonRows = Array(5).fill(0);
 
   // Fungsi untuk memformat tanggal
   const formatDate = (dateString) => {
@@ -271,13 +275,23 @@ const KeuanganPemasukan = () => {
         <div className="bg-white rounded-lg shadow-md overflow-hidden flex">
           <div className="w-2 bg-green-500"></div>
           <div className="p-4 w-full">
-            <p className="text-lg sm:text-lg font-medium text-green-600 uppercase">
-              TOTAL PEMASUKKAN<br />(BULAN INI)
-            </p>
-            <p className="text-lg sm:text-xl font-bold mt-2">
-              {formatCurrency(summaryData.bulanIni)}
-            </p>
-            <p className="text-lg text-gray-500 mt-1">{getCurrentMonthName()} {new Date().getFullYear()}</p>
+            {loading ? (
+              <>
+                <div className="h-4 bg-gray-200 rounded animate-pulse w-32 mb-2"></div>
+                <div className="h-6 bg-gray-200 rounded animate-pulse w-24 mt-2"></div>
+                <div className="h-3 bg-gray-200 rounded animate-pulse w-16 mt-1"></div>
+              </>
+            ) : (
+              <>
+                <p className="text-xs sm:text-sm font-medium text-green-600 uppercase">
+                  TOTAL PEMASUKKAN<br />(BULAN INI)
+                </p>
+                <p className="text-lg sm:text-xl font-bold mt-2">
+                  {formatCurrency(summaryData.bulanIni)}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">{getCurrentMonthName()} {new Date().getFullYear()}</p>
+              </>
+            )}
           </div>
         </div>
         
@@ -285,13 +299,23 @@ const KeuanganPemasukan = () => {
         <div className="bg-white rounded-lg shadow-md overflow-hidden flex">
           <div className="w-2 bg-blue-500"></div>
           <div className="p-4 w-full">
-            <p className="text-lg sm:text-lg font-medium text-blue-600 uppercase">
-              TOTAL PEMASUKKAN<br />(BULAN LALU)
-            </p>
-            <p className="text-lg sm:text-xl font-bold mt-2">
-              {formatCurrency(summaryData.bulanLalu)}
-            </p>
-            <p className="text-lg text-gray-500 mt-1">{getLastMonthName()} {new Date().getMonth() === 0 ? new Date().getFullYear() - 1 : new Date().getFullYear()}</p>
+            {loading ? (
+              <>
+                <div className="h-4 bg-gray-200 rounded animate-pulse w-32 mb-2"></div>
+                <div className="h-6 bg-gray-200 rounded animate-pulse w-24 mt-2"></div>
+                <div className="h-3 bg-gray-200 rounded animate-pulse w-16 mt-1"></div>
+              </>
+            ) : (
+              <>
+                <p className="text-xs sm:text-sm font-medium text-blue-600 uppercase">
+                  TOTAL PEMASUKKAN<br />(BULAN LALU)
+                </p>
+                <p className="text-lg sm:text-xl font-bold mt-2">
+                  {formatCurrency(summaryData.bulanLalu)}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">{getLastMonthName()} {new Date().getMonth() === 0 ? new Date().getFullYear() - 1 : new Date().getFullYear()}</p>
+              </>
+            )}
           </div>
         </div>
         
@@ -299,18 +323,28 @@ const KeuanganPemasukan = () => {
         <div className="bg-white rounded-lg shadow-md overflow-hidden flex">
           <div className="w-2 bg-yellow-500"></div>
           <div className="p-4 w-full">
-            <p className="text-lg sm:text-lg font-medium text-yellow-600 uppercase">
-              SELISIH<br />PEMASUKKAN
-            </p>
-            <p className={`text-lg sm:text-xl font-bold mt-2 ${summaryData.selisih >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {formatCurrency(Math.abs(summaryData.selisih))}
-              <span className="text-lg ml-1">
-                {summaryData.selisih >= 0 ? '↑' : '↓'}
-              </span>
-            </p>
-            <p className="text-lg text-gray-500 mt-1">
-              {summaryData.selisih >= 0 ? 'Kenaikan' : 'Penurunan'} dari bulan lalu
-            </p>
+            {loading ? (
+              <>
+                <div className="h-4 bg-gray-200 rounded animate-pulse w-32 mb-2"></div>
+                <div className="h-6 bg-gray-200 rounded animate-pulse w-24 mt-2"></div>
+                <div className="h-3 bg-gray-200 rounded animate-pulse w-16 mt-1"></div>
+              </>
+            ) : (
+              <>
+                <p className="text-xs sm:text-sm font-medium text-yellow-600 uppercase">
+                  SELISIH<br />PEMASUKKAN
+                </p>
+                <p className={`text-lg sm:text-xl font-bold mt-2 ${summaryData.selisih >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatCurrency(Math.abs(summaryData.selisih))}
+                  <span className="text-sm ml-1">
+                    {summaryData.selisih >= 0 ? '↑' : '↓'}
+                  </span>
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {summaryData.selisih >= 0 ? 'Kenaikan' : 'Penurunan'} dari bulan lalu
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -319,7 +353,7 @@ const KeuanganPemasukan = () => {
         <div className="flex flex-wrap gap-2 mb-4">
           <button
             onClick={exportToExcel}
-            className="px-3 py-2 sm:px-4 sm:py-2 bg-emerald-500 text-white rounded-md hover:bg-emerald-600 flex items-center transition-colors text-lg sm:text-base"
+            className="px-3 py-2 sm:px-4 sm:py-2 bg-emerald-500 text-white rounded-md hover:bg-emerald-600 flex items-center transition-colors text-sm sm:text-base"
             disabled={loading || pemasukanList.length === 0}
           >
             <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -329,7 +363,7 @@ const KeuanganPemasukan = () => {
           </button>
           <button
             onClick={exportToPDF}
-            className="px-3 py-2 sm:px-4 sm:py-2 bg-red-500 text-white rounded-md hover:bg-red-600 flex items-center transition-colors text-lg sm:text-base"
+            className="px-3 py-2 sm:px-4 sm:py-2 bg-red-500 text-white rounded-md hover:bg-red-600 flex items-center transition-colors text-sm sm:text-base"
             disabled={loading || pemasukanList.length === 0}
           >
             <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -339,7 +373,7 @@ const KeuanganPemasukan = () => {
           </button>
           <button
             onClick={fetchPemasukan}
-            className="px-3 py-2 sm:px-4 sm:py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 flex items-center transition-colors text-lg sm:text-base ml-auto"
+            className="px-3 py-2 sm:px-4 sm:py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 flex items-center transition-colors text-sm sm:text-base ml-auto"
             disabled={loading}
           >
             <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -351,155 +385,234 @@ const KeuanganPemasukan = () => {
       </div>
 
       {error && (
-        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 sm:p-4 mb-4 text-lg sm:text-base">
+        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 sm:p-4 mb-4 text-sm sm:text-base">
           <p>{error}</p>
         </div>
       )}
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        {loading ? (
-          <div className="flex justify-center items-center p-8">
-            <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-t-2 border-b-2 border-gray-900"></div>
-          </div>
-        ) : pemasukanList.length === 0 ? (
-          <div className="p-6 sm:p-8 text-center text-gray-500 text-lg sm:text-base">
-            Tidak ada data pemasukan yang tersedia.
-          </div>
-        ) : (
-          <>
-            {/* Desktop and Tablet View (Hidden on Mobile) */}
-            <div className="hidden sm:block overflow-x-auto">
-              <table className="min-w-full">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="px-3 py-2 md:px-6 md:py-3 text-left text-lg md:text-lg font-semibold text-gray-600">No</th>
-                    <th className="px-3 py-2 md:px-6 md:py-3 text-left text-lg md:text-lg font-semibold text-gray-600">ID</th>
-                    <th className="px-3 py-2 md:px-6 md:py-3 text-left text-lg md:text-lg font-semibold text-gray-600">Keterangan</th>
-                    <th className="px-3 py-2 md:px-6 md:py-3 text-left text-lg md:text-lg font-semibold text-gray-600">Jenis Pembayaran</th>
-                    <th className="px-3 py-2 md:px-6 md:py-3 text-left text-lg md:text-lg font-semibold text-gray-600">Nominal</th>
-                    <th className="px-3 py-2 md:px-6 md:py-3 text-left text-lg md:text-lg font-semibold text-gray-600">Tanggal</th>
-                    <th className="px-3 py-2 md:px-6 md:py-3 text-left text-lg md:text-lg font-semibold text-gray-600">Pelanggan</th>
-                    <th className="px-3 py-2 md:px-6 md:py-3 text-left text-lg md:text-lg font-semibold text-gray-600">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {pemasukanList.map((item, index) => (
-                    <tr key={item.id} className="hover:bg-gray-50">
-                      <td className="px-3 py-2 md:px-6 md:py-4 text-lg md:text-lg text-gray-500">{index + 1}</td>
-                      <td className="px-3 py-2 md:px-6 md:py-4 text-lg md:text-lg text-gray-500">{item.order.order_unique_id || 'ORD-NotFound404'}</td>
-                      <td className="px-3 py-2 md:px-6 md:py-4 text-lg md:text-lg text-gray-500 max-w-[150px] md:max-w-[200px] truncate" title={item.keterangan || '-'}>
-                        {item.keterangan || '-'}
-                      </td>
-                      <td className="px-3 py-2 md:px-6 md:py-4 text-lg md:text-lg text-gray-500">{item.jenis_pembayaran || '-'}</td>
-                      <td className="px-3 py-2 md:px-6 md:py-4 text-lg md:text-lg font-medium text-green-600">
-                        {formatCurrency(item.nominal || 0)}
-                      </td>
-                      <td className="px-3 py-2 md:px-6 md:py-4 text-lg md:text-lg text-gray-500">{formatDate(item.tanggal)}</td>
-                      <td className="px-3 py-2 md:px-6 md:py-4 text-lg md:text-lg text-gray-500">
-                        {item.user ? (
-                          <div className='flex gap-2'>
-                            <Avatar src={`${process.env.REACT_APP_API_URL}/${item.user.profile_photo}` || ''} alt={item.user.name} sx={{width:35, height:35}} className=" rounded-full" />
-
-                            <div>
-                              <div className="font-medium">{item.user.name}</div>
-                              <div className="text-lg text-gray-400">{item.user.email}</div>
-                            </div>
-                            
-                          </div>
-                        ) : '-'}
-                      </td>
-                      <td className="px-3 py-2 md:px-6 md:py-4 text-lg md:text-lg">
-                        {item.order?.status ? (
-                          <span className={`px-2 py-1 rounded-full text-lg font-medium ${
-                            item.order.status === 'Selesai' ? 'bg-green-100 text-green-800' :
-                            item.order.status === 'Dibatalkan' ? 'bg-red-100 text-red-800' :
-                            'bg-blue-100 text-blue-800'
-                          }`}>
-                            {item.order.status}
-                          </span>
-                        ) : '-'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile View (Hidden on Tablet and Desktop) */}
-            <div className="sm:hidden">
-              <ul className="divide-y divide-gray-200">
-                {pemasukanList.map((item, index) => (
-                  <li key={item.id} className="p-4">
-                    <div 
-                      className="flex justify-between items-center cursor-pointer"
-                      onClick={() => toggleExpandRow(index)}
-                    >
-                      <div>
-                        <span className="text-lg font-medium text-gray-500">#{index + 1}</span>
-                        <h3 className="text-lg font-medium truncate max-w-[180px]" title={item.keterangan || 'Transaksi'}>
-                          {item.keterangan || 'Transaksi'}
-                        </h3>
-                        <p className="text-lg text-gray-500">{formatDate(item.tanggal)}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-medium text-green-600">{formatCurrency(item.nominal || 0)}</p>
-                        {item.order?.status && (
-                          <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-lg font-medium ${
-                            item.order.status === 'Selesai' ? 'bg-green-100 text-green-800' :
-                            item.order.status === 'Dibatalkan' ? 'bg-red-100 text-red-800' :
-                            'bg-blue-100 text-blue-800'
-                          }`}>
-                            {item.order.status}
-                          </span>
-                        )}
-                      </div>
-                      <svg 
-                        className={`w-5 h-5 text-gray-400 transition-transform ${expandedRow === index ? 'transform rotate-180' : ''}`} 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-                    
-                    {expandedRow === index && (
-                      <div className="mt-3 pt-3 border-t border-gray-100 text-lg">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <p className="text-gray-500">ID Transaksi:</p>
-                            <p className="font-medium">{item.id || '-'}</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-500">Jenis Pembayaran:</p>
-                            <p className="font-medium">{item.jenis_pembayaran || '-'}</p>
-                          </div>
-                          <div className="col-span-2">
-                            <p className="text-gray-500">Pelanggan:</p>
-                            <p className="font-medium">{item.user?.name || '-'}</p>
-                            <p className="text-gray-400">{item.user?.email || '-'}</p>
-                          </div>
-                          {item.order && (
-                            <div className="col-span-2">
-                              <p className="text-gray-500">Order:</p>
-                              <p className="font-medium">
-                                {item.order.type || '-'} 
-                                {item.order.custom_order && ` - ${item.order.custom_order.nama_lengkap || ''}`}
-                              </p>
-                              <p className="text-gray-400">
-                                {item.order.jumlah ? `Jumlah: ${item.order.jumlah}` : ''}
-                              </p>
-                            </div>
-                          )}
+        {/* Desktop and Tablet View (Hidden on Mobile) */}
+        <div className="hidden sm:block overflow-x-auto">
+          <table className="min-w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-3 py-2 md:px-6 md:py-3 text-left text-xs md:text-sm font-semibold text-gray-600">No</th>
+                <th className="px-3 py-2 md:px-6 md:py-3 text-left text-xs md:text-sm font-semibold text-gray-600">ID</th>
+                <th className="px-3 py-2 md:px-6 md:py-3 text-left text-xs md:text-sm font-semibold text-gray-600">Keterangan</th>
+                <th className="px-3 py-2 md:px-6 md:py-3 text-left text-xs md:text-sm font-semibold text-gray-600">Jenis Pembayaran</th>
+                <th className="px-3 py-2 md:px-6 md:py-3 text-left text-xs md:text-sm font-semibold text-gray-600">Nominal</th>
+                <th className="px-3 py-2 md:px-6 md:py-3 text-left text-xs md:text-sm font-semibold text-gray-600">Tanggal</th>
+                <th className="px-3 py-2 md:px-6 md:py-3 text-left text-xs md:text-sm font-semibold text-gray-600">Pelanggan</th>
+                <th className="px-3 py-2 md:px-6 md:py-3 text-left text-xs md:text-sm font-semibold text-gray-600">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {loading ? (
+                // Skeleton loading untuk tabel
+                skeletonRows.map((_, index) => (
+                  <tr key={`skeleton-${index}`} className="animate-pulse">
+                    <td className="px-3 py-2 md:px-6 md:py-4">
+                      <div className="h-4 bg-gray-200 rounded w-5"></div>
+                    </td>
+                    <td className="px-3 py-2 md:px-6 md:py-4">
+                      <div className="h-4 bg-gray-200 rounded w-12"></div>
+                    </td>
+                    <td className="px-3 py-2 md:px-6 md:py-4">
+                      <div className="h-4 bg-gray-200 rounded w-28 md:w-40"></div>
+                    </td>
+                    <td className="px-3 py-2 md:px-6 md:py-4">
+                      <div className="h-4 bg-gray-200 rounded w-16"></div>
+                    </td>
+                    <td className="px-3 py-2 md:px-6 md:py-4">
+                      <div className="h-4 bg-gray-200 rounded w-20"></div>
+                    </td>
+                    <td className="px-3 py-2 md:px-6 md:py-4">
+                      <div className="h-4 bg-gray-200 rounded w-24"></div>
+                    </td>
+                    <td className="px-3 py-2 md:px-6 md:py-4">
+                      <div className="flex items-center space-x-2">
+                        <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
+                        <div>
+                          <div className="h-4 bg-gray-200 rounded w-20"></div>
+                          <div className="h-3 bg-gray-200 rounded w-24 mt-1"></div>
                         </div>
                       </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
+                    </td>
+                    <td className="px-3 py-2 md:px-6 md:py-4">
+                      <div className="h-5 bg-gray-200 rounded w-16"></div>
+                    </td>
+                  </tr>
+                ))
+              ) : pemasukanList.length === 0 ? (
+                <tr>
+                  <td colSpan="8" className="px-3 py-8 md:px-6 md:py-10 text-center text-gray-500">
+                    <svg 
+                      className="mx-auto h-12 w-12 text-gray-400 mb-3" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={1.5} 
+                        d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" 
+                      />
+                    </svg>
+                    <p>Tidak ada data pemasukan yang tersedia.</p>
+                  </td>
+                </tr>
+              ) : (
+                pemasukanList.map((item, index) => (
+                  <tr key={item.id} className="hover:bg-gray-50">
+                    <td className="px-3 py-2 md:px-6 md:py-4 text-xs md:text-sm text-gray-500">{index + 1}</td>
+                    <td className="px-3 py-2 md:px-6 md:py-4 text-xs md:text-sm text-gray-500">{item.order?.order_unique_id || 'ORD-NotFound404'}</td>
+                    <td className="px-3 py-2 md:px-6 md:py-4 text-xs md:text-sm text-gray-500 max-w-[150px] md:max-w-[200px] truncate" title={item.keterangan || '-'}>
+                      {item.keterangan || '-'}
+                    </td>
+                    <td className="px-3 py-2 md:px-6 md:py-4 text-xs md:text-sm text-gray-500">{item.jenis_pembayaran || '-'}</td>
+                    <td className="px-3 py-2 md:px-6 md:py-4 text-xs md:text-sm font-medium text-green-600">
+                      {formatCurrency(item.nominal || 0)}
+                    </td>
+                    <td className="px-3 py-2 md:px-6 md:py-4 text-xs md:text-sm text-gray-500">{formatDate(item.tanggal)}</td>
+                    <td className="px-3 py-2 md:px-6 md:py-4 text-xs md:text-sm text-gray-500">
+                      {item.user ? (
+                        <div className='flex gap-2'>
+                          <Avatar src={`${process.env.REACT_APP_API_URL}/${item.user.profile_photo}` || ''} alt={item.user.name} sx={{width:35, height:35}} className="rounded-full" />
+                          <div>
+                            <div className="font-medium">{item.user.name}</div>
+                            <div className="text-xs text-gray-400">{item.user.email}</div>
+                          </div>
+                        </div>
+                      ) : '-'}
+                    </td>
+                    <td className="px-3 py-2 md:px-6 md:py-4 text-xs md:text-sm">
+                      {item.order?.status ? (
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          item.order.status === 'Selesai' ? 'bg-green-100 text-green-800' :
+                          item.order.status === 'Dibatalkan' ? 'bg-red-100 text-red-800' :
+                          'bg-blue-100 text-blue-800'
+                        }`}>
+                          {item.order.status}
+                        </span>
+                      ) : '-'}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile View (Hidden on Tablet and Desktop) */}
+        <div className="sm:hidden">
+          {loading ? (
+            // Skeleton loading untuk mobile view
+            skeletonRows.map((_, index) => (
+              <div key={`skeleton-mobile-${index}`} className="p-4 border-b border-gray-100 animate-pulse">
+                <div className="flex justify-between mb-2">
+                  <div>
+                    <div className="h-3 bg-gray-200 rounded w-10 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-32 mb-1"></div>
+                    <div className="h-3 bg-gray-200 rounded w-20"></div>
+                  </div>
+                  <div className="text-right">
+                    <div className="h-4 bg-gray-200 rounded w-20 mb-1"></div>
+                    <div className="h-5 bg-gray-200 rounded w-16"></div>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : pemasukanList.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              <svg 
+                className="mx-auto h-12 w-12 text-gray-400 mb-3" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={1.5} 
+                  d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" 
+                />
+              </svg>
+              <p>Tidak ada data pemasukan yang tersedia.</p>
             </div>
-          </>
-        )}
+          ) : (
+            <ul className="divide-y divide-gray-200">
+              {pemasukanList.map((item, index) => (
+                <li key={item.id} className="p-4">
+                  <div 
+                    className="flex justify-between items-center cursor-pointer"
+                    onClick={() => toggleExpandRow(index)}
+                  >
+                    <div>
+                      <span className="text-xs font-medium text-gray-500">#{index + 1}</span>
+                      <h3 className="text-sm font-medium truncate max-w-[180px]" title={item.keterangan || 'Transaksi'}>
+                        {item.keterangan || 'Transaksi'}
+                      </h3>
+                      <p className="text-xs text-gray-500">{formatDate(item.tanggal)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-green-600">{formatCurrency(item.nominal || 0)}</p>
+                      {item.order?.status && (
+                        <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                          item.order.status === 'Selesai' ? 'bg-green-100 text-green-800' :
+                          item.order.status === 'Dibatalkan' ? 'bg-red-100 text-red-800' :
+                          'bg-blue-100 text-blue-800'
+                        }`}>
+                          {item.order.status}
+                        </span>
+                      )}
+                    </div>
+                    <svg 
+                      className={`w-5 h-5 text-gray-400 transition-transform ${expandedRow === index ? 'transform rotate-180' : ''}`} 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                  
+                  {expandedRow === index && (
+                    <div className="mt-3 pt-3 border-t border-gray-100 text-xs">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <p className="text-gray-500">ID Transaksi:</p>
+                          <p className="font-medium">{item.id || '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500">Jenis Pembayaran:</p>
+                          <p className="font-medium">{item.jenis_pembayaran || '-'}</p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-gray-500">Pelanggan:</p>
+                          <p className="font-medium">{item.user?.name || '-'}</p>
+                          <p className="text-gray-400">{item.user?.email || '-'}</p>
+                        </div>
+                        {item.order && (
+                          <div className="col-span-2">
+                            <p className="text-gray-500">Order:</p>
+                            <p className="font-medium">
+                              {item.order.type || '-'} 
+                              {item.order.custom_order && ` - ${item.order.custom_order.nama_lengkap || ''}`}
+                            </p>
+                            <p className="text-gray-400">
+                              {item.order.jumlah ? `Jumlah: ${item.order.jumlah}` : ''}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </div>
   );

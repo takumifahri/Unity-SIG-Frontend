@@ -21,7 +21,6 @@ const TentangKami = () => {
             />
           </div>
           
-          {/* Deskripsi */}
           <div>
             <h2 className="text-4xl font-bold mb-4">Deskripsi Singkat</h2>
             <p className="text-gray-600 leading-relaxed text-lg">
@@ -30,12 +29,16 @@ const TentangKami = () => {
           </div>
         </div>
 
-        {/* Section: Foto */}
-        <div className="bg-gray-200 h-64 rounded-xl flex items-center justify-center text-2xl text-gray-500 mb-16 shadow-inner">
-          Foto
+              {/* Section: Foto */}
+        <div className="rounded-xl overflow-hidden mb-16 shadow-lg">
+          <img 
+            src="https://images.unsplash.com/photo-1545007805-a44ee83438fa?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" 
+            alt="JR Konveksi" 
+            className="w-full h-64 object-cover"
+          />
         </div>
 
-        {/* Section: Kutipan */}
+              {/* Section: Kutipan */}
         <div className="text-center mb-20">
           <p className="text-2xl italic text-gray-700">"Kutipan singkat dari JR Konveksi"</p>
         </div>

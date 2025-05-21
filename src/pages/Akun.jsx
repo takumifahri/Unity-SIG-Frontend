@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import { Container, Row, Col, Card, Tab, Nav, Form, Table } from "react-bootstrap"
 import { useNavigate } from "react-router-dom"
@@ -24,7 +22,8 @@ function Akun() {
   const [profileLoading, setProfileLoading] = useState(true)
   const [filterType, setFilterType] = useState("Custom")
   const [orders, setOrders] = useState([])
-  const [mapPosition, setMapPosition] = useState([-6.588878, 106.806207])
+  const [mapPosition, setMapPosition] = useState([]);
+
   const [page, setPage] = useState(() => {
     const savedPage = localStorage.getItem("currentOrderPage")
     return savedPage ? Number.parseInt(savedPage, 10) : 1
@@ -174,62 +173,59 @@ function Akun() {
   const [tempUserInfo, setTempUserInfo] = useState({ ...userInfo })
 
   // Update user info when auth user changes
+  // Add this to your useEffect where you're setting userInfo
   useEffect(() => {
     if (user) {
-      console.log("User data in Akun component:", user)
+      console.log("User data in Akun component:", user);
 
       // Extract user data regardless of structure
-      const userData = user.user || user
-
-      // Extract location data safely
-      const location = userData.location || {}
+      const userData = user.user || user;
+      
+      // Get latitude and longitude directly from userData
+      const lat = userData.latitude ? Number(userData.latitude) : null;
+      const lng = userData.longitude ? Number(userData.longitude) : null;
+      
+      // If we have valid coordinates, set them in mapPosition
+      if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+        setMapPosition([lat, lng]);
+      }
 
       setUserInfo({
-        nama: safeGet(userData, "name") || safeGet(userData, "email", ""),
-        email: safeGet(userData, "email", ""),
-        telepon: safeGet(userData, "phone") || safeGet(userData, "telepon", ""),
-        gender: safeGet(userData, "gender", ""),
-        profile_photo:
-          safeGet(userData, "profile_photo") ||
-          `${process.env.REACT_APP_API_URL}/${safeGet(userData, "profile_photo", "")}`,
-        total_order: safeGet(userData, "total_order", 0),
-        role: safeGet(userData, "role", ""),
-        google_id: safeGet(userData, "google_id", ""),
-        facebook_id: safeGet(userData, "facebook_id", ""),
-        label: safeGet(location, "label", ""),
-        latitude: safeGet(location, "latitude", 0),
-        longitude: safeGet(location, "longitude", 0),
-        address: safeGet(location, "address", ""),
-        city: safeGet(location, "city", ""),
-        region: safeGet(location, "region", ""),
-        postal_code: safeGet(location, "postal_code", ""),
-      })
+        nama: userData.name || userData.email || "",
+        email: userData.email || "",
+        telepon: userData.phone || userData.telepon || "",
+        gender: userData.gender || "",
+        profile_photo: userData.profile_photo || 
+          `${process.env.REACT_APP_API_URL}/${userData.profile_photo || ""}`,
+        total_order: userData.total_order || 0,
+        role: userData.role || "",
+        google_id: userData.google_id || "",
+        facebook_id: userData.facebook_id || "",
+        latitude: lat,
+        longitude: lng,
+        address: userData.address || "",
+      });
 
-      // Also update tempUserInfo for editing
+      // Also update tempUserInfo with the same values
       setTempUserInfo({
-        nama: safeGet(userData, "name") || safeGet(userData, "email", ""),
-        email: safeGet(userData, "email", ""),
-        telepon: safeGet(userData, "phone") || safeGet(userData, "telepon", ""),
-        gender: safeGet(userData, "gender", ""),
-        profile_photo:
-          safeGet(userData, "profile_photo") ||
-          `${process.env.REACT_APP_API_URL}/${safeGet(userData, "profile_photo", "")}`,
-        total_order: safeGet(userData, "total_order", 0),
-        role: safeGet(userData, "role", ""),
-        google_id: safeGet(userData, "google_id", ""),
-        facebook_id: safeGet(userData, "facebook_id", ""),
-        label: safeGet(location, "label", ""),
-        latitude: safeGet(location, "latitude", 0),
-        longitude: safeGet(location, "longitude", 0),
-        address: safeGet(location, "address", ""),
-        city: safeGet(location, "city", ""),
-        region: safeGet(location, "region", ""),
-        postal_code: safeGet(location, "postal_code", ""),
-      })
+        nama: userData.name || userData.email || "",
+        email: userData.email || "",
+        telepon: userData.phone || userData.telepon || "",
+        gender: userData.gender || "",
+        profile_photo: userData.profile_photo || 
+          `${process.env.REACT_APP_API_URL}/${userData.profile_photo || ""}`,
+        total_order: userData.total_order || 0,
+        role: userData.role || "",
+        google_id: userData.google_id || "",
+        facebook_id: userData.facebook_id || "",
+        latitude: lat,
+        longitude: lng,
+        address: userData.address || "",
+      });
 
-      setProfileLoading(false)
+      setProfileLoading(false);
     }
-  }, [user])
+  }, [user]);
 
   console.log("profile photo path:", userInfo.profile_photo)
 
@@ -352,13 +348,13 @@ function Akun() {
     const lon = Number.parseFloat(result.lon)
 
     setMapPosition([lat, lon])
+    // Use the latitude and longitude from the selected location
     setTempUserInfo({
       ...tempUserInfo,
       latitude: lat,
       longitude: lon,
       address: result.display_name || "",
-    })
-
+    });
     setSearchResults([])
     setLocationSearch("")
   }

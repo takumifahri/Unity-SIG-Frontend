@@ -1,8 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import Swal from "sweetalert2";
 import { Eye, EyeOff, User, Mail, Phone, Lock, Check } from 'lucide-react';
+
+// Import MUI components
+import Snackbar from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
+import IconButton from '@mui/material/IconButton';
+import CloseIcon from '@mui/icons-material/Close';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -22,6 +27,27 @@ export default function Register() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
+  
+  // Snackbar state
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success", // success or error
+  });
+
+  // Handle closing the snackbar
+  const handleCloseSnackbar = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    
+    setSnackbar({...snackbar, open: false});
+    
+    // Redirect to login page if registration was successful
+    if (snackbar.severity === 'success') {
+      navigate("/login");
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -44,49 +70,49 @@ export default function Register() {
 
     // Name validation
     if (!formData.name) {
-      newErrors.name = "Name is required";
+      newErrors.name = "Nama lengkap wajib diisi";
     } else if (formData.name.length > 255) {
-      newErrors.name = "Name must be less than 255 characters";
+      newErrors.name = "Nama tidak boleh lebih dari 255 karakter";
     }
 
     // Email validation
     if (!formData.email) {
-      newErrors.email = "Email is required";
+      newErrors.email = "Email wajib diisi";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Email is invalid";
+      newErrors.email = "Format email tidak valid";
     } else if (formData.email.length > 255) {
-      newErrors.email = "Email must be less than 255 characters";
+      newErrors.email = "Email tidak boleh lebih dari 255 karakter";
     }
 
     // Phone validation
     if (!formData.phone) {
-      newErrors.phone = "Phone is required";
+      newErrors.phone = "Nomor telepon wajib diisi";
     } else if (formData.phone.length > 255) {
-      newErrors.phone = "Phone must be less than 255 characters";
+      newErrors.phone = "Nomor telepon tidak boleh lebih dari 255 karakter";
     }
 
     // Gender validation
     if (!formData.gender) {
-      newErrors.gender = "Gender is required";
+      newErrors.gender = "Jenis kelamin wajib dipilih";
     } else if (!["male", "female"].includes(formData.gender)) {
-      newErrors.gender = "Gender must be male or female";
+      newErrors.gender = "Jenis kelamin harus laki-laki atau perempuan";
     }
 
     // Password validation
     if (!formData.password) {
-      newErrors.password = "Password is required";
+      newErrors.password = "Password wajib diisi";
     } else if (formData.password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters";
+      newErrors.password = "Password minimal 8 karakter";
     }
 
     // Confirm password validation
     if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
+      newErrors.confirmPassword = "Konfirmasi password tidak sesuai";
     }
 
     // Agreement validation
     if (!formData.isAgree) {
-      newErrors.isAgree = "You must agree to the terms and conditions";
+      newErrors.isAgree = "Anda harus menyetujui syarat dan ketentuan";
     }
 
     setErrors(newErrors);
@@ -108,8 +134,15 @@ export default function Register() {
       console.error("Registration failed:", err);
       setErrors((prev) => ({
         ...prev,
-        form: "Registration failed. Please try again.",
+        form: "Pendaftaran gagal. Silakan coba lagi.",
       }));
+      
+      // Show error snackbar
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.message || "Pendaftaran gagal. Silakan coba lagi.",
+        severity: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -141,19 +174,23 @@ export default function Register() {
       );
       
       if (response.data.success) {
-        Swal.fire({
-          icon: "success",
-          title: "Registration Successful",
-          text: "You can now log in.",
-          confirmButtonText: "OK",
-          confirmButtonColor: "#6D4C3D",
-        }).then(() => {
-          navigate("/login");
+        // Show success snackbar instead of SweetAlert2
+        setSnackbar({
+          open: true,
+          message: "Pendaftaran berhasil! Anda sekarang dapat masuk ke akun Anda.",
+          severity: "success",
         });
       } else {
+        // Show error snackbar for API errors
+        setSnackbar({
+          open: true,
+          message: response.data.message || "Pendaftaran gagal. Silakan coba lagi.",
+          severity: "error",
+        });
+        
         setErrors((prev) => ({
           ...prev,
-          form: response.data.message || "Registration failed. Please try again.",
+          form: response.data.message || "Pendaftaran gagal. Silakan coba lagi.",
         }));
       }
     } catch (error) {
@@ -514,84 +551,111 @@ export default function Register() {
       {/* Terms and Conditions Dialog */}
       {showTerms && (
         <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => setShowTerms(false)}></div>
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+            <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" aria-hidden="true" onClick={() => setShowTerms(false)}></div>
 
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <div className="bg-[#6D4C3D] px-4 py-3 sm:px-6">
-                <h3 className="text-lg leading-6 font-medium text-white" id="modal-title">
-                  Terms and Conditions
+            <div className="inline-block overflow-hidden text-left align-middle bg-white rounded-lg shadow-xl transform transition-all sm:my-8 sm:max-w-lg sm:w-full">
+              <div className="px-4 py-3 bg-[#6D4C3D] sm:px-6">
+                <h3 className="text-lg font-medium leading-6 text-white" id="modal-title">
+                  Syarat dan Ketentuan
                 </h3>
               </div>
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+              <div className="px-4 pt-5 pb-4 bg-white sm:p-6">
                 <div className="max-h-96 overflow-y-auto text-sm">
-                  <h3 className="font-bold text-lg mb-2">1. Introduction</h3>
+                  <h3 className="mb-2 text-lg font-bold">1. Pendahuluan</h3>
                   <p className="mb-4">
-                    Welcome to our platform. These Terms and Conditions govern your use of our website and services. By
-                    accessing or using our services, you agree to be bound by these Terms.
+                    Terima kasih telah menggunakan layanan kami. Syarat dan ketentuan ini mengatur penggunaan Anda terhadap layanan yang kami sediakan. Dengan menggunakan layanan ini, Anda menyetujui untuk terikat dengan syarat dan ketentuan di bawah ini.
                   </p>
 
-                  <h3 className="font-bold text-lg mb-2">2. User Accounts</h3>
+                  <h3 className="mb-2 text-lg font-bold">2. Proses Pemesanan</h3>
                   <p className="mb-4">
-                    When you create an account with us, you must provide accurate, complete, and current information. You
-                    are responsible for safeguarding your password and for all activities that occur under your account.
+                    <strong>Pemesanan akan dilanjutkan melalui WhatsApp</strong> setelah Anda mengirimkan permintaan pemesanan. Tim kami akan menghubungi Anda melalui nomor WhatsApp yang terdaftar untuk mengkonfirmasi detail pesanan, memberikan informasi tambahan, dan menjawab pertanyaan yang mungkin Anda miliki.
                   </p>
 
-                  <h3 className="font-bold text-lg mb-2">3. Privacy Policy</h3>
+                  <h3 className="mb-2 text-lg font-bold">3. Pembayaran</h3>
                   <p className="mb-4">
-                    Your privacy is important to us. Our Privacy Policy explains how we collect, use, and protect your
-                    personal information. By using our services, you agree to our collection and use of information in
-                    accordance with our Privacy Policy.
+                    <strong>Mohon pastikan kembali data pembayaran Anda sebelum mengunggah bukti pembayaran.</strong> Setelah melakukan pembayaran, Anda diminta untuk mengunggah bukti pembayaran melalui sistem kami. Pastikan bukti pembayaran jelas dan lengkap. Pembayaran yang tidak valid atau tidak dapat diverifikasi akan memperlambat proses pesanan Anda.
                   </p>
 
-                  <h3 className="font-bold text-lg mb-2">4. User Conduct</h3>
+                  <h3 className="mb-2 text-lg font-bold">4. Akun Pengguna</h3>
                   <p className="mb-4">
-                    You agree not to use our services for any illegal or unauthorized purpose. You must not violate any laws
-                    in your jurisdiction, including copyright or trademark laws.
+                    Saat Anda membuat akun di platform kami, Anda harus memberikan informasi yang akurat, lengkap, dan terkini. Anda bertanggung jawab untuk menjaga kerahasiaan password Anda dan untuk semua aktivitas yang terjadi di akun Anda.
                   </p>
 
-                  <h3 className="font-bold text-lg mb-2">5. Termination</h3>
+                  <h3 className="mb-2 text-lg font-bold">5. Verifikasi dan Konfirmasi</h3>
                   <p className="mb-4">
-                    We reserve the right to terminate or suspend your account and access to our services at our sole
-                    discretion, without notice, for conduct that we believe violates these Terms or is harmful to other
-                    users, us, or third parties, or for any other reason.
+                    Setelah bukti pembayaran diterima, tim kami akan melakukan verifikasi dalam waktu 1-2 hari kerja. Konfirmasi akan dikirimkan melalui WhatsApp dan email setelah pembayaran berhasil diverifikasi. Pesanan Anda baru akan diproses setelah pembayaran dikonfirmasi.
                   </p>
 
-                  <h3 className="font-bold text-lg mb-2">6. Changes to Terms</h3>
+                  <h3 className="mb-2 text-lg font-bold">6. Pengiriman</h3>
                   <p className="mb-4">
-                    We reserve the right to modify these Terms at any time. If we make changes, we will provide notice of
-                    such changes, such as by sending an email, providing a notice through our services, or updating the date
-                    at the top of these Terms.
+                    Pesanan akan dikirimkan sesuai dengan informasi yang Anda berikan. Kami tidak bertanggung jawab atas kesalahan dalam alamat pengiriman yang Anda berikan. Biaya pengiriman akan ditambahkan sesuai dengan kebijakan yang berlaku.
                   </p>
 
-                  <h3 className="font-bold text-lg mb-2">7. Contact Information</h3>
+                  <h3 className="mb-2 text-lg font-bold">7. Pengembalian dan Pembatalan</h3>
                   <p className="mb-4">
-                    If you have any questions about these Terms, please contact us at support@example.com.
+                    Pembatalan pesanan hanya dapat dilakukan sebelum proses produksi dimulai. Pembatalan setelah proses produksi dimulai tidak akan mendapatkan pengembalian dana. Pengembalian produk hanya diterima jika terdapat cacat produksi yang signifikan.
+                  </p>
+
+                  <h3 className="mb-2 text-lg font-bold">8. Privasi Data</h3>
+                  <p className="mb-4">
+                    Kami berkomitmen untuk melindungi privasi data Anda. Informasi pribadi Anda hanya akan digunakan untuk keperluan pemrosesan pesanan dan tidak akan dibagikan kepada pihak ketiga tanpa persetujuan Anda.
+                  </p>
+
+                  <h3 className="mb-2 text-lg font-bold">9. Kontak</h3>
+                  <p className="mb-4">
+                    Jika Anda memiliki pertanyaan tentang syarat dan ketentuan ini, silakan hubungi kami melalui email support@konveksi.com atau WhatsApp ke nomor +62 812-3456-7890.
                   </p>
                 </div>
               </div>
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+              <div className="px-4 py-3 bg-gray-50 sm:px-6 sm:flex sm:flex-row-reverse">
                 <button
                   type="button"
                   className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-[#6D4C3D] text-base font-medium text-white hover:bg-[#8B5A2B] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#6D4C3D] sm:ml-3 sm:w-auto sm:text-sm transition-colors"
                   onClick={acceptTerms}
                 >
-                  I Agree
+                  Saya Setuju
                 </button>
                 <button
                   type="button"
                   className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#6D4C3D] sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                   onClick={() => setShowTerms(false)}
                 >
-                  Cancel
+                  Batal
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* MUI Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={snackbar.severity === 'success' ? 3000 : 6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+          action={
+            <IconButton
+              size="small"
+              aria-label="close"
+              color="inherit"
+              onClick={handleCloseSnackbar}
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          }
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 }

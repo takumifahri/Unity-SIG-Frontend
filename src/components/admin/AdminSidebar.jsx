@@ -78,16 +78,6 @@ function AdminSidebar({ className, isMobile = false, onClose }) {
       ],
     },
     {
-      title: "Bahan",
-      icon: <MdInventory size={20} />,
-      hasSubmenu: true,
-      submenuKey: "bahan",
-      submenuItems: [
-        { path: "/admin/bahan/tambah", title: "Tambah Bahan" },
-        { path: "/admin/bahan/tabel", title: "Tabel Bahan" },
-      ],
-    },
-    {
       path: "/admin/pemesanan",
       icon: <MdShoppingCart size={20} />,
       title: "Pemesanan",
