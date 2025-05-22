@@ -1,6 +1,4 @@
-"use client"
-
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { useCart } from "../context/CartContext"
 import axios from "axios"
@@ -40,15 +38,20 @@ import {
   CircularProgress,
   Divider,
   FormHelperText,
+  IconButton,
+  Chip,
+  Stack,
+  AlertTitle
 } from "@mui/material"
 
 // Icons
-import { CloudUpload, Info, CheckCircle, Close, InsertDriveFile, Delete } from "@mui/icons-material"
+import { CloudUpload, Info, CheckCircle, Close, InsertDriveFile, Delete, Add, Image } from "@mui/icons-material"
 import { useAuth } from "../context/AuthContext"
 
 function CustomOrders() {
   const navigate = useNavigate()
   const { updateCartCount } = useCart()
+  const { isAuth, token } = useAuth()
   const [users, setUsers] = useState([])
   const [showSizeChart, setShowSizeChart] = useState(false)
   const [formData, setFormData] = useState({
@@ -59,26 +62,30 @@ function CustomOrders() {
     ukuran: "",
     jumlah: "",
     catatan: "",
+    detail_bahan: "",
     sumber_kain: "sendiri",
-    gambar_referensi: null,
-    estimasiPengerjaan: "2 minggu",
+    gambar_referensi: [],
+    estimasi_waktu: null,
   })
 
   const [snackbarState, setSnackbarState] = useState({
     open: false,
     message: "",
     severity: "success",
+    title: ""
   })
-  const [filePreview, setFilePreview] = useState(null)
+  const [filePreviewList, setFilePreviewList] = useState([])
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Ambil data pengguna yang sudah login
-  const getMe = async () => {
+  const getMe = useCallback(async () => {
     try {
+      if (!isAuth() || !token) return;
+      
       const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/auth/me`, {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: token.startsWith("Bearer ") ? token : `Bearer ${token}`,
         },
       })
       setUsers(res.data.user)
@@ -90,8 +97,14 @@ function CustomOrders() {
       }))
     } catch (error) {
       console.error("Error fetching user data:", error)
+      setSnackbarState({
+        open: true,
+        message: "Gagal mengambil data pengguna",
+        severity: "error",
+        title: "Error"
+      })
     }
-  }
+  }, [isAuth, token])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -106,16 +119,32 @@ function CustomOrders() {
     accept: {
       "image/*": [".jpeg", ".jpg", ".png", ".gif"],
     },
-    maxSize: 5 * 1024 * 1024, // 5MB
-    maxFiles: 1,
+    maxSize: 5 * 1024 * 1024, // 5MB (increased from 2MB)
+    maxFiles: 5,
+    multiple: true,
     onDrop: (acceptedFiles) => {
       if (acceptedFiles && acceptedFiles.length > 0) {
-        const file = acceptedFiles[0]
+        // Check if adding these files would exceed the limit
+        if (formData.gambar_referensi.length + acceptedFiles.length > 5) {
+          setSnackbarState({
+            open: true,
+            message: "Maksimal 5 gambar dapat diunggah.",
+            severity: "warning",
+            title: "Batas Gambar"
+          })
+          return;
+        }
+        
+        // Add new files to the existing ones
+        const newFiles = [...formData.gambar_referensi, ...acceptedFiles];
         setFormData((prevState) => ({
           ...prevState,
-          gambar_referensi: file,
+          gambar_referensi: newFiles,
         }))
-        setFilePreview(URL.createObjectURL(file))
+        
+        // Create preview URLs for the files
+        const newPreviews = acceptedFiles.map(file => URL.createObjectURL(file));
+        setFilePreviewList(prev => [...prev, ...newPreviews]);
       }
     },
     onDropRejected: (fileRejections) => {
@@ -123,27 +152,44 @@ function CustomOrders() {
       let message = "File tidak valid"
 
       if (error?.code === "file-too-large") {
-        message = "Ukuran file terlalu besar. Maksimal 5MB."
+        message = "Ukuran file terlalu besar. Maksimal 2MB."
+      } else if (error?.code === "too-many-files") {
+        message = "Terlalu banyak file. Maksimal 5 gambar."
       }
 
       setSnackbarState({
         open: true,
         message,
         severity: "error",
+        title: "Error Upload"
       })
     },
   })
 
-  const removeFile = () => {
-    setFormData((prevState) => ({
-      ...prevState,
-      gambar_referensi: null,
-    }))
-    if (filePreview) {
-      URL.revokeObjectURL(filePreview)
-      setFilePreview(null)
+  const removeFile = (index) => {
+    // Remove file from formData
+    const newFiles = [...formData.gambar_referensi];
+    newFiles.splice(index, 1);
+    setFormData(prev => ({
+      ...prev,
+      gambar_referensi: newFiles
+    }));
+    
+    // Revoke and remove preview URL
+    if (filePreviewList[index]) {
+      URL.revokeObjectURL(filePreviewList[index]);
+      const newPreviews = [...filePreviewList];
+      newPreviews.splice(index, 1);
+      setFilePreviewList(newPreviews);
     }
   }
+
+  // Clean up preview URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      filePreviewList.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -162,6 +208,18 @@ function CustomOrders() {
         open: true,
         message: `Mohon lengkapi field berikut: ${missingFields.join(", ")}`,
         severity: "warning",
+        title: "Field Belum Lengkap"
+      })
+      return
+    }
+
+    // Validasi jumlah minimal
+    if (parseInt(formData.jumlah) < 3) {
+      setSnackbarState({
+        open: true,
+        message: "Minimal pemesanan adalah 3 pcs",
+        severity: "warning",
+        title: "Jumlah Tidak Valid"
       })
       return
     }
@@ -169,11 +227,12 @@ function CustomOrders() {
     setIsSubmitting(true)
 
     // Periksa apakah pengguna sudah login
-    if (!localStorage.getItem("token")) {
+    if (!isAuth() || !token) {
       setSnackbarState({
         open: true,
         message: "Silakan login terlebih dahulu untuk membuat pesanan.",
         severity: "warning",
+        title: "Login Diperlukan"
       });
 
       // Arahkan ke halaman login setelah 2 detik
@@ -182,24 +241,39 @@ function CustomOrders() {
       }, 2000);
       return;
     }
+    
     try {
       const formDataToSend = new FormData()
-      Object.keys(formData).forEach((key) => {
-        formDataToSend.append(key, formData[key])
+      
+      // Append all form fields except gambar_referensi
+      Object.entries(formData).forEach(([key, value]) => {
+        if (key !== 'gambar_referensi') {
+          formDataToSend.append(key, value)
+        }
       })
       
-      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/order/custom/propose`, formDataToSend, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
+      // Append gambar_referensi as array
+      formData.gambar_referensi.forEach((file, index) => {
+        formDataToSend.append(`gambar_referensi[${index}]`, file);
+      });
+      
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_URL}/api/order/custom/propose`, 
+        formDataToSend, 
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: token.startsWith("Bearer ") ? token : `Bearer ${token}`,
+          },
+        }
+      )
 
       if (response.status === 201) {
         setSnackbarState({
           open: true,
-          message: "Pesanan berhasil dibuat!",
+          message: "Pesanan berhasil dibuat! Anda akan diarahkan ke halaman akun.",
           severity: "success",
+          title: "Berhasil"
         })
 
         // Delay redirect untuk menampilkan Snackbar
@@ -213,6 +287,7 @@ function CustomOrders() {
         open: true,
         message: error.response?.data?.message || "Terjadi kesalahan saat membuat pesanan",
         severity: "error",
+        title: "Gagal"
       })
     } finally {
       setIsSubmitting(false)
@@ -221,7 +296,7 @@ function CustomOrders() {
 
   useEffect(() => {
     getMe()
-  }, [])
+  }, [getMe])
 
   return (
     <div className="bg-gray-50 min-h-screen py-10">
@@ -236,6 +311,7 @@ function CustomOrders() {
           severity={snackbarState.severity}
           sx={{ width: "100%" }}
         >
+          {snackbarState.title && <AlertTitle>{snackbarState.title}</AlertTitle>}
           {snackbarState.message}
         </Alert>
       </Snackbar>
@@ -376,76 +452,126 @@ function CustomOrders() {
                           onChange={handleInputChange}
                           required
                           variant="outlined"
-                          InputProps={{ inputProps: { min: 1 } }}
+                          InputProps={{ inputProps: { min: 3 } }}
                         />
                         <FormHelperText>Minimal pemesanan 3 pcs</FormHelperText>
                       </Grid>
                     </Grid>
 
-                    <FormControl component="fieldset" className="mb-6">
+                    <FormControl component="fieldset" className="mb-4">
                       <Typography variant="subtitle1" className="mb-2">
                         Sumber Kain
                       </Typography>
                       <RadioGroup row name="sumber_kain" value={formData.sumber_kain} onChange={handleInputChange}>
-          
                         <FormControlLabel value="sendiri" control={<Radio color="black" />} label="Kain Sendiri" />
                       </RadioGroup>
                     </FormControl>
 
+                    {formData.sumber_kain === "konveksi" && (
+                      <TextField
+                        fullWidth
+                        label="Detail Bahan/Kain"
+                        name="detail_bahan"
+                        value={formData.detail_bahan}
+                        onChange={handleInputChange}
+                        variant="outlined"
+                        placeholder="Contoh: Cotton Combed 30s, Fleece, dll"
+                        className="mb-4"
+                      />
+                    )}
+
                     <Box className="mb-6">
                       <Typography variant="subtitle1" className="mb-2">
-                        Upload Desain/Referensi
+                        Upload Desain/Referensi ({formData.gambar_referensi.length}/5)
                       </Typography>
 
-                      <Box
-                        {...getRootProps()}
-                        className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer transition-all duration-300 ${
-                          filePreview
-                            ? "border-blue-500 bg-blue-50"
-                            : "border-gray-300 hover:border-blue-500 hover:bg-blue-50"
-                        }`}
-                      >
-                        <input {...getInputProps()} />
+                      {/* Image preview grid */}
+                      {filePreviewList.length > 0 && (
+                        <Box sx={{ mb: 2 }}>
+                          <Grid container spacing={2}>
+                            {filePreviewList.map((preview, index) => (
+                              <Grid item xs={6} md={4} key={index}>
+                                <Card sx={{ position: 'relative' }}>
+                                  <IconButton
+                                    size="small"
+                                    sx={{
+                                      position: 'absolute',
+                                      top: 4,
+                                      right: 4,
+                                      bgcolor: 'rgba(0,0,0,0.5)',
+                                      color: 'white',
+                                      '&:hover': { bgcolor: 'rgba(255,0,0,0.7)' }
+                                    }}
+                                    onClick={() => removeFile(index)}
+                                  >
+                                    <Delete fontSize="small" />
+                                  </IconButton>
+                                  <CardContent sx={{ p: 1, '&:last-child': { pb: 1 } }}>
+                                    <Box sx={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                      <img
+                                        src={preview}
+                                        alt={`Preview ${index + 1}`}
+                                        style={{
+                                          maxWidth: '100%',
+                                          maxHeight: '140px',
+                                          objectFit: 'contain'
+                                        }}
+                                      />
+                                    </Box>
+                                    <Typography variant="caption" sx={{ display: 'block', mt: 1, textAlign: 'center', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                      {formData.gambar_referensi[index]?.name || `Image ${index + 1}`}
+                                    </Typography>
+                                  </CardContent>
+                                </Card>
+                              </Grid>
+                            ))}
 
-                        {filePreview ? (
-                          <Box>
-                            <Box className="flex justify-between items-center mb-2">
-                              <Box className="flex items-center">
-                                <InsertDriveFile className="text-blue-600 mr-2" />
-                                <Typography className="truncate max-w-xs">{formData.gambar_referensi.name}</Typography>
-                              </Box>
-                              <Button
-                                size="small"
-                                color="error"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  removeFile()
-                                }}
-                                startIcon={<Delete />}
-                              >
-                                Hapus
-                              </Button>
-                            </Box>
-                            <Box className="max-h-48 overflow-hidden">
-                              <img
-                                src={filePreview || "/placeholder.svg"}
-                                alt="Preview"
-                                className="max-w-full max-h-40 mx-auto object-contain rounded"
-                              />
-                            </Box>
-                          </Box>
-                        ) : (
+                            {formData.gambar_referensi.length < 5 && (
+                              <Grid item xs={6} md={4}>
+                                <Card 
+                                  sx={{ 
+                                    height: '100%', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center',
+                                    border: '2px dashed #ccc',
+                                    backgroundColor: 'rgba(0,0,0,0.02)',
+                                    cursor: 'pointer'
+                                  }}
+                                  {...getRootProps()}
+                                >
+                                  <input {...getInputProps()} />
+                                  <CardContent sx={{ textAlign: 'center' }}>
+                                    <Add sx={{ fontSize: 40, color: '#999', mb: 1 }} />
+                                    <Typography variant="body2" color="textSecondary">
+                                      Tambah Gambar
+                                    </Typography>
+                                  </CardContent>
+                                </Card>
+                              </Grid>
+                            )}
+                          </Grid>
+                        </Box>
+                      )}
+
+                      {/* Dropzone area (only shown when no images are uploaded) */}
+                      {filePreviewList.length === 0 && (
+                        <Box
+                          {...getRootProps()}
+                          className="border-2 border-dashed rounded-md p-6 text-center cursor-pointer transition-all duration-300 hover:border-blue-500 hover:bg-blue-50"
+                        >
+                          <input {...getInputProps()} />
                           <Box>
                             <CloudUpload className="text-black text-4xl mb-2" />
                             <Typography variant="body1" className="mb-1">
                               Drag & drop file di sini atau klik untuk memilih
                             </Typography>
                             <Typography variant="body2" color="textSecondary">
-                              Format yang diterima: JPG, PNG (Max. 5MB)
+                              Format yang diterima: JPG, PNG, GIF (Maks. 2MB/file, maks. 5 gambar)
                             </Typography>
                           </Box>
-                        )}
-                      </Box>
+                        </Box>
+                      )}
                     </Box>
 
                     <TextField
@@ -491,7 +617,7 @@ function CustomOrders() {
               <CardHeader
                 title="Informasi Pesanan"
                 titleTypographyProps={{ variant: "h6" }}
-                avatar={<Info style={{backgroundColor: ""}} />}
+                avatar={<Info />}
                 className="bg-[#6D4C3D] text-white"
               />
               <CardContent className="p-6">

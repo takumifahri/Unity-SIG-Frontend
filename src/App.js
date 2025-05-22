@@ -54,10 +54,10 @@ import Pengajuan from './pages/Pengajuan';
 import PaymentPage from './pages/PaymentDetail';
 import PaymentAdminPage from './pages/admin/PembayaranClient';
 import PaymentDetail from './pages/admin/PaymentDetailClient';
-import DetailCustomPesanan from './pages/pesananCustom';
-import DetailPesanan from './pages/pesananCatalog';
 import PesananCatalog from './pages/pesananCatalog';
 import PesananCustom from './pages/pesananCustom';
+import PengajuanPemesanan from './pages/pengajuanPemesanan';
+import EditPakaianTable from './components/EditPakaianTabel';
 
 function App() {
   return (
@@ -93,7 +93,7 @@ function App() {
                           <Route path="custom-order" element={<CustomOrders />} />
                           <Route path="kontak" element={<Kontak />} />
                           <Route path="lokasi" element={<Lokasi />} />
-                          <Route path="pesanan/:id" element={<CustomOrderDetail />} />
+                          <Route path="pesanan/:orderUniqueId" element={<CustomOrderDetail />} />
                           <Route path="payment/:id" element={<PaymentPage />} />
                         </Route>
 
@@ -101,12 +101,13 @@ function App() {
                         <Route path="/admin/*" element={<AdminLayout />} >
                           <Route path="dashboard" element={<Dashboard />} />
                           <Route path="pakaian/tambah" element={<TambahPakaian />} />
+                          <Route path="pakaian/edit/:id" element={<EditPakaianTable />} />
                           <Route path="pakaian/tabel" element={<TabelPakaian />} />
                           <Route path="bahan/tambah" element={<TambahBahan />} />
                           <Route path="bahan/tabel" element={<TabelBahan />} />
                           <Route path="pemesanan" element={<Pemesanan />} />
                           <Route path="pemesanan/khusus" element={<PemesananKhusus />} />
-                          <Route path="pemesanan/pengajuan" element={<Pengajuan />} />
+                          <Route path="pemesanan/pengajuan" element={<PengajuanPemesanan />} />
                           <Route path="pesanan/:id" element={<AdminPesanan />} />
                           <Route path="pembayaran" element={<PaymentAdminPage />} />
                           <Route path="pembayaran/:id" element={<PaymentDetail />} />

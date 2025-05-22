@@ -597,7 +597,7 @@ const Dashboard = () => {
                       <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{order.order_unique_id || 'N/A'}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">{formatDate(order.created_at)}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">{order.user_id || 'N/A'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">{order.user?.name || 'N/A'}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{formatCurrency(order.total_harga || 0)}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
