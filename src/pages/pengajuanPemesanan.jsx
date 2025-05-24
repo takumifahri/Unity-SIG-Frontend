@@ -56,10 +56,6 @@ const PengajuanPemesanan = () => {
   const [sortOption, setSortOption] = useState("newest");
   const navigate = useNavigate();
 
-  // Load custom orders on mount
-  useEffect(() => {
-    fetchCustomOrders();
-  }, []);
 
   // Fetch custom orders from API
   const fetchCustomOrders = async () => {
@@ -75,15 +71,29 @@ const PengajuanPemesanan = () => {
         }
       );
 
-      console.log("Custom orders data:", response.data);
+      console.log("Custom orders API response:", response.data);
       
-      // Check for the correct data structure based on API response
-      if (response.data && response.data.data && response.data.data.custom_orders) {
-        setCustomOrders(response.data.data.custom_orders);
+      // New data structure handling
+      if (response.data && response.data.status && response.data.data) {
+        if (response.data.data.custom_orders && response.data.data.custom_orders.data) {
+          // Set the orders from the paginated data
+          setCustomOrders(response.data.data.custom_orders.data);
+          
+          // Handle pagination from API
+          setTotalPages(response.data.data.custom_orders.last_page || 1);
+          setCurrentPage(response.data.data.custom_orders.current_page || 1);
+          
+          // Calculate the entries per page from API response
+          if (response.data.data.custom_orders.per_page) {
+            setEntriesPerPage(response.data.data.custom_orders.per_page);
+          }
+        } else {
+          setCustomOrders([]);
+        }
+        setError(null);
       } else {
-        setCustomOrders([]);
+        throw new Error("Invalid response format from API");
       }
-      setError(null);
     } catch (error) {
       console.error("Error fetching custom orders:", error);
       setError(
@@ -94,6 +104,11 @@ const PengajuanPemesanan = () => {
       setLoading(false);
     }
   };
+
+  // Load custom orders on mount
+  useEffect(() => {
+    fetchCustomOrders();
+  }, []);
 
   
   // Handle approve/accept custom order
@@ -495,7 +510,20 @@ const PengajuanPemesanan = () => {
     
     return html;
   }
-
+  // Calculate total quantity of an order by summing up all sizes and colors
+  const calculateTotalQuantity = (order) => {
+    if (!order || !order.colors) return 0;
+    
+    return order.colors.reduce((totalSum, color) => {
+      if (!color.sizes) return totalSum;
+      
+      const colorSum = color.sizes.reduce((sum, size) => {
+        return sum + (parseInt(size.jumlah) || 0);
+      }, 0);
+      
+      return totalSum + colorSum;
+    }, 0);
+  };
   // Add function to cancel order after negotiation
   const handleCancelOrder = async (id) => {
     try {
@@ -530,7 +558,7 @@ const PengajuanPemesanan = () => {
   
         // Call API to cancel custom order
         const response = await axios.post(
-          `${process.env.REACT_APP_API_URL}/api/custom-orders/cancel-propose`,
+          `${process.env.REACT_APP_API_URL}/api/order/custom/cancel/propose`,
           { 
             custom_order_id: id, 
             alasan_diTolak: cancelReason 
@@ -600,7 +628,7 @@ const PengajuanPemesanan = () => {
 
         // Call API to reject custom order
         const response = await axios.post(
-          `${process.env.REACT_APP_API_URL}/api/custom-orders/reject-response`,
+          `${process.env.REACT_APP_API_URL}/api/order/custom/reject/response`,
           { 
             custom_order_id: id, 
             alasan_diTolak: rejectReason 
@@ -639,7 +667,13 @@ const PengajuanPemesanan = () => {
 
   // Handle viewing order details
   const handleViewDetail = (id) => {
-    navigate(`/admin/custom-orders/${id}`);
+    // Find the order to get its unique ID
+    const order = customOrders.find(order => order.id === id);
+    if (order && order.custom_order_unique_id) {
+      navigate(`/admin/customOrder/${order.custom_order_unique_id}`);
+    } else {
+      navigate(`/admin/customOrder/${id}`);
+    }
   };
 
   // Sort orders based on selected option
@@ -1405,13 +1439,25 @@ const PengajuanPemesanan = () => {
                       {order.jenis_baju || "-"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {order.ukuran || "-"}
+                      <div className="flex flex-col gap-1">
+                        {order.colors?.map((color, idx) => (
+                          <div key={idx} className="flex items-center">
+                            <span className="inline-block w-3 h-3 rounded-full mr-1" 
+                                  style={{backgroundColor: color.color_name.toLowerCase()}}></span>
+                            <span>{color.color_name}: </span>
+                            <span className="ml-1">
+                              {color.sizes?.map(size => `${size.size}(${size.jumlah})`).join(', ')}
+                            </span>
+                          </div>
+                        ))}
+                        {!order.colors?.length && "-"}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {formatSumberKain(order.sumber_kain)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {order.jumlah || 0} pcs
+                      {calculateTotalQuantity(order)} pcs
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span

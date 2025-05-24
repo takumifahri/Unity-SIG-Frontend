@@ -56,7 +56,7 @@ const Pemesanan = () => {
     fetchAllCustomAndOrders,
     adminVerifyPayment,
     sendToDelivery,
-    RecievedUser,
+    recievedUser,
     completeOrder,
   } = usePemesanan()
 
@@ -82,7 +82,7 @@ const Pemesanan = () => {
   const fetchData = async () => {
     setLoadingData(true)
     try {
-      await fetchAllCustomAndOrders()
+      await fetchAllOrders()
       console.log("Data pesanan:", pesanan)
     } catch (error) {
       console.error("Error fetching data:", error)
@@ -142,7 +142,7 @@ const Pemesanan = () => {
     // Check order type based on catalog_id
     if (pesanan.catalog_id === null && pesanan.custom_order_id) {
       // This is a custom order
-      navigate(`/admin/custom-pesanan/${pesanan.order_unique_id}`)
+      navigate(`/admin/customOrder/${pesanan.order_unique_id}`)
     } else {
       // This is a catalog order
       navigate(`/admin/CatalogPesan/${pesanan.order_unique_id}`)
@@ -328,10 +328,10 @@ const Pemesanan = () => {
 
                 try {
                   // Use the context function instead of direct axios call
-                  response = await RecievedUser(id, formData)
+                  response = await recievedUser(id, formData)
 
                   Swal.fire("Sukses", "Konfirmasi penerimaan barang berhasil", "success")
-                  // No need to refresh orders again as it's already done in RecievedUser
+                  // No need to refresh orders again as it's already done in recievedUser
                 } catch (error) {
                   console.error("Error confirming receipt:", error)
                   Swal.fire("Error", error.response?.data?.message || "Gagal mengkonfirmasi penerimaan barang", "error")
@@ -1051,17 +1051,17 @@ const Pemesanan = () => {
                 // Actual mobile cards
                 paginatedData.map((pesanan) => (
                   <div key={pesanan.id} className="bg-white border rounded-lg shadow-sm p-4">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <p className="text-xs text-gray-500">ID: {pesanan.order_unique_id || "-"}</p>
-                        <p className="text-sm text-gray-500">
-                          {pesanan.created_at ? new Date(pesanan.created_at).toLocaleDateString() : "-"}
-                        </p>
-                        <h3 className="font-medium">
-                          {pesanan.custom_order?.jenis_baju || pesanan.catalog?.nama_katalog || "-"}
-                        </h3>
-                      </div>
-                      <span
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                    <p className="text-xs text-gray-500">ID: {pesanan.order_unique_id || "-"}</p>
+                    <p className="text-sm text-gray-500">
+                      {pesanan.created_at ? new Date(pesanan.created_at).toLocaleDateString() : "-"}
+                    </p>
+                    <h3 className="font-medium">
+                      {pesanan.custom_order?.jenis_baju || pesanan.catalog?.nama_katalog || "-"}
+                    </h3>
+                    </div>
+                    <span
                         className={`px-2 py-1 rounded-full text-xs bg-${getStatusBadgeColor(pesanan.status)} text-${getStatusTextColor(pesanan.status)}`}
                       >
                         {pesanan.status?.replace(/_/g, " ") || "Pending"}

@@ -48,7 +48,6 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './styles/Footer.css';
 import AdminLayout from './components/admin/AdminLayout';
 import axios from 'axios';
-import CustomOrderDetail from './pages/OrderDetail';
 import PemesananKhusus from './components/PemesananKhusus';
 import Pengajuan from './pages/Pengajuan';
 import PaymentPage from './pages/PaymentDetail';
@@ -58,6 +57,9 @@ import PesananCatalog from './pages/pesananCatalog';
 import PesananCustom from './pages/pesananCustom';
 import PengajuanPemesanan from './pages/pengajuanPemesanan';
 import EditPakaianTable from './components/EditPakaianTabel';
+import NotFound from './pages/NotFound';
+import OrderDetail from './pages/OrderDetail';
+import CustomOrderDetail from './pages/PesananDetail';
 
 function App() {
   return (
@@ -80,7 +82,7 @@ function App() {
                           <Route index element={<Home />} />
                           <Route path="about" element={<About />} />
                           <Route path="akun" element={<Akun />} />
-                          <Route path="catalog" element={<Catalog />} />
+                          <Route path="katalog" element={<Catalog />} />
                           <Route path="tentang-kami" element={<TentangKami />} />
                           <Route path="galeri" element={<Galeri />} />
                           <Route path="contact" element={<ContactUs />} />
@@ -93,8 +95,12 @@ function App() {
                           <Route path="custom-order" element={<CustomOrders />} />
                           <Route path="kontak" element={<Kontak />} />
                           <Route path="lokasi" element={<Lokasi />} />
-                          <Route path="pesanan/:orderUniqueId" element={<CustomOrderDetail />} />
+                          <Route path="orderDetail/:orderUniqueId" element={<OrderDetail />} />
+                          <Route path="customOrder/:orderUniqueId" element={<CustomOrderDetail />} />
                           <Route path="payment/:id" element={<PaymentPage />} />
+
+                          {/* 404 Page Route - harus menjadi route terakhir dalam layout */}
+                          <Route path="*" element={<NotFound />} />
                         </Route>
 
                         {/* Admin Routes */}
@@ -105,13 +111,13 @@ function App() {
                           <Route path="pakaian/tabel" element={<TabelPakaian />} />
                           <Route path="bahan/tambah" element={<TambahBahan />} />
                           <Route path="bahan/tabel" element={<TabelBahan />} />
-                          <Route path="pemesanan" element={<Pemesanan />} />
+                          <Route path="pemesanan/semua" element={<Pemesanan />} />
                           <Route path="pemesanan/khusus" element={<PemesananKhusus />} />
                           <Route path="pemesanan/pengajuan" element={<PengajuanPemesanan />} />
                           <Route path="pesanan/:id" element={<AdminPesanan />} />
                           <Route path="pembayaran" element={<PaymentAdminPage />} />
                           <Route path="pembayaran/:id" element={<PaymentDetail />} />
-                          <Route path="custom-order/:orderUniqueId" element={< PesananCustom/>} />
+                          <Route path="customOrder/:orderUniqueId" element={< PesananCustom/>} />
                           <Route path="CatalogPesan/:orderUniqueId" element={< PesananCatalog/>} />
 
 

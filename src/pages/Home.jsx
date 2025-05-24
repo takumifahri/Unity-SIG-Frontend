@@ -315,7 +315,19 @@ function Beranda() {
                     </div>
                     <Card.Body>
                       <Card.Title className="text-center">{product.nama_katalog}</Card.Title>
-                      <Card.Text className="text-center text-muted">{product.deskripsi}</Card.Text>
+                      <Card.Text 
+                        className="text-center text-muted"
+                        style={{ 
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          maxHeight: '40px'
+                        }}
+                      >
+                        {product.deskripsi}
+                      </Card.Text>
                     </Card.Body>
                   </Card>
                 </Col>

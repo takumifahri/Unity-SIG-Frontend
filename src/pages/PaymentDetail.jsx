@@ -454,22 +454,65 @@ function PaymentPage() {
               <Box display="flex" pb={2} borderBottom={1} borderColor="divider">
                 <Box width={64} height={64} mr={2} flexShrink={0}>
                   <img
-                    src={
-                      transaction.catalog && transaction.catalog.gambar
-                        ? transaction.catalog.gambar.startsWith("http")
-                          ? transaction.catalog.gambar
-                          : `${process.env.REACT_APP_API_URL}/${transaction.catalog.gambar}`
-                        : "/placeholder.svg?height=80&width=80"
-                    }
-                    alt={transaction.catalog ? transaction.catalog.nama_katalog : "Product"}
+                    src={(() => {
+                      // Handle custom order images
+                      if (transaction.custom_order && transaction.custom_order.gambar_referensi) {
+                        try {
+                          const images = JSON.parse(transaction.custom_order.gambar_referensi);
+                          if (Array.isArray(images) && images.length > 0) {
+                            return `${process.env.REACT_APP_API_URL}/${images[0]}`;
+                          }
+                        } catch (e) {
+                          console.error("Error parsing custom order images:", e);
+                          // If parsing fails, try to use the string directly
+                          return transaction.custom_order.gambar_referensi.startsWith('http')
+                            ? transaction.custom_order.gambar_referensi
+                            : `${process.env.REACT_APP_API_URL}/${transaction.custom_order.gambar_referensi}`;
+                        }
+                      }
+                      
+                      // Handle catalog images
+                      if (transaction.catalog && transaction.catalog.gambar) {
+                        if (Array.isArray(transaction.catalog.gambar) && transaction.catalog.gambar.length > 0) {
+                          return `${process.env.REACT_APP_API_URL}/${transaction.catalog.gambar[0]}`;
+                        } else if (typeof transaction.catalog.gambar === 'string') {
+                          return transaction.catalog.gambar.startsWith('http')
+                            ? transaction.catalog.gambar
+                            : `${process.env.REACT_APP_API_URL}/${transaction.catalog.gambar}`;
+                        }
+                      }
+                      
+                      // Fallback to placeholder
+                      return "/placeholder.svg?height=80&width=80";
+                    })()}
+                    alt={transaction.custom_order 
+                      ? transaction.custom_order.jenis_baju 
+                      : transaction.catalog 
+                        ? transaction.catalog.nama_katalog 
+                        : "Product"}
                     style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "4px" }}
+                    onError={(e) => {
+                      e.target.src = "/placeholder.svg?height=80&width=80";
+                    }}
                   />
                 </Box>
                 <Box flex={1}>
                   <Typography variant="subtitle1" fontWeight="medium">
-                    {transaction.catalog ? transaction.catalog.nama_katalog : "Product"}
+                    {transaction.custom_order 
+                      ? transaction.custom_order.jenis_baju 
+                      : transaction.catalog 
+                        ? transaction.catalog.nama_katalog 
+                        : "Product"}
                   </Typography>
                   <Box display="flex" flexWrap="wrap" gap={1} mt={0.5}>
+                    {/* For custom orders - show material */}
+                    {transaction.custom_order && transaction.custom_order.detail_bahan && (
+                      <Typography variant="caption" sx={{ bgcolor: "grey.100", px: 1, py: 0.5, borderRadius: 1 }}>
+                        Material: {transaction.custom_order.detail_bahan}
+                      </Typography>
+                    )}
+                    
+                    {/* For catalog orders - show color and size */}
                     {transaction.color && typeof transaction.color === "object" && (
                       <Typography variant="caption" sx={{ bgcolor: "grey.100", px: 1, py: 0.5, borderRadius: 1 }}>
                         Color: {transaction.color.color_name || "N/A"}
@@ -480,17 +523,31 @@ function PaymentPage() {
                         Size: {transaction.size.size || "N/A"}
                       </Typography>
                     )}
+                    
+                    {/* For custom orders with source of fabric */}
+                    {transaction.custom_order && transaction.custom_order.sumber_kain && (
+                      <Typography variant="caption" sx={{ bgcolor: "grey.100", px: 1, py: 0.5, borderRadius: 1 }}>
+                        Sumber Kain: {transaction.custom_order.sumber_kain}
+                      </Typography>
+                    )}
+                    
+                    {/* Quantity */}
                     <Typography variant="caption" sx={{ bgcolor: "grey.100", px: 1, py: 0.5, borderRadius: 1 }}>
-                      Quantity: {transaction.jumlah}
+                      Quantity: {transaction.jumlah || 
+                        (transaction.custom_order && transaction.custom_order.sizes ? 
+                          transaction.custom_order.sizes.reduce((total, size) => total + size.jumlah, 0) : 1)}
                     </Typography>
                   </Box>
                 </Box>
                 <Box textAlign="right">
                   <Typography variant="body2" color="text.secondary">
-                    {formatPrice(transaction.catalog ? transaction.catalog.price : 0)} x {transaction.jumlah}
+                    {formatPrice(transaction.custom_order ? 
+                      transaction.custom_order.total_harga / transaction.jumlah || transaction.custom_order.total_harga : 
+                      transaction.catalog ? transaction.catalog.price : 0)} 
+                    x {transaction.jumlah || 1}
                   </Typography>
                   <Typography variant="body1" fontWeight="medium">
-                    {formatPrice((transaction.catalog ? transaction.catalog.price : 0) * transaction.jumlah)}
+                    {formatPrice(transaction.total_harga)}
                   </Typography>
                 </Box>
               </Box>
@@ -527,148 +584,292 @@ function PaymentPage() {
         </Card>
 
         {/* Payment Proof Upload */}
-        {transaction.bukti_pembayaran ||
-        (transaction.transaction && transaction.transaction.bukti_transfer) ||
-        uploadSuccess ? (
-          <Card variant="outlined" sx={{ mb: 3, p: 3 }}>
-            <Box textAlign="center">
-              <CheckCircleIcon color="success" sx={{ fontSize: 48, mb: 2 }} />
-              <Typography variant="h6" gutterBottom>
-                Payment Proof Uploaded
-              </Typography>
-              <Typography variant="body2" color="text.secondary" mb={3}>
-                Your payment proof has been uploaded successfully. We will verify your payment shortly.
-              </Typography>
+        {(() => {
+          // Get the payment status - check multiple locations where it might exist
+          const paymentStatus = 
+            (transaction.transaction && transaction.transaction.status) || 
+            transaction.status_pembayaran || 
+            transaction.status;
+          
+          // Check if the status is a success status (using various possible success status values)
+          const isSuccessStatus = ['success', 'diproses', 'approve', 'selesai', 'completed'].some(
+            term => paymentStatus?.toLowerCase().includes(term)
+          );
+          
+          // Check if the status is expired
+          const isExpiredStatus = ['expired', 'kadaluarsa'].some(
+            term => paymentStatus?.toLowerCase().includes(term)
+          );
 
-              {transaction.transaction && transaction.transaction.bukti_transfer && (
-                <Box mt={3} maxWidth={300} mx="auto">
-                  <Typography variant="body2" color="text.secondary" mb={1}>
-                    Uploaded payment proof:
+          // Case 1: Payment approved/success - Just show the uploaded proof (no re-upload)
+          if (isSuccessStatus) {
+            return (
+              <Card variant="outlined" sx={{ mb: 3, p: 3 }}>
+                <Box textAlign="center">
+                  <CheckCircleIcon color="success" sx={{ fontSize: 48, mb: 2 }} />
+                  <Typography variant="h6" gutterBottom>
+                    Payment Verified
                   </Typography>
-                  <img
-                    src={`${process.env.REACT_APP_API_URL}/${transaction.transaction.bukti_transfer}`}
-                    alt="Payment Proof"
-                    style={{
-                      maxHeight: "256px",
-                      maxWidth: "100%",
-                      borderRadius: "8px",
-                      border: "1px solid #e0e0e0",
-                    }}
-                  />
+                  <Typography variant="body2" color="text.secondary" mb={3}>
+                    Your payment has been verified and your order is being processed.
+                  </Typography>
+
+                  {/* Display the uploaded payment proof */}
+                  {(transaction.bukti_pembayaran || 
+                    (transaction.transaction && transaction.transaction.bukti_transfer)) && (
+                    <Box mt={3} maxWidth={300} mx="auto">
+                      <Typography variant="body2" color="text.secondary" mb={1}>
+                        Payment proof:
+                      </Typography>
+                      <img
+                        src={`${process.env.REACT_APP_API_URL}/${transaction.bukti_pembayaran || transaction.transaction.bukti_transfer}`}
+                        alt="Payment Proof"
+                        style={{
+                          maxHeight: "256px",
+                          maxWidth: "100%",
+                          borderRadius: "8px",
+                          border: "1px solid #e0e0e0",
+                        }}
+                        onError={(e) => {
+                          e.target.src = "/placeholder.svg?height=256&width=200";
+                        }}
+                      />
+                    </Box>
+                  )}
                 </Box>
-              )}
-            </Box>
-          </Card>
-        ) : (
-          <Card variant="outlined" sx={{ mb: 3, overflow: "hidden" }}>
-            <CardHeader
-              title="Upload Payment Proof"
-              sx={{
-                bgcolor: "#6B4A3D",
-                color: "white",
-                py: 2,
-              }}
-            />
+              </Card>
+            );
+          }
+          
+          // Case 2: Payment expired - Show expired message (no re-upload)
+          else if (isExpiredStatus) {
+            return (
+              <Card variant="outlined" sx={{ mb: 3, overflow: "hidden" }}>
+                <CardHeader
+                  title="Payment Expired"
+                  sx={{
+                    bgcolor: "#9e9e9e", // Grey color for expired
+                    color: "white",
+                    py: 2,
+                  }}
+                />
+                <CardContent sx={{ p: 3 }}>
+                  <Alert severity="warning" sx={{ mb: 3 }}>
+                    <AlertTitle>Payment Time Expired</AlertTitle>
+                    <Typography variant="body2">
+                      The payment window for this order has expired. Please contact customer service if you still want to proceed with this order.
+                    </Typography>
+                  </Alert>
 
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="body2" color="text.secondary" mb={3}>
-                Please upload your payment proof to complete your order. We accept bank transfer receipts, screenshots,
-                or photos of your payment.
-              </Typography>
+                  <Box textAlign="center" mt={3}>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={() => window.location.href = "/contact"}
+                      sx={{
+                        bgcolor: "#6B4A3D",
+                        "&:hover": { bgcolor: "#8f5f4c" },
+                      }}
+                    >
+                      Contact Customer Service
+                    </Button>
+                  </Box>
+                </CardContent>
+              </Card>
+            );
+          }
+          
+          // Case 3: All other statuses (including rejected, pending, etc.) - Allow payment upload or re-upload
+          else {
+            // Get appropriate title and message based on status
+            let cardTitle = "Upload Payment Proof";
+            let headerColor = "#6B4A3D";
+            let infoMessage = "Please upload your payment proof to complete your order. We accept bank transfer receipts, screenshots, or photos of your payment.";
+            
+            const isRejected = ['failure', 'canceled', 'rejected', 'ditolak'].some(
+              term => paymentStatus?.toLowerCase().includes(term)
+            );
+            
+            if (isRejected) {
+              cardTitle = "Payment Proof Rejected";
+              headerColor = "#d32f2f";
+              infoMessage = "Please upload a new payment proof to continue with your order.";
+            }
+            
+            // Check if a proof has already been uploaded but is awaiting verification
+            const hasUploadedProof = transaction.bukti_pembayaran || 
+              (transaction.transaction && transaction.transaction.bukti_transfer) ||
+              uploadSuccess;
+              
+            return (
+              <Card variant="outlined" sx={{ mb: 3, overflow: "hidden" }}>
+                <CardHeader
+                  title={hasUploadedProof && !isRejected ? "Payment Proof Awaiting Verification" : cardTitle}
+                  sx={{
+                    bgcolor: hasUploadedProof && !isRejected ? "#1976d2" : headerColor,
+                    color: "white",
+                    py: 2,
+                  }}
+                />
 
-              <form onSubmit={handleUploadProof}>
-                <Box mb={3}>
-                  <Dropzone onDrop={handleDrop} accept={{ "image/*": [] }} maxSize={2097152}>
-                    {({ getRootProps, getInputProps }) => (
-                      <Box
-                        {...getRootProps()}
+                <CardContent sx={{ p: 3 }}>
+                  {/* Show rejection message if payment was rejected */}
+                  {isRejected && (
+                    <Alert severity="error" sx={{ mb: 3 }}>
+                      <AlertTitle>Payment Proof Rejected</AlertTitle>
+                      <Typography variant="body2">
+                        Your payment proof was rejected. Reason: 
+                        {transaction.alasan_ditolak || transaction.custom_order?.alasan_diTolak || "Invalid or unclear payment proof"}
+                      </Typography>
+                    </Alert>
+                  )}
+
+                  {/* Show previously uploaded proof if any */}
+                  {hasUploadedProof && (
+                    <Box mt={2} mb={3} textAlign="center">
+                      <Typography variant="body2" color="text.secondary" mb={1}>
+                        {isRejected ? "Previously uploaded payment proof:" : "Uploaded payment proof:"}
+                      </Typography>
+                      <img
+                        src={`${process.env.REACT_APP_API_URL}/${transaction.bukti_pembayaran || transaction.transaction.bukti_transfer}`}
+                        alt={isRejected ? "Rejected Payment Proof" : "Payment Proof"}
+                        style={{
+                          maxHeight: "200px",
+                          maxWidth: "100%",
+                          borderRadius: "8px",
+                          border: "1px solid #e0e0e0",
+                          opacity: isRejected ? "0.7" : "1"
+                        }}
+                        onError={(e) => {
+                          e.target.src = "/placeholder.svg?height=200&width=150";
+                        }}
+                      />
+                    </Box>
+                  )}
+
+                  {/* Show info message */}
+                  <Typography variant="body2" color="text.secondary" mb={3}>
+                    {hasUploadedProof && !isRejected 
+                      ? "Your payment proof has been uploaded and is awaiting verification. We will process it shortly." 
+                      : infoMessage}
+                  </Typography>
+
+                  {/* Always show upload form for non-success, non-expired statuses */}
+                  {(!hasUploadedProof || isRejected || paymentStatus === "pending") && (
+                    <form onSubmit={handleUploadProof}>
+                      <Box mb={3}>
+                        <Dropzone onDrop={handleDrop} accept={{ "image/*": [] }} maxSize={2097152}>
+                          {({ getRootProps, getInputProps }) => (
+                            <Box
+                              {...getRootProps()}
+                              sx={{
+                                border: "2px dashed",
+                                borderColor: previewImage ? "success.200" : "grey.300",
+                                borderRadius: 1,
+                                p: 3,
+                                textAlign: "center",
+                                cursor: "pointer",
+                                transition: "all 0.2s",
+                                bgcolor: previewImage ? "success.50" : "transparent",
+                                "&:hover": {
+                                  borderColor: previewImage ? "success.300" : "#6B4A3D",
+                                  bgcolor: previewImage ? "success.50" : "grey.50",
+                                },
+                              }}
+                            >
+                              <input {...getInputProps()} />
+
+                              {previewImage ? (
+                                <Box>
+                                  <img
+                                    src={previewImage || "/placeholder.svg"}
+                                    alt="Payment proof preview"
+                                    style={{
+                                      maxHeight: "256px",
+                                      margin: "0 auto 16px",
+                                      borderRadius: "8px",
+                                    }}
+                                  />
+                                  <Typography variant="body2" color="text.secondary">
+                                    Click or drag to replace the image
+                                  </Typography>
+                                </Box>
+                              ) : (
+                                <Box>
+                                  <UploadFileIcon sx={{ fontSize: 40, color: "text.disabled", mb: 1 }} />
+                                  <Typography variant="body1" color="text.secondary">
+                                    Click or drag and drop to upload {isRejected ? "new " : ""}payment proof
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary" mt={0.5}>
+                                    JPG, PNG (Max 2MB)
+                                  </Typography>
+                                </Box>
+                              )}
+                            </Box>
+                          )}
+                        </Dropzone>
+                      </Box>
+
+                      {!isRejected && (
+                        <Alert severity="warning" sx={{ mb: 3 }}>
+                          <AlertTitle>Important</AlertTitle>
+                          <Typography variant="body2">Make sure your payment proof clearly shows:</Typography>
+                          <List dense disablePadding>
+                            <ListItem sx={{ py: 0 }}>
+                              <ListItemText primary="Transaction date and time" />
+                            </ListItem>
+                            <ListItem sx={{ py: 0 }}>
+                              <ListItemText primary="Amount paid" />
+                            </ListItem>
+                            <ListItem sx={{ py: 0 }}>
+                              <ListItemText primary="Recipient account/number" />
+                            </ListItem>
+                            <ListItem sx={{ py: 0 }}>
+                              <ListItemText primary="Transaction status (successful)" />
+                            </ListItem>
+                          </List>
+                        </Alert>
+                      )}
+
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        disabled={!paymentProof || uploading}
+                        fullWidth
+                        size="large"
+                        startIcon={uploading ? <CircularProgress size={20} color="inherit" /> : <UploadFileIcon />}
                         sx={{
-                          border: "2px dashed",
-                          borderColor: previewImage ? "success.200" : "grey.300",
-                          borderRadius: 1,
-                          p: 3,
-                          textAlign: "center",
-                          cursor: "pointer",
-                          transition: "all 0.2s",
-                          bgcolor: previewImage ? "success.50" : "transparent",
-                          "&:hover": {
-                            borderColor: previewImage ? "success.300" : "#6B4A3D",
-                            bgcolor: previewImage ? "success.50" : "grey.50",
-                          },
+                          py: 1.5,
+                          bgcolor: "#6B4A3D",
+                          "&:hover": { bgcolor: "#8f5f4c" },
+                          opacity: !paymentProof || uploading ? 0.7 : 1,
                         }}
                       >
-                        <input {...getInputProps()} />
+                        {uploading ? "Uploading..." : isRejected ? "Upload New Payment Proof" : "Upload Payment Proof"}
+                      </Button>
+                    </form>
+                  )}
 
-                        {previewImage ? (
-                          <Box>
-                            <img
-                              src={previewImage || "/placeholder.svg"}
-                              alt="Payment proof preview"
-                              style={{
-                                maxHeight: "256px",
-                                margin: "0 auto 16px",
-                                borderRadius: "8px",
-                              }}
-                            />
-                            <Typography variant="body2" color="text.secondary">
-                              Click or drag to replace the image
-                            </Typography>
-                          </Box>
-                        ) : (
-                          <Box>
-                            <UploadFileIcon sx={{ fontSize: 40, color: "text.disabled", mb: 1 }} />
-                            <Typography variant="body1" color="text.secondary">
-                              Click or drag and drop to upload payment proof
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" mt={0.5}>
-                              JPG, PNG (Max 2MB)
-                            </Typography>
-                          </Box>
-                        )}
-                      </Box>
-                    )}
-                  </Dropzone>
-                </Box>
-
-                <Alert severity="warning" sx={{ mb: 3 }}>
-                  <AlertTitle>Important</AlertTitle>
-                  <Typography variant="body2">Make sure your payment proof clearly shows:</Typography>
-                  <List dense disablePadding>
-                    <ListItem sx={{ py: 0 }}>
-                      <ListItemText primary="Transaction date and time" />
-                    </ListItem>
-                    <ListItem sx={{ py: 0 }}>
-                      <ListItemText primary="Amount paid" />
-                    </ListItem>
-                    <ListItem sx={{ py: 0 }}>
-                      <ListItemText primary="Recipient account/number" />
-                    </ListItem>
-                    <ListItem sx={{ py: 0 }}>
-                      <ListItemText primary="Transaction status (successful)" />
-                    </ListItem>
-                  </List>
-                </Alert>
-
-                <Button
-                  type="submit"
-                  variant="contained"
-                  disabled={!paymentProof || uploading}
-                  fullWidth
-                  size="large"
-                  startIcon={uploading ? <CircularProgress size={20} color="inherit" /> : <UploadFileIcon />}
-                  sx={{
-                    py: 1.5,
-                    bgcolor: "#6B4A3D",
-                    "&:hover": { bgcolor: "#8f5f4c" },
-                    opacity: !paymentProof || uploading ? 0.7 : 1,
-                  }}
-                >
-                  {uploading ? "Uploading..." : "Upload Payment Proof"}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        )}
+                  {/* If proof is uploaded but not rejected, show option to upload new one */}
+                  {hasUploadedProof && !isRejected && (
+                    <Button
+                      variant="outlined"
+                      onClick={() => {
+                        setPreviewImage(null);
+                        setPaymentProof(null);
+                        setUploadSuccess(false);
+                      }}
+                      sx={{ mt: 2 }}
+                      startIcon={<UploadFileIcon />}
+                    >
+                      Upload New Payment Proof
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          }
+        })()}
 
         {/* Tracking Map Section */}
         {transaction.delivery_location && (

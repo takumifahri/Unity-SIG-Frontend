@@ -84,9 +84,9 @@ function AdminSidebar({ className, isMobile = false, onClose }) {
       hasSubmenu: true,
       SubmenuKey: "pemesanan",
       submenuItems: [
-        { path: "/admin/pemesanan", title: "Pemesanan keseluruhan" },
-        { path: "/admin/pemesanan/jadi", title: "Pemesanan Jadi" },
-        { path: "/admin/pemesanan/khusus", title: "Pemesanan Kustom" },
+        { path: "/admin/pemesanan/semua", title: "Pemesanan keseluruhan" },
+        // { path: "/admin/pemesanan/jadi", title: "Pemesanan Jadi" },
+        // { path: "/admin/pemesanan/khusus", title: "Pemesanan Kustom" },
         { path: "/admin/pemesanan/pengajuan", title: "Pengajuan Pemesanan Kustom" },
 
       ],

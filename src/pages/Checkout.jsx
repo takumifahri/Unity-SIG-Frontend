@@ -1,20 +1,27 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { FaShoppingBag, FaTruck, FaCreditCard, FaCheckCircle, FaArrowLeft, FaArrowRight } from "react-icons/fa"
 import axios from "axios"
+// Add Material UI imports
+import { Snackbar, Alert, LinearProgress, Box } from "@mui/material"
 
 function Checkout() {
   const navigate = useNavigate()
   const [cartItems, setCartItems] = useState([])
   const [subtotal, setSubtotal] = useState(0)
   const [orderNotes, setOrderNotes] = useState("")
-  const shippingCost = 20000 // Ongkos kirim
   const applicationFee = 2500 // Biaya aplikasi
   const [isLoading, setIsLoading] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
   const [userData, setUserData] = useState(null)
+  
+  // Add Snackbar state
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success", // success, error, warning, info
+    autoHideDuration: 6000
+  })
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -24,213 +31,268 @@ function Checkout() {
     bankAccount: "",
     notes: "",
   })
+  
+  // Extract the first image from a path or array
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return "/placeholder.svg?height=80&width=80";
+    
+    try {
+      const imageStr = String(imagePath);
+      
+      if (imageStr.startsWith("http")) {
+        return imageStr;
+      }
+      
+      if (imageStr.includes(",")) {
+        const firstImage = imageStr.split(",")[0].trim();
+        return `${process.env.REACT_APP_API_URL}/${firstImage}`;
+      }
+      
+      return `${process.env.REACT_APP_API_URL}/${imageStr}`;
+    } catch (error) {
+      console.error("Error processing image URL:", error);
+      return "/placeholder.svg?height=80&width=80";
+    }
+  };
+  
+  // Handle snackbar close
+  const handleSnackbarClose = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setSnackbar(prev => ({ ...prev, open: false }));
+  };
+  
+  // Show notification
+  const showNotification = (message, severity = "success", duration = 6000) => {
+    setSnackbar({
+      open: true,
+      message,
+      severity,
+      autoHideDuration: duration
+    });
+  };
+  
+  // Fetch user data
   const getMe = async () => {
     try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      
       const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/auth/me`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${token}`,
         },
       });
-      console.log('user :', res.data.user);
+      
       setUserData(res.data.user);
 
-      // Pre-fill the form with user data
-      setFormData((prevData) => ({
-        ...prevData,
+      // Pre-fill form with user data
+      setFormData(prev => ({
+        ...prev,
         fullName: res.data.user.name || "",
         phone: res.data.user.phone || res.data.user.phoneNumber || "",
         address: res.data.user.address || "",
       }));
     } catch (error) {
       console.error("Error fetching user data:", error);
+      showNotification("Gagal memuat data pengguna", "error");
     }
   };
 
+  // Load user data on component mount
   useEffect(() => {
     getMe();
   }, []);
 
+  // Load cart items and calculate subtotal
   useEffect(() => {
     try {
-      // Get selected items from checkoutItems in localStorage (set by the Cart component)
-      const checkoutItems = JSON.parse(localStorage.getItem("checkoutItems")) || []
-
-      // If no checkout items, try to get from regular cart as fallback
-      const items = checkoutItems.length > 0 ? checkoutItems : JSON.parse(localStorage.getItem("cart")) || []
-
-      setCartItems(items)
-
-      // Get order notes if available
-      const notes = localStorage.getItem("orderNotes") || ""
-      setOrderNotes(notes)
-
-      // Calculate subtotal with proper numeric conversion
-      const calculatedSubtotal = items.reduce((total, item) => {
-        // Handle different price formats
-        let itemPrice = 0
+      // Try to get checkout items first, then fall back to regular cart
+      const checkoutItems = JSON.parse(localStorage.getItem("checkoutItems")) || [];
+      const items = checkoutItems.length > 0 ? checkoutItems : JSON.parse(localStorage.getItem("cart")) || [];
+      
+      setCartItems(items);
+      
+      // Get any saved order notes
+      const notes = localStorage.getItem("orderNotes") || "";
+      setOrderNotes(notes);
+      
+      // Calculate subtotal
+      const total = items.reduce((sum, item) => {
+        let price = 0;
         if (typeof item.price === "string") {
-          // Remove non-numeric characters if price is a string (like "Rp 150.000")
-          itemPrice = Number.parseFloat(item.price.replace(/[^\d]/g, "")) || 0
+          price = Number(item.price.replace(/[^\d]/g, "")) || 0;
         } else {
-          itemPrice = Number.parseFloat(item.price) || 0
+          price = Number(item.price) || 0;
         }
-
-        const itemQuantity = Number.parseInt(item.quantity) || 0
-        return total + itemPrice * itemQuantity
-      }, 0)
-
-      setSubtotal(calculatedSubtotal)
-      console.log("Checkout items loaded:", items)
-      console.log("Calculated subtotal:", calculatedSubtotal)
+        
+        const quantity = Number(item.quantity) || 0;
+        return sum + (price * quantity);
+      }, 0);
+      
+      setSubtotal(total);
     } catch (error) {
-      console.error("Error loading checkout items:", error)
-      setCartItems([])
-      setSubtotal(0)
+      console.error("Error loading cart items:", error);
+      setCartItems([]);
+      setSubtotal(0);
+      showNotification("Gagal memuat item keranjang", "error");
     }
-  }, [])
+  }, []);
 
-  // Hitung total dengan memastikan semua nilai adalah numerik
+  // Calculate total payment
   const calculateTotal = () => {
-    const numericSubtotal = Number.parseFloat(subtotal) || 0
-    const numericShipping = Number.parseFloat(shippingCost) || 0
-    const numericFee = Number.parseFloat(applicationFee) || 0
-    return numericSubtotal  + numericFee
-  }
+    return Number(subtotal) + Number(applicationFee);
+  };
 
+  // Format price for display
   const formatPrice = (price) => {
-    // Handle different price formats
-    let numericPrice = 0
-
+    let numericPrice = 0;
+    
     if (typeof price === "string") {
-      // Remove non-numeric characters if price is a string (like "Rp 150.000")
-      numericPrice = Number.parseFloat(price.replace(/[^\d]/g, "")) || 0
+      numericPrice = Number(price.replace(/[^\d]/g, "")) || 0;
     } else {
-      numericPrice = Number.parseFloat(price) || 0
+      numericPrice = Number(price) || 0;
     }
+    
+    return `Rp ${numericPrice.toLocaleString("id-ID")}`;
+  };
 
-    return `Rp ${numericPrice.toLocaleString("id-ID")}`
-  }
-
-  // const handleSubmit = async (e) => {
-  //   e.preventDefault();
-  //   setIsLoading(true);
-
-  //   try {
-  //     // Prepare order data
-  //     const orderData = {
-  //       payment_method: formData.paymentMethod === "transfer" ? "BCA" : "E-Wallet_Dana",
-  //       type: "Pembelian",
-  //       catatan: formData.notes || "", // Include additional notes
-  //       order_ids: cartItems.map((item) => item.id),
-  //     };
-
-  //     // Make API call to checkout endpoint
-  //     const response = await axios.post(
-  //       `${process.env.REACT_APP_API_URL}/api/order/checkout`,
-  //       orderData,
-  //       {
-  //         headers: {
-  //           Authorization: `Bearer ${localStorage.getItem("token")}`,
-  //         },
-  //       }
-  //     );
-
-  //     if (response.data.success) {
-  //       // Clear checkout data
-  //       localStorage.removeItem("checkoutItems");
-  //       localStorage.removeItem("orderNotes");
-
-  //       // Clear cart only if the user completed checkout with all items
-  //       const allCartItems = JSON.parse(localStorage.getItem("cart")) || [];
-  //       if (allCartItems.length === cartItems.length) {
-  //         localStorage.removeItem("cart");
-  //       }
-
-  //       // Move to confirmation step
-  //       setCurrentStep(3);
-  //     } else {
-  //       console.error("Checkout failed:", response.data.message);
-  //       alert("Checkout failed: " + response.data.message);
-  //     }
-  //   } catch (error) {
-  //     console.error("Error during checkout:", error);
-  //     alert("An error occurred during checkout. Please try again.");
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
-// In your handleSubmit function in Checkout.jsx
+  // Handle form submission and checkout
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // Prepare order data
-      const orderData = {
+      console.log("Starting checkout process...");
+      
+      // Extract order IDs from cart items
+      const orderIds = cartItems.map(item => {
+        if (item.order?.id) return item.order.id;
+        if (item.order_id) return item.order_id;
+        if (item.orderId) return item.orderId;
+        if (item.id) return item.id;
+        return null;
+      }).filter(id => id !== null);
+      
+      if (!orderIds.length) {
+        showNotification("Tidak ada ID pesanan valid ditemukan. Silahkan coba lagi atau hubungi dukungan.", "error");
+        setIsLoading(false);
+        return;
+      }
+      
+      // Prepare checkout data - match exactly what backend expects
+      const checkoutData = {
         payment_method: formData.paymentMethod === "transfer" ? "BCA" : "E-Wallet_Dana",
-        type: "Pembelian",
-        catatan: formData.notes || "", // Include additional notes
-        order_ids: cartItems.map((item) => item.order.id),
+        type: "Pembelian", // Hardcoded as per backend validation
+        catatan: formData.notes || "",
+        order_ids: orderIds,
       };
-
-      // Make API call to checkout endpoint
+      
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/api/order/checkout`,
-        orderData,
+        checkoutData,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
       );
-
+      
       if (response.data.success) {
         // Clear checkout data
         localStorage.removeItem("checkoutItems");
         localStorage.removeItem("orderNotes");
-
-        // Clear cart only if the user completed checkout with all items
+        
+        // Clear cart if all items were checked out
         const allCartItems = JSON.parse(localStorage.getItem("cart")) || [];
         if (allCartItems.length === cartItems.length) {
           localStorage.removeItem("cart");
         }
-
-        // Redirect to payment page using unique_order_id for better security
-        const uniqueOrderId = response.data.data.order.unique_order_id || response.data.data.unique_order_id;
-        navigate(`/payment/${uniqueOrderId}`);
+        
+        // Get the transactions from response
+        const { transactions, orders } = response.data.data;
+        
+        // Check if we have multiple transactions
+        if (transactions && transactions.length > 1) {
+          // Store transaction data for reference
+          localStorage.setItem('pendingTransactions', JSON.stringify(
+            transactions.map(tx => ({
+              id: tx.id,
+              transaction_unique_id: tx.transaction_unique_id,
+              order_id: tx.order_id,
+              status: tx.status,
+              amount: tx.amount,
+              payment_method: tx.payment_method
+            }))
+          ));
+          
+          showNotification("Beberapa pesanan telah dibuat. Silahkan selesaikan pembayaran untuk setiap pesanan secara terpisah.", "info", 8000);
+          
+          // Navigate to account transactions page for user to view all transactions
+          setTimeout(() => {
+            navigate('/akun');
+          }, 2000);
+          
+        } else if (transactions && transactions.length === 1) {
+          // Single transaction - navigate directly to payment page
+          const transaction = transactions[0];
+          showNotification("Checkout berhasil! Mengalihkan ke halaman pembayaran...", "success");
+          
+          setTimeout(() => {
+            navigate(`/payment/${transaction.transaction_unique_id}`);
+          }, 1500);
+          
+        } else {
+          // Fallback case
+          showNotification("Checkout berhasil! Mengalihkan ke halaman akun...", "success");
+          
+          setTimeout(() => {
+            navigate("/account");
+          }, 1500);
+        }
       } else {
-        console.error("Checkout failed:", response.data.message);
-        alert("Checkout failed: " + response.data.message);
+        showNotification("Checkout gagal: " + (response.data.message || "Terjadi kesalahan"), "error");
       }
     } catch (error) {
-      console.error("Error during checkout:", error);
-      alert("An error occurred during checkout. Please try again.");
+      console.error("Checkout error:", error);
+      
+      let errorMessage = "Terjadi kesalahan saat checkout.";
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      showNotification(errorMessage, "error");
     } finally {
       setIsLoading(false);
     }
   };
+  
+  // Handle form field changes
   const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({
+    const { name, value } = e.target;
+    setFormData(prev => ({
       ...prev,
       [name]: value,
-    }))
-  }
+    }));
+  };
 
+  // Handle order completion
   const handleCompleteOrder = () => {
-    // Clear checkout data
-    localStorage.removeItem("checkoutItems")
-    localStorage.removeItem("orderNotes")
-
-    // Clear cart only if the user completed checkout with all items
-    const allCartItems = JSON.parse(localStorage.getItem("cart")) || []
+    localStorage.removeItem("checkoutItems");
+    localStorage.removeItem("orderNotes");
+    
+    const allCartItems = JSON.parse(localStorage.getItem("cart")) || [];
     if (allCartItems.length === cartItems.length) {
-      localStorage.removeItem("cart")
+      localStorage.removeItem("cart");
     }
+    
+    navigate("/");
+  };
 
-    navigate("/")
-  }
-
+  // Render checkout steps indicator
   const renderStepIndicator = () => {
     return (
       <div className="flex items-center justify-between mb-8 px-4">
@@ -265,9 +327,10 @@ function Checkout() {
           <span className="text-sm font-medium">Konfirmasi</span>
         </div>
       </div>
-    )
-  }
+    );
+  };
 
+  // Render order details
   const renderOrderDetails = () => {
     return (
       <div className="mb-8">
@@ -276,17 +339,13 @@ function Checkout() {
         </h4>
         <div className="max-h-[400px] overflow-y-auto pr-1">
           {cartItems.map((item) => {
-            // Handle different price formats
-            let itemPrice = 0
-            if (typeof item.price === "string") {
-              // Remove non-numeric characters if price is a string (like "Rp 150.000")
-              itemPrice = Number.parseFloat(item.price.replace(/[^\d]/g, "")) || 0
-            } else {
-              itemPrice = Number.parseFloat(item.price) || 0
-            }
-
-            const itemQuantity = Number.parseInt(item.quantity) || 0
-            const itemTotal = itemPrice * itemQuantity
+            // Calculate price and total
+            const itemPrice = typeof item.price === "string" 
+              ? Number(item.price.replace(/[^\d]/g, "")) || 0
+              : Number(item.price) || 0;
+              
+            const itemQuantity = Number(item.quantity) || 0;
+            const itemTotal = itemPrice * itemQuantity;
 
             return (
               <div
@@ -296,30 +355,28 @@ function Checkout() {
                 <div className="flex flex-wrap items-center">
                   <div className="w-16 h-16 mr-4">
                     <img
-                      src={
-                        item.image
-                          ? item.image.startsWith("http")
-                            ? item.image
-                            : `${process.env.REACT_APP_API_URL}/${item.image}`
-                          : "/placeholder.svg?height=80&width=80"
-                      }
-                      alt={item.name}
+                      src={getImageUrl(item.image)}
+                      alt={item.name || "Product"}
                       className="w-full h-full object-cover rounded-md"
+                      onError={(e) => {
+                        e.target.src = '/placeholder.svg?height=80&width=80';
+                      }}
                     />
                   </div>
                   <div className="flex-1 min-w-0 mr-4">
                     <h5 className="font-semibold text-gray-800 mb-1 truncate">
-                      {item.name || (item.catalog && item.catalog.nama_katalog) || "Product"}
+                      {item.name || (item.catalog?.nama_katalog) || "Product"}
                     </h5>
                     <div className="flex flex-wrap gap-2">
-                      {item.color && (
+                      {(item.color || item.colorName) && (
                         <span className="inline-block bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">
-                          Warna: {item.color}
+                          Warna: {item.colorName || item.color}
                         </span>
                       )}
-                      {item.size && (
+                      
+                      {(item.size || item.sizeName) && (
                         <span className="inline-block bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">
-                          Ukuran: {item.size}
+                          Ukuran: {item.sizeName || item.size}
                         </span>
                       )}
                     </div>
@@ -335,7 +392,7 @@ function Checkout() {
                   </div>
                 </div>
               </div>
-            )
+            );
           })}
         </div>
 
@@ -346,9 +403,10 @@ function Checkout() {
           </div>
         )}
       </div>
-    )
-  }
+    );
+  };
 
+  // Render confirmation screen
   const renderConfirmation = () => {
     return (
       <div className="text-center py-10 max-w-2xl mx-auto">
@@ -377,11 +435,27 @@ function Checkout() {
           Lanjutkan Belanja
         </button>
       </div>
-    )
-  }
+    );
+  };
 
   if (currentStep === 3) {
-    return <div className="container mx-auto px-4 py-8">{renderConfirmation()}</div>
+    return (
+      <div className="container mx-auto px-4 py-8">
+        {renderConfirmation()}
+        
+        {/* Snackbar */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={snackbar.autoHideDuration}
+          onClose={handleSnackbarClose}
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        >
+          <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: '100%' }} variant="filled">
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      </div>
+    );
   }
 
   return (
@@ -389,13 +463,20 @@ function Checkout() {
       <h2 className="text-2xl font-bold text-center mb-6">Checkout</h2>
       {renderStepIndicator()}
 
+      {/* Loading indicator */}
+      {isLoading && (
+        <Box sx={{ width: '100%', mb: 3 }}>
+          <LinearProgress color="primary" />
+        </Box>
+      )}
+
       <div className="flex flex-col lg:flex-row gap-8">
         <div className="lg:w-2/3">
           {currentStep === 1 && (
             <form
               onSubmit={(e) => {
-                e.preventDefault()
-                setCurrentStep(2)
+                e.preventDefault();
+                setCurrentStep(2);
               }}
             >
               {/* Informasi Pengiriman */}
@@ -617,10 +698,6 @@ function Checkout() {
                   <span className="text-gray-600">Subtotal Produk</span>
                   <span>{formatPrice(subtotal)}</span>
                 </div>
-                {/* <div className="flex justify-between">
-                  <span className="text-gray-600">Ongkos Kirim</span>
-                  <span>{formatPrice(shippingCost)}</span>
-                </div> */}
                 <div className="flex justify-between">
                   <span className="text-gray-600">Biaya Aplikasi</span>
                   <span>{formatPrice(applicationFee)}</span>
@@ -638,26 +715,25 @@ function Checkout() {
                   <p className="text-sm text-gray-600 mb-2">{cartItems.length} item dalam pesanan</p>
                   <ul className="space-y-2">
                     {cartItems.map((item, index) => {
-                      // Handle different price formats
-                      let itemPrice = 0
-                      if (typeof item.price === "string") {
-                        // Remove non-numeric characters if price is a string (like "Rp 150.000")
-                        itemPrice = Number.parseFloat(item.price.replace(/[^\d]/g, "")) || 0
-                      } else {
-                        itemPrice = Number.parseFloat(item.price) || 0
-                      }
-
-                      const itemQuantity = Number.parseInt(item.quantity) || 0
-                      const itemTotal = itemPrice * itemQuantity
+                      // Calculate price and total
+                      const itemPrice = typeof item.price === "string" 
+                        ? Number(item.price.replace(/[^\d]/g, "")) || 0
+                        : Number(item.price) || 0;
+                        
+                      const itemQuantity = Number(item.quantity) || 0;
+                      const itemTotal = itemPrice * itemQuantity;
 
                       return (
                         <li key={index} className="flex justify-between text-sm">
                           <span className="text-gray-600 truncate max-w-[70%]">
-                            {item.name || (item.catalog && item.catalog.nama_katalog) || "Product"} x{itemQuantity}
+                            {item.name || (item.catalog?.nama_katalog) || "Product"}
+                            {(item.colorName || item.color) ? ` - ${item.colorName || item.color}` : ''}
+                            {(item.sizeName || item.size) ? `, ${item.sizeName || item.size}` : ''}
+                            {` x${itemQuantity}`}
                           </span>
                           <span className="font-medium">{formatPrice(itemTotal)}</span>
                         </li>
-                      )
+                      );
                     })}
                   </ul>
                 </div>
@@ -666,8 +742,20 @@ function Checkout() {
           </div>
         </div>
       </div>
+
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={snackbar.autoHideDuration}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: '100%' }} variant="filled">
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </div>
-  )
+  );
 }
 
-export default Checkout
+export default Checkout;

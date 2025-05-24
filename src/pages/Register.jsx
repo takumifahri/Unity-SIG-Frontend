@@ -1,8 +1,7 @@
 import React, { useState, useCallback, useMemo } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, User, Mail, Phone, Lock, Check } from 'lucide-react';
-
+import { Eye, EyeOff, User, Mail, Phone, Lock, Check, ShoppingBag, Users, Bell } from 'lucide-react';
 // Import MUI components
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
@@ -176,28 +175,29 @@ export default function Register() {
         }
       );
       
-      if (response.data.success) {
-        // Show success snackbar
-        setSnackbar({
-          open: true,
-          message: "Pendaftaran berhasil! Anda sekarang dapat masuk ke akun Anda.",
-          severity: "success",
-        });
-      } else {
-        // Show error snackbar for API errors
-        setSnackbar({
-          open: true,
-          message: response.data.message || "Pendaftaran gagal. Silakan coba lagi.",
-          severity: "error",
-        });
-        
-        setErrors((prev) => ({
-          ...prev,
-          form: response.data.message || "Pendaftaran gagal. Silakan coba lagi.",
-        }));
-      }
+      // Handle success based on HTTP status code (2xx)
+      // Show success snackbar
+      setSnackbar({
+        open: true,
+        message: "Pendaftaran berhasil! Anda sekarang dapat masuk ke akun Anda.",
+        severity: "success",
+      });
+      
     } catch (error) {
       console.error("Error during registration:", error);
+      
+      // Handle error response
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || "Pendaftaran gagal. Silakan coba lagi.",
+        severity: "error",
+      });
+      
+      setErrors((prev) => ({
+        ...prev,
+        form: error.response?.data?.message || "Pendaftaran gagal. Silakan coba lagi.",
+      }));
+      
       throw error;
     }
   }, [formData]);
@@ -326,19 +326,19 @@ export default function Register() {
             <div className="space-y-8">
               <div className="flex items-center">
                 <div className="bg-white bg-opacity-20 p-3 rounded-full mr-5">
-                  <Check className="h-6 w-6" />
+                  <ShoppingBag className="h-6 w-6 text-black" />
                 </div>
                 <p className="text-lg">Access to exclusive content</p>
               </div>
               <div className="flex items-center">
                 <div className="bg-white bg-opacity-20 p-3 rounded-full mr-5">
-                  <Check className="h-6 w-6" />
+                  <Users className="h-6 w-6 text-black" />
                 </div>
                 <p className="text-lg">Connect with other members</p>
               </div>
               <div className="flex items-center">
                 <div className="bg-white bg-opacity-20 p-3 rounded-full mr-5">
-                  <Check className="h-6 w-6" />
+                  <Bell className="h-6 w-6 text-black" />
                 </div>
                 <p className="text-lg">Stay updated with latest trends</p>
               </div>
@@ -662,7 +662,7 @@ export default function Register() {
         open={snackbar.open}
         autoHideDuration={snackbar.severity === 'success' ? 3000 : 6000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
         <Alert
           onClose={handleCloseSnackbar}

@@ -30,6 +30,7 @@
     "konveksi-website": "file:",
     "leaflet": "^1.9.4",
     "leaflet-control-geocoder": "^3.1.0",
+    "leaflet-routing-machine": "^3.2.12",
     "lucide-react": "^0.503.0",
     "react": "^19.0.0",
     "react-bootstrap": "^2.10.9",

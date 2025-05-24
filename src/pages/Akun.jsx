@@ -137,33 +137,58 @@ function Akun() {
 
   // Navigate to order detail
   const handleDetailClick = useCallback((order) => {
-    // Pastikan order adalah object, bukan hanya ID
-    const orderId = typeof order === 'object' ? (order.order_unique_id || order.id) : order;
+    // First check if the order object exists
+    if (!order) {
+      console.error("Order object is undefined or null");
+      showSnackbar("Detail pesanan tidak dapat ditampilkan", "error", "Error");
+      return;
+    }
+  
+    // Log the complete order for debugging
+    console.log("Order being clicked:", order);
     
-    if (filterType === "Custom") {
-      navigate(`/pesanan/${orderId}`);
-    } else if (filterType === "Catalog") {
-      navigate(`/pesananJadi/${orderId}`);
-    } else {
-      // Untuk tipe Default, perlu memeriksa jenis pesanan
-      // Jika order adalah object, kita bisa memeriksa propertinya untuk menentukan jenisnya
-      if (typeof order === 'object') {
-        if (order.jenis_baju || order.gambar_referensi) {
-          // Ini kemungkinan adalah custom order
-          navigate(`/pesanan/${orderId}`);
-        } else if (order.catalog) {
-          // Ini kemungkinan adalah catalog order
-          navigate(`/pesananJadi/${orderId}`);
-        } else {
-          // Fallback jika tidak dapat menentukan
-          navigate(`/pesanan/${orderId}`);
-        }
+    // Determine if this is a custom order
+    const isCustomOrder = Boolean(
+      order.jenis_baju || 
+      order.sumber_kain ||
+      order.custom_order_id || 
+      order.gambar_referensi ||
+      filterType === "Custom"
+    );
+    
+    if (isCustomOrder) {
+      // For custom orders, prioritize custom_order_unique_id
+      const orderUniqueId = order.custom_order_unique_id || order.id;
+      
+      // Log for debugging
+      console.log(`Custom order detected. Using ID: ${orderUniqueId}`);
+      
+      if (orderUniqueId) {
+        // Navigate to custom order detail page
+        navigate(`/customOrder/${orderUniqueId}`);
       } else {
-        // Fallback jika order hanyalah ID
-        navigate(`/pesanan/${orderId}`);
+        console.error("No valid custom order ID found:", order);
+        showSnackbar("ID pesanan custom tidak ditemukan", "error", "Error");
+      }
+    } else {
+      // For regular catalog orders
+      const orderUniqueId = order.order_unique_id || 
+                        order.transaction?.order_unique_id || 
+                        order.id;
+      
+      // Log for debugging
+      console.log(`Catalog order detected. Using ID: ${orderUniqueId}`);
+      
+      if (orderUniqueId) {
+        // Navigate to regular order detail page
+        navigate(`/orderDetail/${orderUniqueId}`);
+      } else {
+        console.error("No valid catalog order ID found:", order);
+        showSnackbar("ID pesanan tidak ditemukan", "error", "Error");
       }
     }
-  }, [filterType, navigate]);
+  }, [navigate, showSnackbar, filterType]);
+
 
   // User info state
   const [userInfo, setUserInfo] = useState({
@@ -708,7 +733,7 @@ function Akun() {
                     >
                       {userInfo.profile_photo ? (
                         <img
-                          src={`${process.env.REACT_APP_API_URL}/${userInfo.profile_photo}`}
+                          src={`${process.env.REACT_APP_API_URL}/${userInfo.profile_photo}`|| userInfo.profile_photo}
                           alt="Profile"
                           className="rounded-circle w-100 h-100 object-fit-cover"
                         />
@@ -750,16 +775,60 @@ function Akun() {
                 </div>
                 <Nav variant="pills" className="flex-column">
                   <Nav.Item>
-                    <Nav.Link eventKey="history">Riwayat Pesanan</Nav.Link>
+                    <Nav.Link 
+                      eventKey="history" 
+                      className={({ isActive }) => 
+                        `transition-all rounded px-3 py-2 mb-1 ${
+                          isActive 
+                            ? "bg-[#D2B48C] text-white font-medium" 
+                            : "text-gray-700 hover:bg-gray-100"
+                        }`
+                      }
+                    >
+                      Riwayat Pesanan
+                    </Nav.Link>
                   </Nav.Item>
                   <Nav.Item>
-                    <Nav.Link eventKey="account">Informasi Akun</Nav.Link>
+                    <Nav.Link 
+                      eventKey="account" 
+                      className={({ isActive }) => 
+                        `transition-all rounded px-3 py-2 mb-1 ${
+                          isActive 
+                            ? "bg-[#D2B48C] text-white font-medium" 
+                            : "text-gray-700 hover:bg-gray-100"
+                        }`
+                      }
+                    >
+                      Informasi Akun
+                    </Nav.Link>
                   </Nav.Item>
                   <Nav.Item>
-                    <Nav.Link eventKey="order">Tracking Ordermu</Nav.Link>
+                    <Nav.Link 
+                      eventKey="order" 
+                      className={({ isActive }) => 
+                        `transition-all rounded px-3 py-2 mb-1 ${
+                          isActive 
+                            ? "bg-[#D2B48C] text-white font-medium" 
+                            : "text-gray-700 hover:bg-gray-100"
+                        }`
+                      }
+                    >
+                      Tracking Ordermu
+                    </Nav.Link>
                   </Nav.Item>
                   <Nav.Item>
-                    <Nav.Link eventKey="password">Ubah Password</Nav.Link>
+                    <Nav.Link 
+                      eventKey="password" 
+                      className={({ isActive }) => 
+                        `transition-all rounded px-3 py-2 mb-1 ${
+                          isActive 
+                            ? "bg-[#D2B48C] text-white font-medium" 
+                            : "text-gray-700 hover:bg-gray-100"
+                        }`
+                      }
+                    >
+                      Ubah Password
+                    </Nav.Link>
                   </Nav.Item>
                   {["owner", "developer", "admin"].includes(userInfo.role) && (
                     <Nav.Item>
@@ -791,78 +860,197 @@ function Akun() {
                         </div>
                         <p className="mt-3">Memuat riwayat pesanan...</p>
                       </div>
-                    ) : orderHistory.length > 0 ? (
-                      <Table responsive>
-                        <thead>
-                          <tr>
-                            <th>No.</th>
-                            <th>Tanggal</th>
-                            <th>Nama Produk</th>
-                            <th>Gambar</th>
-                            <th>Jumlah</th>
-                            <th>Total Harga</th>
-                            <th>Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {orderHistory.map((order, index) => (
-                            <tr key={index}>
-                              <td>{index + 1}</td>
-                              <td>
-                                {new Date(order.date).toLocaleDateString("id-ID", {
-                                  year: "numeric",
-                                  month: "long",
-                                  day: "numeric",
-                                })}
-                              </td>
-                              <td>
-                                {Array.isArray(order.items)
-                                  ? order.items.map((item, itemIndex) => <div key={itemIndex}>{item.product_name}</div>)
-                                  : order.items}
-                              </td>
-                              <td>
-                                {Array.isArray(order.items)
-                                  ? order.items.map((item, itemIndex) => (
-                                      <img
-                                        key={itemIndex}
-                                        src={`${process.env.REACT_APP_API_URL}/${item.image}`}
-                                        alt={item.product_name}
-                                        style={{ width: "50px", height: "50px", objectFit: "cover" }}
-                                      />
-                                    ))
-                                  : order.items}
-                              </td>
-                              <td>
-                                {Array.isArray(order.items)
-                                  ? order.items.map((item, itemIndex) => <div key={itemIndex}>{item.quantity}</div>)
-                                  : order.items}
-                              </td>
-                              <td>
-                                {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(
-                                  order.total_amount,
-                                )}
-                              </td>
-                              <td>
-                                <span
-                                  className={`badge bg-${
-                                    order.status === "Selesai"
-                                      ? "success"
-                                      : order.status === "Dikirim"
-                                        ? "primary"
-                                        : order.status === "Dibatalkan"
-                                          ? "danger"
-                                          : "warning"
-                                  }`}
-                                >
-                                  {order.status}
-                                </span>
-                              </td>
+                    ) : orderHistory && orderHistory.length > 0 ? (
+                      <div className="table-responsive">
+                        <table className="table table-hover border-top">
+                          <thead className="bg-light">
+                            <tr>
+                              <th className="py-3">No.</th>
+                              <th className="py-3">Tanggal</th>
+                              <th className="py-3">Nama Produk</th>
+                              <th className="py-3">Gambar</th>
+                              <th className="py-3">Jumlah</th>
+                              <th className="py-3">Total Harga</th>
+                              <th className="py-3">Status</th>
+                              <th className="py-3 text-center">Aksi</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </Table>
+                          </thead>
+                          <tbody>
+                            {orderHistory.map((order, index) => (
+                              <tr key={index} className="align-middle">
+                                <td>{index + 1}</td>
+                                <td>
+                                  {new Date(order.created_at).toLocaleDateString("id-ID", {
+                                    year: "numeric",
+                                    month: "long",
+                                    day: "numeric",
+                                  })}
+                                </td>
+                                <td>
+                                  <div className="fw-medium">
+                                    {order.catalog?.nama_katalog || order.custom_order?.jenis_baju || "Produk"}
+                                  </div>
+                                </td>
+                                <td>
+                                  <div className="d-flex align-items-center">
+                                    <div className="position-relative">
+                                      {(() => {
+                                        // Mengolah data gambar dari struktur data baru
+                                        let imageUrl;
+                                        try {
+                                          // Coba ambil dari catalog
+                                          if (order.catalog && Array.isArray(order.catalog.gambar) && order.catalog.gambar.length > 0) {
+                                            imageUrl = order.catalog.gambar[0];
+                                          } 
+                                          // Atau dari bukti pembayaran jika tidak ada catalog
+                                          else if (order.bukti_pembayaran) {
+                                            imageUrl = order.bukti_pembayaran;
+                                          }
+                                          // Atau dari custom order jika ada
+                                          else if (order.custom_order && order.custom_order.gambar_referensi) {
+                                            const imgRef = order.custom_order.gambar_referensi;
+                                            if (Array.isArray(imgRef) && imgRef.length > 0) {
+                                              imageUrl = imgRef[0];
+                                            } else if (typeof imgRef === 'string') {
+                                              if (imgRef.startsWith('[') || imgRef.startsWith('{')) {
+                                                const parsedImg = JSON.parse(imgRef);
+                                                imageUrl = Array.isArray(parsedImg) ? parsedImg[0] : parsedImg;
+                                              } else {
+                                                imageUrl = imgRef;
+                                              }
+                                            }
+                                          }
+                                        } catch (err) {
+                                          console.error("Error processing image data:", err);
+                                        }
+                                        
+                                        return (
+                                          <img
+                                            src={imageUrl ? `${process.env.REACT_APP_API_URL}/${imageUrl}` : `${process.env.PUBLIC_URL}/images/default-product.jpg`}
+                                            alt={order.catalog?.nama_katalog || "Product"}
+                                            className="rounded border"
+                                            style={{ width: "70px", height: "70px", objectFit: "cover" }}
+                                            onError={(e) => {
+                                              e.target.src = `${process.env.PUBLIC_URL}/images/default-product.jpg`;
+                                            }}
+                                          />
+                                        );
+                                      })()}
+                                      
+                                      {/* Tampilkan badge tambahan jika ada multi gambar */}
+                                      {order.catalog && Array.isArray(order.catalog.gambar) && order.catalog.gambar.length > 1 && (
+                                        <div 
+                                          className="position-absolute top-0 end-0 bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
+                                          style={{ 
+                                            width: "24px", 
+                                            height: "24px", 
+                                            fontSize: "12px",
+                                            transform: "translate(30%, -30%)",
+                                            border: "2px solid white"
+                                          }}
+                                        >
+                                          +{order.catalog.gambar.length - 1}
+                                        </div>
+                                      )}
+                                    </div>
+                                    
+                                    {/* Menampilkan skeleton untuk indikasi gambar tambahan */}
+                                    {order.catalog && Array.isArray(order.catalog.gambar) && order.catalog.gambar.length > 1 && (
+                                      <div className="ms-2 d-flex flex-column" style={{ gap: "4px" }}>
+                                        {[...Array(Math.min(2, order.catalog.gambar.length - 1))].map((_, i) => (
+                                          <div 
+                                            key={i}
+                                            className="bg-light rounded" 
+                                            style={{ 
+                                              width: "40px", 
+                                              height: "12px",
+                                              opacity: 0.7 - (i * 0.2)
+                                            }}
+                                          ></div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                                <td>
+                                  <div className="fw-medium">{order.jumlah || 0} pcs</div>
+                                </td>
+                                <td className="fw-medium">
+                                  {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(
+                                    order.total_harga || 0,
+                                  )}
+                                </td>
+                                <td>
+                                  <span
+                                    className={`badge rounded-pill bg-${
+                                      order.status === "Selesai"
+                                        ? "success"
+                                        : order.status === "Sedang_Dikirim" || order.status === "Dikirim"
+                                          ? "primary"
+                                          : order.status === "Dibatalkan"
+                                            ? "danger"
+                                            : order.status === "Diproses"
+                                              ? "info"
+                                              : "warning"
+                                    } py-2 px-3`}
+                                  >
+                                    {order.status.replace("_", " ")}
+                                  </span>
+                                </td>
+                                <td className="text-center">
+                                  <div className="d-flex flex-column flex-md-row gap-1 justify-content-center">
+                                    <button
+                                      onClick={() => navigate(`/orderDetail/${order.order_unique_id}`)}
+                                      className="btn btn-sm btn-outline-primary"
+                                      title="Lihat Detail Pesanan"
+                                    >
+                                      <i className="fas fa-eye me-1"></i>
+                                      Detail
+                                    </button>
+                                    {order.status === "Selesai" && !order.isReviewed && (
+                                      <button
+                                        onClick={() => navigate(`/orderDetail/${order.order_unique_id}?tab=review`)}
+                                        className="btn btn-sm btn-outline-success"
+                                        title="Beri Review untuk Pesanan Ini"
+                                      >
+                                        <i className="fas fa-star me-1"></i>
+                                        Review
+                                      </button>
+                                    )}
+                                    {order.status === "Menunggu_Pembayaran" && (
+                                      <button
+                                        onClick={() => navigate(`/payment/${order.transaction?.transaction_unique_id || order.transaction_id}`)}
+                                        className="btn btn-sm btn-outline-warning"
+                                        title="Lanjutkan Pembayaran"
+                                      >
+                                        <i className="fas fa-credit-card me-1"></i>
+                                        Bayar
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     ) : (
-                      <Alert severity="info">Anda belum memiliki riwayat pesanan.</Alert>
+                      <div className="text-center py-5 border rounded bg-light">
+                        <i className="fas fa-history fa-3x text-muted mb-3"></i>
+                        <h5>Belum Ada Riwayat Pesanan</h5>
+                        <p className="text-muted mb-4">Anda belum memiliki riwayat pesanan.</p>
+                        <Button
+                          variant="contained"
+                          onClick={() => navigate('/katalog')}
+                          sx={{ 
+                            bgcolor: "#D9B99B", 
+                            "&:hover": { bgcolor: "#C2A07B" },
+                            px: 3
+                          }}
+                        >
+                          Mulai Belanja
+                        </Button>
+                      </div>
                     )}
                   </Tab.Pane>
                   <Tab.Pane eventKey="account">
@@ -1075,121 +1263,188 @@ function Akun() {
                       filteredOrders?.slice((page - 1) * itemsPerPage, page * itemsPerPage).map((order) => {
                         // Parse JSON for image paths if they are in string format
                         let imageUrl = "";
-                        
+
+                        // Helper function to extract the first image from JSON or array
+                        const getFirstImage = (imageData) => {
+                          if (!imageData) return "";
+                          
+                          try {
+                            // If it's already a string URL, use it directly
+                            if (typeof imageData === 'string' && (imageData.startsWith('http') || !imageData.includes('['))) {
+                              return imageData;
+                            }
+                            
+                            // If it's a JSON string, parse it and get the first item
+                            if (typeof imageData === 'string') {
+                              const parsed = JSON.parse(imageData);
+                              if (Array.isArray(parsed) && parsed.length > 0) {
+                                return parsed[0];
+                              } else if (typeof parsed === 'object') {
+                                // If it's an object with paths
+                                return parsed.path || Object.values(parsed)[0] || "";
+                              }
+                            }
+                            
+                            // If it's already an array, just get the first item
+                            if (Array.isArray(imageData) && imageData.length > 0) {
+                              return imageData[0];
+                            }
+                          } catch (error) {
+                            console.error("Error processing image data:", error);
+                          }
+                          
+                          return "";
+                        };
+
                         if (filterType === "Custom") {
                           // Handle custom_orders images
-                          try {
-                            if (order?.gambar_referensi) {
-                              if (typeof order.gambar_referensi === 'string') {
-                                // Parse the JSON string to get the array of image paths
-                                const images = JSON.parse(order.gambar_referensi);
-                                // Use the first image in the array if available
-                                imageUrl = Array.isArray(images) && images.length > 0 ? images[0] : "";
-                              }
-                            }
-                          } catch (error) {
-                            console.error("Error parsing custom order image:", error);
-                          }
+                          imageUrl = getFirstImage(order?.gambar_referensi);
                         } else if (filterType === "Catalog") {
                           // Handle catalog order images
-                          imageUrl = order?.catalog?.gambar || "";
+                          imageUrl = getFirstImage(order?.catalog?.gambar);
                         } else {
                           // For default - try both sources
-                          try {
-                            if (order?.gambar_referensi) {
-                              if (typeof order.gambar_referensi === 'string') {
-                                const images = JSON.parse(order.gambar_referensi);
-                                imageUrl = Array.isArray(images) && images.length > 0 ? images[0] : "";
-                              }
-                            } else if (order?.catalog?.gambar) {
-                              imageUrl = order.catalog.gambar;
-                            }
-                          } catch (error) {
-                            console.error("Error parsing order image:", error);
-                          }
+                          imageUrl = getFirstImage(order?.gambar_referensi) || getFirstImage(order?.catalog?.gambar);
                         }
                         
                         return (
                           <Paper
-                            key={order.id}
-                            elevation={1}
-                            sx={{
-                              mb: 3,
-                              p: 2,
-                              borderRadius: 2,
-                              "&:last-child": { mb: 0 },
-                            }}
+                          key={order.id}
+                          elevation={1}
+                          sx={{
+                            mb: 3,
+                            p: 2,
+                            borderRadius: 2,
+                            "&:last-child": { mb: 0 },
+                          }}
                           >
-                            <Grid container spacing={2}>
-                              <Grid item>
-                                <Box
-                                  component="img"
-                                  src={`${process.env.REACT_APP_API_URL}/${imageUrl || "default-image-path.jpg"}`}
-                                  alt="Product"
-                                  sx={{
-                                    width: 100,
-                                    height: 100,
-                                    objectFit: "cover",
-                                    borderRadius: 1,
-                                  }}
-                                  onError={(e) => {
-                                    e.target.src = `${process.env.PUBLIC_URL}/images/default-product.jpg`;
-                                  }}
-                                />
-                              </Grid>
-                              <Grid item xs>
-                                <Box
-                                  sx={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    justifyContent: "center",
-                                    height: "100%",
-                                  }}
-                                >
-                                  <Box sx={{ mb: 1 }}>
-                                    <Typography variant="body2" color="text.secondary" component="span">
-                                      Tanggal Pemesanan:
-                                    </Typography>{" "}
-                                    <Typography variant="body2" component="span">
-                                      {new Date(order?.created_at || order?.created_at).toLocaleDateString("id-ID", {
-                                        weekday: "long",
-                                        year: "numeric",
-                                        month: "long",
-                                        day: "numeric",
-                                      })}
-                                    </Typography>
-                                  </Box>
-                                  {filterType === "Custom" && (
-                                    <Typography variant="body2" sx={{ mb: 1 }}>
-                                      <strong>Jenis:</strong> {order?.jenis_baju || "Custom Order"}
-                                    </Typography>
-                                  )}
-                                  {filterType === "Catalog" && (
-                                    <Typography variant="body2" sx={{ mb: 1 }}>
-                                      <strong>Produk:</strong> {order?.catalog?.nama || "Produk Katalog"}
-                                    </Typography>
-                                  )}
-                                  <Typography variant="body3" fontWeight="bold" sx={{ mb: 1 }}>
-                                    {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(
-                                      order.price || order.total_harga || 0,
-                                    )}
-                                  </Typography>
-                                  <Link
-                                    href="#"
-                                    underline="none"
-                                    color="primary"
+                          <Grid container spacing={2}>
+                            <Grid item>
+                            <Box
+                              component="img"
+                              src={`${process.env.REACT_APP_API_URL}/${imageUrl || "default-image-path.jpg"}`}
+                              alt="Product"
+                              sx={{
+                              width: 100,
+                              height: 100,
+                              objectFit: "cover",
+                              borderRadius: 1,
+                              }}
+                              onError={(e) => {
+                              e.target.src = `${process.env.PUBLIC_URL}/images/default-product.jpg`;
+                              }}
+                            />
+                            </Grid>
+                            <Grid item xs>
+                            <Box
+                              sx={{
+                              display: "flex",
+                              flexDirection: "column",
+                              justifyContent: "center",
+                              height: "100%",
+                              }}
+                            >
+                              <Box sx={{ mb: 1 }}>
+                              <Typography variant="body2" color="text.secondary" component="span">
+                                Tanggal Pemesanan:
+                              </Typography>{" "}
+                              <Typography variant="body2" component="span">
+                                {new Date(order?.created_at || order?.created_at).toLocaleDateString("id-ID", {
+                                weekday: "long",
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                                })}
+                              </Typography>
+                              </Box>
+                              {filterType === "Custom" && (
+                              <Typography variant="body2" sx={{ mb: 1 }}>
+                                <strong>Jenis:</strong> {order?.jenis_baju || "Custom Order"}
+                              </Typography>
+                              )}
+                              {filterType === "Catalog" && (
+                              <Typography variant="body2" sx={{ mb: 1 }}>
+                                <strong>Produk:</strong> {order?.catalog?.nama || "Produk Katalog"}
+                              </Typography>
+                              )}
+                              {(order.price || order.total_harga) && (
+                              <Typography variant="body3" fontWeight="bold" sx={{ mb: 1 }}>
+                                {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(
+                                order.price || order.total_harga || 0,
+                                )}
+                              </Typography>
+                              )}
+                              <Link
+                              href="#"
+                              underline="none"
+                              color="primary"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleDetailClick(order); // Kirim seluruh objek order
+                              }}
+                              >
+                              <Box sx={{ display: "flex", gap: 1, mt: 1, flexWrap: "wrap" }}>
+                                <Button variant="outlined" color="primary" size="large">
+                                Detail
+                                </Button>
+                                
+                                {/* Payment button - shown for both custom and catalog orders */}
+                                {(order?.status === "Menunggu_Pembayaran" || 
+                                  order?.status === "menunggu pembayaran" ||
+                                  order?.status === "belum_bayar" ||
+                                  order?.status_pembayaran === "belum_bayar" ||
+                                  order?.status_pembayaran === "Belum_Bayar" && order?.transaction.status !== 'pending') && (
+                                  <Button 
+                                    variant="contained" 
+                                    color="success" 
+                                    size="large"
                                     onClick={(e) => {
-                                      e.preventDefault();
-                                      handleDetailClick(order); // Kirim seluruh object order, bukan hanya order.id
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    
+                                    // Debug logging
+                                    console.log("=== ORDER CLICK DEBUG ===");
+                                    console.log("Full order object:", order);
+                                    console.log("Order type:", filterType);
+                                    console.log("Order ID:", order?.id);
+                                    console.log("Order status:", order?.status);
+                                    console.log("Payment status:", order?.status_pembayaran);
+                                    
+                                    // Log all possible transaction ID fields
+                                    console.log("Possible transaction IDs:");
+                                    console.log("- order_unique_id:", order?.order_unique_id);
+                                    console.log("- custom_orders.order_id:", order?.custom_orders?.order_id);
+                                    console.log("- transaction.transaction_unique_id:", order?.transaction?.transaction_unique_id);
+                                    console.log("- transaction_unique_id:", order?.transaction_unique_id);
+                                    console.log("- transaction_id:", order?.transaction_id);
+                                    
+                                    // Navigate to payment page with transaction ID
+                                    // Try all possible transaction ID locations
+                                    const transactionId = order?.order_unique_id ||
+                                          order?.order_id ||
+                                          order?.transaction?.transaction_unique_id || 
+                                          order?.transaction_unique_id ||
+                                          order?.transaction_id;
+
+                                    console.log("Selected transaction ID:", transactionId);
+
+                                    if (transactionId) {
+                                      console.log("Navigating to:", `/payment/${transactionId}`);
+                                      navigate(`/payment/${transactionId}`);
+                                    } else {
+                                      console.error("No transaction ID found!");
+                                      showSnackbar("ID transaksi tidak ditemukan", "error", "Error");
+                                    }
                                     }}
                                   >
-                                    <Button variant="outlined" color="primary" size="large">
-                                      Detail
-                                    </Button>
-                                  </Link>
-                                </Box>
-                              </Grid>
+                                    Bayar
+                                  </Button>
+                                  )}
+                              </Box>
+                              </Link>
+                            </Box>
                             </Grid>
+                          </Grid>
                           </Paper>
                         );
                       })

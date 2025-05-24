@@ -570,7 +570,7 @@ export default function EditPakaianTable() {
       
       // Create form data for multipart/form-data (for images)
       const formData = new FormData();
-      formData.append('_method', 'PUT'); // Laravel uses this for method spoofing
+      formData.append('_method', 'POST'); // Laravel uses this for method spoofing
       formData.append('nama_katalog', product.nama_katalog);
       formData.append('price', product.price);
       formData.append('stok', product.stok);

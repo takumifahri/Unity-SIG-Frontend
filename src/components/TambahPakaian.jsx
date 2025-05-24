@@ -25,6 +25,7 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  Checkbox,
 } from "@mui/material"
 import {
   Delete as DeleteIcon,
@@ -170,7 +171,8 @@ const TambahPakaian = () => {
   const [formattedPrice, setFormattedPrice] = useState('');
   const theme = useTheme()
   const { addCatalog, editingCatalog, updateCatalog, setEditingCatalog } = usePakaian()
-
+  // Add state for new feature input
+  const [newFeature, setNewFeature] = useState("");
   // Snackbar state
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -190,7 +192,12 @@ const TambahPakaian = () => {
     stok: 0,
     bahan: "",
     price: "",
-    feature: JSON.stringify({}),
+    feature: JSON.stringify({
+      // Default features
+      "Bahan Berkualitas": true,
+      "Nyaman Dipakai": true,
+      "Jahitan Rapi": true
+    }),
     colors: [
       {
         color_name: "Hitam",
@@ -204,6 +211,12 @@ const TambahPakaian = () => {
     ],
     gambar: [], // Untuk penyimpanan file gambar
   })
+  // Add state to manage features in a more user-friendly way
+  const [features, setFeatures] = useState({
+    "Bahan Berkualitas": true,
+    "Nyaman Dipakai": true,
+    "Jahitan Rapi": true
+  });
 
   // Untuk menyimpan preview gambar
   const [imageFiles, setImageFiles] = useState([])
@@ -259,6 +272,56 @@ const TambahPakaian = () => {
       }
     }
   }, [editingCatalog])
+
+  useEffect(() => {
+    if (editingCatalog) {
+      // Parse feature from JSON string if needed
+      let featureData = {};
+      
+      try {
+        if (typeof editingCatalog.feature === 'string') {
+          featureData = JSON.parse(editingCatalog.feature);
+        } else if (typeof editingCatalog.feature === 'object') {
+          featureData = editingCatalog.feature;
+        }
+      } catch (error) {
+        console.error("Error parsing feature data:", error);
+        featureData = {
+          "Bahan Berkualitas": true,
+          "Nyaman Dipakai": true,
+          "Jahitan Rapi": true
+        };
+      }
+      
+      setFeatures(featureData);
+    }
+  }, [editingCatalog]);
+    
+  // Add a function to handle feature checkbox changes
+  const handleFeatureChange = (featureName) => {
+    const updatedFeatures = { ...features };
+    updatedFeatures[featureName] = !updatedFeatures[featureName];
+    setFeatures(updatedFeatures);
+    
+    // Update the formData with the JSON string representation
+    setFormData(prev => ({
+      ...prev,
+      feature: JSON.stringify(updatedFeatures)
+    }));
+  };
+  
+  // Add a function to add new feature
+  const handleAddFeature = () => {
+    if (newFeature && !features[newFeature]) {
+      const updatedFeatures = { ...features, [newFeature]: true };
+      setFeatures(updatedFeatures);
+      setFormData(prev => ({
+        ...prev,
+        feature: JSON.stringify(updatedFeatures)
+      }));
+      setNewFeature("");
+    }
+  };
 
   // Handle perubahan harga dengan pemformatan
   const handlePriceChange = (values) => {
@@ -856,7 +919,85 @@ const TambahPakaian = () => {
                     Tambah Warna
                   </Button>
                 </FormSection>
-
+                <FormSection>
+                  <Typography variant="h6" gutterBottom sx={{ mb: 3, fontWeight: 600 }}>
+                    Fitur Produk
+                  </Typography>
+                  
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Tambahkan fitur-fitur utama yang dimiliki produk ini
+                  </Typography>
+                  
+                  <Grid container spacing={2} sx={{ mb: 3 }}>
+                    {Object.keys(features).map((featureName) => (
+                      <Grid item xs={12} sm={6} md={4} key={featureName}>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            p: 1.5,
+                            border: '1px solid',
+                            borderColor: features[featureName] ? 'primary.main' : 'divider',
+                            borderRadius: 1,
+                            backgroundColor: features[featureName] ? 'rgba(25, 118, 210, 0.08)' : 'transparent',
+                            transition: 'all 0.2s ease',
+                            cursor: 'pointer',
+                            '&:hover': {
+                              borderColor: 'primary.main',
+                              backgroundColor: 'rgba(25, 118, 210, 0.04)'
+                            }
+                          }}
+                          onClick={() => handleFeatureChange(featureName)}
+                        >
+                          <Checkbox
+                            checked={features[featureName]}
+                            onChange={() => handleFeatureChange(featureName)}
+                            color="primary"
+                          />
+                          <Typography variant="body2" sx={{ ml: 1 }}>
+                            {featureName}
+                          </Typography>
+                          
+                          <IconButton 
+                            size="small" 
+                            sx={{ ml: 'auto' }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const updatedFeatures = { ...features };
+                              delete updatedFeatures[featureName];
+                              setFeatures(updatedFeatures);
+                              setFormData(prev => ({
+                                ...prev,
+                                feature: JSON.stringify(updatedFeatures)
+                              }));
+                            }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      </Grid>
+                    ))}
+                  </Grid>
+                  
+                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
+                    <TextField
+                      label="Fitur Baru"
+                      variant="outlined"
+                      size="small"
+                      value={newFeature}
+                      onChange={(e) => setNewFeature(e.target.value)}
+                      sx={{ mr: 1, flexGrow: 1 }}
+                    />
+                    <Button
+                      variant="contained"
+                      startIcon={<AddIcon />}
+                      onClick={handleAddFeature}
+                      disabled={!newFeature || features[newFeature]}
+                    >
+                      Tambah
+                    </Button>
+                  </Box>
+                </FormSection>
                 {/* Upload Gambar */}
                 <FormSection>
                   <Typography variant="h6" gutterBottom sx={{ mb: 3, fontWeight: 600 }}>

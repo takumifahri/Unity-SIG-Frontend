@@ -1,5 +1,3 @@
-"use client"
-
 import { useState } from "react"
 import {
   Container,
@@ -8,20 +6,32 @@ import {
   CardContent,
   Box,
   Rating,
-  CircularProgress,
   Divider,
   Paper,
   Modal,
   IconButton,
   useMediaQuery,
   Grid,
+  Button,
+  Skeleton,
 } from "@mui/material"
 import { styled } from "@mui/material/styles"
 import Badge from "@mui/material/Badge"
 import Avatar from "@mui/material/Avatar"
-import { Person, Close, ArrowBackIos, ArrowForwardIos, ZoomIn } from "@mui/icons-material"
+import { 
+  Person, 
+  Close, 
+  ArrowBackIos, 
+  ArrowForwardIos, 
+  ZoomIn, 
+  ShoppingBag, 
+  RateReview, 
+  SentimentDissatisfied,
+  Comment
+} from "@mui/icons-material"
 import { useReview } from "../context/ReviewContext"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
+import { Link } from "react-router-dom"
 
 // Create a theme instance
 const theme = createTheme({
@@ -245,6 +255,39 @@ const ImageModal = styled(Modal)(({ theme }) => ({
   },
 }))
 
+// Empty state illustration component
+const EmptyIllustration = styled(Box)(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: theme.spacing(8, 2),
+  textAlign: "center",
+  minHeight: "50vh",
+  backgroundColor: theme.palette.background.paper,
+  borderRadius: theme.shape.borderRadius,
+  boxShadow: theme.shadows[3],
+  position: "relative",
+  overflow: "hidden",
+}))
+
+// Styled skeleton components
+const SkeletonReviewCard = styled(Card)(({ theme }) => ({
+  height: "100%",
+  display: "flex",
+  flexDirection: "column",
+  borderRadius: 12,
+}))
+
+const SkeletonRatingSummary = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  textAlign: "center",
+  background: theme.palette.background.paper,
+  borderRadius: theme.shape.borderRadius,
+  boxShadow: theme.shadows[3],
+  marginBottom: theme.spacing(4),
+}))
+
 function Ulasan() {
   const { reviews, loading, error } = useReview()
   const [modalOpen, setModalOpen] = useState(false)
@@ -382,46 +425,125 @@ function Ulasan() {
     )
   }
 
-  if (loading) {
+  // Function to render skeleton loading UI
+  const renderSkeletonLoading = () => {
     return (
       <ThemeProvider theme={theme}>
-        <Container sx={{ py: 5, textAlign: "center" }}>
-          <CircularProgress color="primary" />
-          <Typography variant="body1" sx={{ mt: 2 }}>
-            Memuat ulasan...
-          </Typography>
+        <Container sx={{ py: 5 }}>
+          {/* Skeleton for page title */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 5 }}>
+            <Skeleton variant="text" width={280} height={48} sx={{ mb: 1 }} />
+            <Skeleton variant="rectangular" width={60} height={4} sx={{ borderRadius: 2 }} />
+          </Box>
+
+          {/* Skeleton for rating summary */}
+          <SkeletonRatingSummary elevation={3}>
+            <Skeleton variant="text" width={180} height={32} sx={{ mx: 'auto', mb: 1 }} />
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+              <Skeleton variant="text" width={60} height={60} sx={{ mr: 2 }} />
+              <Skeleton variant="rectangular" width={200} height={35} sx={{ borderRadius: 1 }} />
+            </Box>
+            <Skeleton variant="text" width={150} height={20} sx={{ mx: 'auto' }} />
+          </SkeletonRatingSummary>
+
+          {/* Skeleton for review cards */}
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                md: "repeat(2, 1fr)",
+              },
+              gap: 3,
+            }}
+          >
+            {/* Generate 4 skeleton review cards */}
+            {[...Array(4)].map((_, index) => (
+              <SkeletonReviewCard key={index}>
+                <CardContent>
+                  {/* User info skeleton */}
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Skeleton variant="circular" width={40} height={40} />
+                      <Skeleton variant="text" width={100} height={24} sx={{ ml: 1 }} />
+                    </Box>
+                    <Skeleton variant="text" width={80} height={16} />
+                  </Box>
+
+                  {/* Image skeleton */}
+                  <Skeleton 
+                    variant="rectangular" 
+                    width="100%" 
+                    height={200} 
+                    sx={{ mb: 2, borderRadius: 1 }} 
+                  />
+
+                  {/* Rating skeleton */}
+                  <Skeleton variant="rectangular" width={120} height={24} sx={{ mb: 2, borderRadius: 1 }} />
+
+                  <Divider sx={{ mb: 2 }} />
+
+                  {/* Review text skeleton - multiple lines */}
+                  <Skeleton variant="text" width="100%" height={20} sx={{ mb: 1 }} />
+                  <Skeleton variant="text" width="100%" height={20} sx={{ mb: 1 }} />
+                  <Skeleton variant="text" width="80%" height={20} />
+                </CardContent>
+              </SkeletonReviewCard>
+            ))}
+          </Box>
         </Container>
       </ThemeProvider>
     )
+  }
+
+  if (loading) {
+    return renderSkeletonLoading();
   }
 
   if (error) {
     return (
       <ThemeProvider theme={theme}>
-        <Container sx={{ py: 5 }}>
-          <Card sx={{ textAlign: "center", p: 5 }}>
-            <CardContent>
-              <Typography variant="h5" gutterBottom>
-                Gagal memuat ulasan
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                Mohon coba beberapa saat lagi
-              </Typography>
-            </CardContent>
-          </Card>
+        <Container sx={{ py: 8, textAlign: "center" }}>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              minHeight: "50vh",
+            }}
+          >
+            <SentimentDissatisfied sx={{ fontSize: 120, color: "text.secondary", mb: 2 }} />
+            <Typography variant="h4" gutterBottom sx={{ fontWeight: "medium" }}>
+              Ups! Terjadi Kesalahan
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 4, maxWidth: 500 }}>
+              Kami tidak dapat memuat ulasan saat ini. Silakan coba lagi nanti atau jelajahi katalog produk kami.
+            </Typography>
+            <Button 
+              component={Link}
+              to="/Catalog"
+              variant="contained" 
+              style={{ backgroundColor: "#6D4C3D"}}
+              startIcon={<ShoppingBag />}
+              size="large"
+              sx={{ 
+                borderRadius: 2,
+                py: 1,
+                px: 3
+              }}
+            >
+              Jelajahi Katalog
+            </Button>
+          </Box>
         </Container>
       </ThemeProvider>
     )
   }
 
-  // Calculate average rating
   const averageRating = reviews.length ? reviews.reduce((acc, curr) => acc + curr.ratings, 0) / reviews.length : 0
 
-  // Modify the reviews data to simulate multiple images for demonstration
-  // In a real app, this would come from your API
   const enhancedReviews = reviews.map((review) => {
-    // Simulate multiple images by creating an array if it's a string
-    // In a real app, this would already be an array from your API
     const gambarProduk = Array.isArray(review.gambar_produk)
       ? review.gambar_produk
       : JSON.parse(review.gambar_produk || "[]");
@@ -431,6 +553,7 @@ function Ulasan() {
       gambar_produk: gambarProduk,
     }
   })
+
 
   return (
     <ThemeProvider theme={theme}>
@@ -461,16 +584,125 @@ function Ulasan() {
         </Typography>
 
         {reviews.length === 0 ? (
-          <Card sx={{ textAlign: "center", p: 5, maxWidth: 500, mx: "auto" }}>
-            <CardContent>
-              <Typography variant="h5" gutterBottom>
-                Belum ada ulasan
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                Jadilah yang pertama memberikan ulasan!
-              </Typography>
-            </CardContent>
-          </Card>
+          <EmptyIllustration>
+            <Box 
+              sx={{ 
+                width: "100%", 
+                maxWidth: 200, 
+                height: 200, 
+                mb: 4,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                position: "relative",
+              }}
+            >
+              {/* Circle background for the icon */}
+              <Box
+                sx={{
+                  width: 180,
+                  height: 180,
+                  borderRadius: "50%",
+                  backgroundColor: "rgba(46, 125, 50, 0.1)",
+                  position: "absolute",
+                  zIndex: 0,
+                }}
+              />
+              
+              {/* Empty state icon */}
+              <Comment
+                sx={{
+                  fontSize: 100,
+                  color: theme.palette.primary.main,
+                  opacity: 0.8,
+                  zIndex: 1,
+                }}
+              />
+            </Box>
+            
+            <Typography variant="h4" gutterBottom sx={{ fontWeight: "bold", color: "text.primary" }}>
+              Belum Ada Ulasan
+            </Typography>
+            
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 4, maxWidth: 500 }}>
+              Jadilah yang pertama untuk memberikan ulasan setelah berbelanja di toko kami.
+              Ulasan Anda sangat berharga untuk meningkatkan kualitas layanan kami.
+            </Typography>
+            
+            <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", justifyContent: "center" }}>
+              <Button 
+                component={Link}
+                to="/Catalog"
+                variant="contained" 
+                color="primary" 
+                startIcon={<ShoppingBag />}
+                size="large"
+                sx={{ 
+                  borderRadius: 8,
+                  py: 1.5,
+                  px: 4,
+                  boxShadow: 2,
+                  textTransform: "none",
+                  fontSize: "1rem",
+                }}
+              >
+                Mulai Belanja
+              </Button>
+              
+              <Button 
+                variant="outlined" 
+                color="primary" 
+                startIcon={<RateReview />}
+                size="large"
+                component={Link}
+                to="/akun/pesanan"
+                sx={{ 
+                  borderRadius: 8,
+                  py: 1.5,
+                  px: 4,
+                  textTransform: "none",
+                  fontSize: "1rem",
+                }}
+              >
+                Cek Pesanan Saya
+              </Button>
+            </Box>
+            
+            {/* Animated elements */}
+            <Box 
+              sx={{ 
+                position: "absolute", 
+                top: 40, 
+                right: 40,
+                display: { xs: "none", md: "block" },
+                animation: "float 3s ease-in-out infinite",
+                "@keyframes float": {
+                  "0%": { transform: "translateY(0px)" },
+                  "50%": { transform: "translateY(-10px)" },
+                  "100%": { transform: "translateY(0px)" },
+                }
+              }}
+            >
+              <Rating value={5} readOnly size="large" sx={{ color: theme.palette.primary.main }} />
+            </Box>
+            
+            <Box 
+              sx={{ 
+                position: "absolute", 
+                bottom: 60, 
+                left: 60,
+                display: { xs: "none", md: "block" },
+                animation: "float 4s ease-in-out infinite",
+                "@keyframes float": {
+                  "0%": { transform: "translateY(0px)" },
+                  "50%": { transform: "translateY(-15px)" },
+                  "100%": { transform: "translateY(0px)" },
+                }
+              }}
+            >
+              <Comment sx={{ fontSize: 40, color: theme.palette.primary.main, opacity: 0.4 }} />
+            </Box>
+          </EmptyIllustration>
         ) : (
           <>
             {/* Rating Summary */}
@@ -481,7 +713,7 @@ function Ulasan() {
               <Typography variant="h3" component="span" sx={{ mr: 2, fontWeight: "bold" }}>
                 {averageRating.toFixed(1)}
               </Typography>
-              <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", mb: 1 }} className="">
+              <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", mb: 1 }}>
                 <Rating
                   value={averageRating}
                   precision={0.5}

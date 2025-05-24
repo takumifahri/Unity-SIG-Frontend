@@ -117,16 +117,27 @@ const Dashboard = () => {
       // Fetch chart data
       const fetchCharts = async () => {
         try {
-          const topProductsData = await axios.get(`${process.env.REACT_APP_API_URL}/api/catalog/bestSeller`, {
+          const topProductsResponse = await axios.get(`${process.env.REACT_APP_API_URL}/api/catalog/bestSeller`, {
             headers: {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${localStorage.getItem('token')}`
             }
           });
           
+          // Extract and transform best seller data
+          const bestSellerProducts = topProductsResponse.data.data || [];
+          
+          // Transform the data into the format needed for the chart
+          const labels = bestSellerProducts.map(product => product.nama_katalog);
+          const data = bestSellerProducts.map(product => product.sold);
+          
           setDashboardData(prev => ({
             ...prev,
-            topProducts: topProductsData.data.data || { labels: [], data: [] }
+            topProducts: { 
+              labels, 
+              data,
+              products: bestSellerProducts // Store the full product data for additional details if needed
+            }
           }));
         } catch (error) {
           console.error('Error fetching chart data:', error);
@@ -220,41 +231,33 @@ const Dashboard = () => {
         }]
       };
     }
-
-    // Get top 3 products only
-    const top3Labels = dashboardData.topProducts.labels.slice(0, 3);
-    const top3Data = dashboardData.topProducts.data.slice(0, 3);
+  
+    // Get all products (up to 5)
+    const maxProducts = Math.min(dashboardData.topProducts.labels.length, 5);
+    const labels = dashboardData.topProducts.labels.slice(0, maxProducts);
+    const data = dashboardData.topProducts.data.slice(0, maxProducts);
     
-    // Reorder to put #1 in the middle, #2 on the right, #3 on the left
-    let orderedLabels = [];
-    let orderedData = [];
-    let orderedColors = [];
-    
-    if (top3Labels.length === 3) {
-      // If we have 3 products: #3, #1, #2
-      orderedLabels = [top3Labels[2], top3Labels[0], top3Labels[1]];
-      orderedData = [top3Data[2], top3Data[0], top3Data[1]];
-      orderedColors = ['#9B59B6', '#8B4513', '#2ECC71']; // Purple, Brown, Green
-    } else if (top3Labels.length === 2) {
-      // If we have 2 products: #1, #2
-      orderedLabels = [top3Labels[0], top3Labels[1]];
-      orderedData = [top3Data[0], top3Data[1]];
-      orderedColors = ['#8B4513', '#2ECC71']; // Brown, Green
-    } else if (top3Labels.length === 1) {
-      // If we have 1 product: just #1
-      orderedLabels = [top3Labels[0]];
-      orderedData = [top3Data[0]];
-      orderedColors = ['#8B4513']; // Brown
-    }
+    // Generate colors based on brown shades (darker for higher sales)
+    const brownPalette = ['#8B4513', '#A0522D', '#CD853F', '#DEB887', '#F5DEB3'];
+    const colors = data.map((_, index) => brownPalette[index % brownPalette.length]);
     
     return {
-      labels: orderedLabels,
+      labels: labels,
       datasets: [{
-        data: orderedData,
-        backgroundColor: orderedColors,
-        maxBarThickness: 100
+        label: 'Terjual',
+        data: data,
+        backgroundColor: colors,
+        borderColor: colors.map(color => darkenColor(color, 0.2)),
+        borderWidth: 1,
+        maxBarThickness: 30,
+        barPercentage: 0.8,
       }]
     };
+  };
+  const darkenColor = (color, amount) => {
+    // Simple implementation for hex colors
+    // For production, consider using a library like tinycolor2
+    return color; // Fallback to same color if can't darken
   };
 
   const topProductsBarData = prepareTopProductsBarData();
@@ -421,7 +424,7 @@ const Dashboard = () => {
                 <div className="h-4 bg-gray-200 rounded w-32 mb-8"></div>
                 <div className="h-40 bg-gray-100 rounded w-full"></div>
               </div>
-            ) : dashboardData.topProducts.labels?.length === 0 ? (
+            ) : (!dashboardData.topProducts.labels || dashboardData.topProducts.labels.length === 0) ? (
               <div className="text-center text-gray-500">
                 <svg className="mx-auto h-12 w-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
@@ -430,46 +433,68 @@ const Dashboard = () => {
                 <p className="text-sm mt-1">Data akan muncul setelah ada transaksi.</p>
               </div>
             ) : (
-              <Bar 
-                data={topProductsBarData} 
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  indexAxis: 'y', // Horizontal bar chart
-                  plugins: {
-                    legend: {
-                      display: false
-                    },
-                    tooltip: {
-                      callbacks: {
-                        label: function(context) {
-                          let label = context.dataset.label || '';
-                          if (label) {
-                            label += ': ';
+              <>
+                <Bar 
+                  data={topProductsBarData} 
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'x', // Horizontal bar chart
+                    plugins: {
+                      legend: {
+                        display: false
+                      },
+                      tooltip: {
+                        callbacks: {
+                          label: function(context) {
+                            let label = '';
+                            label += `Terjual: ${context.formattedValue} pcs`;
+                            return label;
+                          },
+                          title: function(context) {
+                            return context[0].label;
+                          },
+                          afterLabel: function(context) {
+                            const productIndex = context.dataIndex;
+                            const product = dashboardData.topProducts.products?.[productIndex];
+                            return product ? 
+                              `Harga: ${formatCurrency(product.price)}` : '';
                           }
-                          label += context.formattedValue + ' pcs';
-                          return label;
+                        }
+                      }
+                    },
+                    scales: {
+                      x: {
+                        grid: {
+                          display: false
+                        },
+                        ticks: {
+                          precision: 0 // Only show integer values
+                        },
+                        title: {
+                          display: true,
+                          text: 'Jumlah Terjual (pcs)'
+                        }
+                      },
+                      y: {
+                        grid: {
+                          display: false
+                        },
+                        ticks: {
+                          callback: function(value) {
+                            const label = this.getLabelForValue(value);
+                            // Truncate long product names
+                            return label.length > 20 ? label.substring(0, 18) + '...' : label;
+                          }
                         }
                       }
                     }
-                  },
-                  scales: {
-                    x: {
-                      grid: {
-                        display: false
-                      },
-                      ticks: {
-                        precision: 0 // Only show integer values
-                      }
-                    },
-                    y: {
-                      grid: {
-                        display: false
-                      }
-                    }
-                  }
-                }}
-              />
+                  }}
+                />
+                <div className="mt-3 text-xs text-right text-gray-500">
+                  * Berdasarkan jumlah penjualan
+                </div>
+              </>
             )}
           </div>
         </div>

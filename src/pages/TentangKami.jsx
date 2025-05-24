@@ -1,10 +1,27 @@
-import React, { useState } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import MapComponent from '../components/MapComponent';
 import '../styles/MapComponent.css';
+import CustomerMapDistribution from '../components/TentangKamiMap';
+import { FaTshirt, FaRuler, FaPencilRuler } from 'react-icons/fa';
 
 const TentangKami = () => {
+  // Data jasa yang ditawarkan
+  const jasaKami = [
+    {
+      icon: <FaTshirt className="text-4xl text-[#6D4C3D]" />,
+      title: "Pembelian Baju Jadi",
+      description: "Koleksi baju siap pakai dengan berbagai model, ukuran, dan bahan berkualitas untuk kebutuhan sehari-hari maupun acara khusus."
+    },
+    {
+      icon: <FaPencilRuler className="text-4xl text-[#6D4C3D]" />,
+      title: "Pemesanan Khusus",
+      description: "Layanan pembuatan baju sesuai desain dan kebutuhan khusus Anda, dengan konsultasi desain dan pilihan bahan premium."
+    },
+    {
+      icon: <FaRuler className="text-4xl text-[#6D4C3D]" />,
+      title: "Produksi Massal",
+      description: "Solusi pembuatan seragam, merchandise, atau kebutuhan pakaian dalam jumlah besar dengan harga kompetitif dan kualitas terjamin."
+    }
+  ];
+
   return (
     <div className="w-full bg-white text-gray-800">
       <main className="container mx-auto px-4 py-12 max-w-6xl">
@@ -17,7 +34,6 @@ const TentangKami = () => {
               src="https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" 
               alt="https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" 
               className="w-full max-w-xs md:max-w-sm object-contain"
-              // style={{ filter: 'sepia(1)' }} // Menambahkan efek warna coklat
             />
           </div>
           
@@ -29,7 +45,7 @@ const TentangKami = () => {
           </div>
         </div>
 
-              {/* Section: Foto */}
+        {/* Section: Foto */}
         <div className="rounded-xl overflow-hidden mb-16 shadow-lg">
           <img 
             src="https://images.unsplash.com/photo-1545007805-a44ee83438fa?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" 
@@ -38,84 +54,46 @@ const TentangKami = () => {
           />
         </div>
 
-              {/* Section: Kutipan */}
+        {/* Section: Peta Persebaran Pelanggan */}
+        <div className="mb-16">
+          <h2 className="text-3xl font-bold mb-6 text-center">Persebaran Pelanggan Kami</h2>
+          <p className="text-gray-600 text-center mb-8 max-w-3xl mx-auto">
+            Kami telah melayani pelanggan dari berbagai wilayah di Jakarta dan sekitarnya. 
+            Peta di bawah ini menunjukkan persebaran pelanggan kami berdasarkan jumlah order.
+          </p>
+          <CustomerMapDistribution />
+        </div>
+
+        {/* Section: Kutipan */}
         <div className="text-center mb-20">
-          <p className="text-2xl italic text-gray-700">"Kutipan singkat dari JR Konveksi"</p>
+          <p className="text-2xl italic text-gray-700">"Kualitas pakaian mencerminkan kualitas hidup. Kami hadir untuk memastikan Anda tampil dengan kualitas terbaik."</p>
         </div>
 
         {/* Section: Jasa Kami */}
-        <section className="text-center">
-          <h2 className="text-3xl font-bold mb-10">Jasa Kami</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10">
-            {[1, 2, 3].map((index) => (
+        <section className="text-center mb-16">
+          <h2 className="text-3xl font-bold mb-6">Jasa Kami</h2>
+          <p className="text-gray-600 text-center mb-10 max-w-3xl mx-auto">
+            JR Konveksi menyediakan berbagai layanan untuk memenuhi kebutuhan fashion Anda, dari pembelian baju jadi hingga pemesanan khusus sesuai desain Anda.
+          </p>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+            {jasaKami.map((jasa, index) => (
               <div 
                 key={index} 
-                className="bg-gray-100 rounded-2xl p-6 shadow-md hover:shadow-lg transition-all duration-300"
+                className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100"
+                data-aos="fade-up" 
+                data-aos-delay={index * 100}
               >
-                <div className="w-28 h-28 bg-gray-300 rounded-full mx-auto flex items-center justify-center text-lg font-semibold text-gray-700 mb-4">
-                  Jasa {index}
+                <div className="w-16 h-16 bg-[#F8F3ED] rounded-full mx-auto flex items-center justify-center mb-4">
+                  {jasa.icon}
                 </div>
-                <p className="text-gray-600">Deskripsi singkat jasanya</p>
+                <h3 className="text-xl font-bold text-[#6D4C3D] mb-3">{jasa.title}</h3>
+                <p className="text-gray-600">{jasa.description}</p>
               </div>
             ))}
           </div>
         </section>
       </main>
-      <Lokasi />
-    </div>
-  );
-};
-
-const Lokasi = () => {
-  // State untuk menyimpan data input
-  const [namaAlamat, setNamaAlamat] = useState('');
-  const [nomorTelepon, setNomorTelepon] = useState('');
-  const [alamatLengkap, setAlamatLengkap] = useState('');
-  // State untuk koordinat dan hasil geocoding
-  const [position, setPosition] = useState(null);
-  const [address, setAddress] = useState('');
-
-  // Komponen pembantu untuk menangani klik pada peta
-  const MapClickHandler = () => {
-    useMapEvents({
-      click(e) {
-        const { lat, lng } = e.latlng;
-        setPosition(e.latlng);
-        // Lakukan reverse geocoding via Nominatim (OSM)
-        fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
-        )
-          .then((res) => res.json())
-          .then((data) => {
-            if (data && data.display_name) {
-              setAddress(data.display_name);
-            }
-          })
-          .catch((error) => console.error('Error geocoding:', error));
-      },
-    });
-    return null;
-  };
-
-  // Handler saat form disubmit
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const dataDikirim = {
-      namaAlamat,
-      nomorTelepon,
-      alamatLengkap,
-      latitude: position ? position.lat : null,
-      longitude: position ? position.lng : null,
-      address, // hasil reverse geocoding
-    };
-    console.log('Data dikirim:', dataDikirim);
-    // TODO: kirim data ke server atau proses selanjutnya
-  };
-
-  return (
-    <div className="max-w-md mx-auto p-4">
-      
-      <MapComponent />
     </div>
   );
 };

@@ -19,9 +19,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  FormControlLabel,
-  Radio,
-  RadioGroup,
   Snackbar,
   Alert,
   Dialog,
@@ -41,12 +38,15 @@ import {
   IconButton,
   Chip,
   Stack,
-  AlertTitle
+  AlertTitle,
+  Checkbox,
+  FormControlLabel
 } from "@mui/material"
 
 // Icons
-import { CloudUpload, Info, CheckCircle, Close, InsertDriveFile, Delete, Add, Image } from "@mui/icons-material"
+import { CloudUpload, Info, CheckCircle, Close, InsertDriveFile, Delete, Add, Image, AddCircle } from "@mui/icons-material"
 import { useAuth } from "../context/AuthContext"
+import { InfoIcon } from "lucide-react"
 
 function CustomOrders() {
   const navigate = useNavigate()
@@ -54,18 +54,29 @@ function CustomOrders() {
   const { isAuth, token } = useAuth()
   const [users, setUsers] = useState([])
   const [showSizeChart, setShowSizeChart] = useState(false)
+  const [showFabricTerms, setShowFabricTerms] = useState(false) // Don't show terms modal on mount
+  const [termsAgreed, setTermsAgreed] = useState(false)
   const [formData, setFormData] = useState({
     nama_lengkap: "",
     no_telp: "",
     email: "",
     jenis_baju: "",
-    ukuran: "",
-    jumlah: "",
     catatan: "",
-    detail_bahan: "",
-    sumber_kain: "sendiri",
+    sumber_kain: "sendiri", // Default value is always "sendiri" now
     gambar_referensi: [],
     estimasi_waktu: null,
+    detail_bahan: null,
+    colors: [
+      {
+        color_name: "",
+        sizes: [
+          {
+            size: "",
+            jumlah: 1
+          }
+        ]
+      }
+    ]
   })
 
   const [snackbarState, setSnackbarState] = useState({
@@ -76,6 +87,21 @@ function CustomOrders() {
   })
   const [filePreviewList, setFilePreviewList] = useState([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Handle terms agreement
+  const handleAgreeTerms = () => {
+    setTermsAgreed(true)
+    setShowFabricTerms(false)
+  }
+
+  // Calculate total quantity from all colors and sizes
+  const calculateTotalQuantity = useCallback(() => {
+    return formData.colors.reduce((total, color) => {
+      return total + color.sizes.reduce((sizeTotal, size) => {
+        return sizeTotal + (parseInt(size.jumlah) || 0);
+      }, 0);
+    }, 0);
+  }, [formData.colors]);
 
   // Ambil data pengguna yang sudah login
   const getMe = useCallback(async () => {
@@ -113,6 +139,98 @@ function CustomOrders() {
       [name]: value,
     }))
   }
+
+  // Handle color input change
+  const handleColorChange = (index, field, value) => {
+    const updatedColors = [...formData.colors];
+    updatedColors[index][field] = value;
+    setFormData(prevState => ({
+      ...prevState,
+      colors: updatedColors
+    }));
+  };
+
+  // Handle size input change
+  const handleSizeChange = (colorIndex, sizeIndex, field, value) => {
+    const updatedColors = [...formData.colors];
+    updatedColors[colorIndex].sizes[sizeIndex][field] = value;
+    setFormData(prevState => ({
+      ...prevState,
+      colors: updatedColors
+    }));
+  };
+
+  // Add new color
+  const addColor = () => {
+    setFormData(prevState => ({
+      ...prevState,
+      colors: [
+        ...prevState.colors,
+        {
+          color_name: "",
+          sizes: [
+            {
+              size: "",
+              jumlah: 1
+            }
+          ]
+        }
+      ]
+    }));
+  };
+
+  // Remove color
+  const removeColor = (colorIndex) => {
+    if (formData.colors.length > 1) {
+      const updatedColors = [...formData.colors];
+      updatedColors.splice(colorIndex, 1);
+      setFormData(prevState => ({
+        ...prevState,
+        colors: updatedColors
+      }));
+    } else {
+      setSnackbarState({
+        open: true,
+        message: "Minimal harus ada satu warna",
+        severity: "warning",
+        title: "Peringatan"
+      });
+    }
+  };
+
+  // Add new size to a color
+  const addSize = (colorIndex) => {
+    const updatedColors = [...formData.colors];
+    updatedColors[colorIndex].sizes.push({
+      size: "",
+      jumlah: 1
+    });
+    
+    setFormData(prevState => ({
+      ...prevState,
+      colors: updatedColors
+    }));
+  };
+
+  // Remove size from a color
+  const removeSize = (colorIndex, sizeIndex) => {
+    if (formData.colors[colorIndex].sizes.length > 1) {
+      const updatedColors = [...formData.colors];
+      updatedColors[colorIndex].sizes.splice(sizeIndex, 1);
+      
+      setFormData(prevState => ({
+        ...prevState,
+        colors: updatedColors
+      }));
+    } else {
+      setSnackbarState({
+        open: true,
+        message: "Minimal harus ada satu ukuran untuk setiap warna",
+        severity: "warning",
+        title: "Peringatan"
+      });
+    }
+  };
 
   // Dropzone configuration
   const { getRootProps, getInputProps } = useDropzone({
@@ -152,7 +270,7 @@ function CustomOrders() {
       let message = "File tidak valid"
 
       if (error?.code === "file-too-large") {
-        message = "Ukuran file terlalu besar. Maksimal 2MB."
+        message = "Ukuran file terlalu besar. Maksimal 5MB."
       } else if (error?.code === "too-many-files") {
         message = "Terlalu banyak file. Maksimal 5 gambar."
       }
@@ -191,17 +309,19 @@ function CustomOrders() {
     };
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const validateForm = () => {
+    // Check if user has agreed to the terms
+    if (!termsAgreed) {
+      setShowFabricTerms(true);
+      return false;
+    }
 
-    // Validasi form
+    // Basic fields validation
     const missingFields = []
     if (!formData.nama_lengkap) missingFields.push("Nama Lengkap")
     if (!formData.no_telp) missingFields.push("No. Telepon")
     if (!formData.email) missingFields.push("Email")
     if (!formData.jenis_baju) missingFields.push("Jenis Baju")
-    if (!formData.ukuran) missingFields.push("Ukuran")
-    if (!formData.jumlah) missingFields.push("Jumlah")
 
     if (missingFields.length > 0) {
       setSnackbarState({
@@ -210,18 +330,60 @@ function CustomOrders() {
         severity: "warning",
         title: "Field Belum Lengkap"
       })
-      return
+      return false;
     }
 
-    // Validasi jumlah minimal
-    if (parseInt(formData.jumlah) < 3) {
+    // Validate colors and sizes
+    let isValid = true;
+    let hasEmptyFields = false;
+    
+    formData.colors.forEach((color, colorIndex) => {
+      if (!color.color_name.trim()) {
+        hasEmptyFields = true;
+      }
+      
+      color.sizes.forEach((sizeItem, sizeIndex) => {
+        if (!sizeItem.size) {
+          hasEmptyFields = true;
+        }
+        
+        if (!sizeItem.jumlah || parseInt(sizeItem.jumlah) < 1) {
+          hasEmptyFields = true;
+        }
+      });
+    });
+    
+    if (hasEmptyFields) {
       setSnackbarState({
         open: true,
-        message: "Minimal pemesanan adalah 3 pcs",
+        message: "Pastikan semua warna dan ukuran terisi dengan benar",
+        severity: "warning",
+        title: "Data Belum Lengkap"
+      });
+      isValid = false;
+    }
+
+    // Validate total quantity
+    const totalQty = calculateTotalQuantity();
+    if (totalQty < 3) {
+      setSnackbarState({
+        open: true,
+        message: "Total pemesanan minimal 3 pcs",
         severity: "warning",
         title: "Jumlah Tidak Valid"
-      })
-      return
+      });
+      isValid = false;
+    }
+
+    return isValid;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+
+    // Validate form
+    if (!validateForm()) {
+      return;
     }
 
     setIsSubmitting(true)
@@ -245,12 +407,25 @@ function CustomOrders() {
     try {
       const formDataToSend = new FormData()
       
-      // Append all form fields except gambar_referensi
+      // Append all form fields except gambar_referensi and colors
       Object.entries(formData).forEach(([key, value]) => {
-        if (key !== 'gambar_referensi') {
+        if (key !== 'gambar_referensi' && key !== 'colors') {
           formDataToSend.append(key, value)
         }
       })
+      
+      // Fix for colors - make sure it's sent as an array
+      // Instead of JSON.stringify, add each color as an array element
+      formData.colors.forEach((color, colorIndex) => {
+        // Add color name
+        formDataToSend.append(`colors[${colorIndex}][color_name]`, color.color_name);
+        
+        // Add sizes for this color
+        color.sizes.forEach((size, sizeIndex) => {
+          formDataToSend.append(`colors[${colorIndex}][sizes][${sizeIndex}][size]`, size.size);
+          formDataToSend.append(`colors[${colorIndex}][sizes][${sizeIndex}][jumlah]`, size.jumlah);
+        });
+      });
       
       // Append gambar_referensi as array
       formData.gambar_referensi.forEach((file, index) => {
@@ -292,7 +467,7 @@ function CustomOrders() {
     } finally {
       setIsSubmitting(false)
     }
-  }
+}
 
   useEffect(() => {
     getMe()
@@ -300,6 +475,74 @@ function CustomOrders() {
 
   return (
     <div className="bg-gray-50 min-h-screen py-10">
+      {/* Fabric Source Terms Modal */}
+      <Dialog 
+        open={showFabricTerms} 
+        onClose={() => {}} // Empty function to prevent closing by clicking outside
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle className="bg-[#6D4C3D] text-white flex justify-between items-center">
+          <Typography variant="h6">Ketentuan Bahan/Kain Pesanan Custom</Typography>
+        </DialogTitle>
+        <DialogContent className="mt-4">
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle1" className="font-bold mb-2">
+              Penting! Harap dibaca dengan seksama
+            </Typography>
+            
+            <Typography variant="body1" className="mb-3">
+              Untuk pesanan custom, terdapat ketentuan penting yang perlu Anda ketahui:
+            </Typography>
+            
+            <Box sx={{ mb: 3, p: 2, bgcolor: '#fff8e1', borderRadius: 1 }}>
+              <Typography variant="body1" className="mb-2 font-medium flex gap-3">
+                <InfoIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#f57c00' }} />
+                Ketentuan Sumber Bahan/Kain:
+              </Typography>
+              
+              <Typography variant="body2" className="mb-2">
+                1. <strong>Penyediaan Kain oleh Pelanggan:</strong> Untuk semua pesanan custom, <u>bahan/kain harus disediakan oleh pelanggan</u> (pemesan).
+              </Typography>
+              
+              <Typography variant="body2" className="mb-2">
+                2. <strong>Keterbatasan Layanan:</strong> Konveksi kami saat ini tidak menyediakan layanan pengadaan kain untuk pesanan custom.
+              </Typography>
+              
+              <Typography variant="body2" className="mb-2">
+                3. <strong>Tanggung Jawab:</strong> Pelanggan bertanggung jawab penuh atas kualitas dan kuantitas kain yang diberikan.
+              </Typography>
+            </Box>
+            
+            <Typography variant="body2" className="mb-3">
+              Dengan menekan tombol "Saya Mengerti & Setuju" di bawah ini, Anda menyatakan telah membaca dan menyetujui ketentuan di atas serta bersedia menyediakan bahan/kain sendiri untuk pesanan custom Anda.
+            </Typography>
+            
+            <FormControlLabel
+              control={
+                <Checkbox 
+                  checked={termsAgreed}
+                  onChange={(e) => setTermsAgreed(e.target.checked)}
+                  color="'#fff8e1'"
+                />
+              }
+              label="Saya telah membaca dan menyetujui ketentuan di atas"
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            variant="contained" 
+            disabled={!termsAgreed}
+            onClick={handleAgreeTerms}
+            style={{backgroundColor: "#6D4C3D", color: "white"}}
+            fullWidth
+          >
+            Saya Mengerti & Setuju
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Snackbar
         open={snackbarState.open}
         autoHideDuration={6000}
@@ -411,74 +654,175 @@ function CustomOrders() {
                       </Select>
                     </FormControl>
 
-                    <Grid container spacing={3} className="mb-4">
-                      <Grid item xs={12} sm={6}>
-                        <FormControl fullWidth variant="outlined">
-                          <InputLabel id="ukuran-label">Ukuran*</InputLabel>
-                          <Select
-                            labelId="ukuran-label"
-                            name="ukuran"
-                            value={formData.ukuran}
-                            onChange={handleInputChange}
-                            label="Ukuran*"
-                            required
+                    {/* Info box about fabric source */}
+                    <Box 
+                      sx={{ 
+                        p: 2, 
+                        mb: 3, 
+                        bgcolor: '#f8f9fa', 
+                        border: '1px solid #e9ecef',
+                        borderRadius: 1
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+                        <Info color="primary" sx={{ mr: 1, mt: 0.5 }} />
+                        <Box>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                            Informasi Bahan/Kain
+                          </Typography>
+                          <Typography variant="body2">
+                            Untuk pesanan custom, bahan/kain harus disediakan oleh pelanggan (pemesan).
+                            Detail bahan akan dibahas dalam fase negosiasi dengan tim kami.
+                          </Typography>
+                          <Button 
+                            variant="text" 
+                            size="small" 
+                            color="primary" 
+                            onClick={() => setShowFabricTerms(true)}
+                            sx={{ mt: 1, p: 0 }}
                           >
-                            <MenuItem value="">Pilih Ukuran</MenuItem>
-                            <MenuItem value="S">S</MenuItem>
-                            <MenuItem value="M">M</MenuItem>
-                            <MenuItem value="L">L</MenuItem>
-                            <MenuItem value="XL">XL</MenuItem>
-                            <MenuItem value="XXL">XXL</MenuItem>
-                          </Select>
-                        </FormControl>
-                        <Box className="mt-2">
-                          <Button
-                            startIcon={<Info  />}
-                            onClick={() => setShowSizeChart(true)}
-                            size="small"
-                            color="black"
-                          >
-                            Lihat Size Chart
+                            Lihat Ketentuan
                           </Button>
                         </Box>
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <TextField
-                          fullWidth
-                          label="Jumlah*"
-                          name="jumlah"
-                          type="number"
-                          value={formData.jumlah}
-                          onChange={handleInputChange}
-                          required
-                          variant="outlined"
-                          InputProps={{ inputProps: { min: 3 } }}
-                        />
-                        <FormHelperText>Minimal pemesanan 3 pcs</FormHelperText>
-                      </Grid>
-                    </Grid>
+                      </Box>
+                    </Box>
 
-                    <FormControl component="fieldset" className="mb-4">
-                      <Typography variant="subtitle1" className="mb-2">
-                        Sumber Kain
+                    {/* Warna dan Ukuran */}
+                    <Box className="mb-6">
+                      <Typography variant="subtitle1" className="mb-3 mt-4 font-medium" gutterBottom>
+                        Warna dan Ukuran
                       </Typography>
-                      <RadioGroup row name="sumber_kain" value={formData.sumber_kain} onChange={handleInputChange}>
-                        <FormControlLabel value="sendiri" control={<Radio color="black" />} label="Kain Sendiri" />
-                      </RadioGroup>
-                    </FormControl>
-
-                    {formData.sumber_kain === "konveksi" && (
-                      <TextField
-                        fullWidth
-                        label="Detail Bahan/Kain"
-                        name="detail_bahan"
-                        value={formData.detail_bahan}
-                        onChange={handleInputChange}
-                        variant="outlined"
-                        placeholder="Contoh: Cotton Combed 30s, Fleece, dll"
-                        className="mb-4"
-                      />
-                    )}
+                      <FormHelperText className="mb-3">
+                        Total pesanan minimal 3 pcs. Total saat ini: {calculateTotalQuantity()} pcs
+                      </FormHelperText>
+                      
+                      {formData.colors.map((color, colorIndex) => (
+                        <Card key={colorIndex} sx={{ mb: 3, p: 2, border: '1px solid #e0e0e0' }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                            <Typography variant="subtitle2">Warna {colorIndex + 1}</Typography>
+                            {colorIndex > 0 && (
+                              <IconButton 
+                                size="small" 
+                                color="error"
+                                onClick={() => removeColor(colorIndex)}
+                              >
+                                <Delete />
+                              </IconButton>
+                            )}
+                          </Box>
+                          
+                          <TextField
+                            fullWidth
+                            label="Nama Warna*"
+                            value={color.color_name}
+                            onChange={(e) => handleColorChange(colorIndex, 'color_name', e.target.value)}
+                            variant="outlined"
+                            placeholder="Contoh: Merah, Navy, Putih"
+                            sx={{ mb: 2 }}
+                            required
+                          />
+                          
+                          {/* Size Selection for this color */}
+                          <Typography variant="body2" gutterBottom sx={{ mt: 2, mb: 1 }}>
+                            Ukuran & Jumlah
+                          </Typography>
+                          
+                          <Box sx={{ mb: 2 }}>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              startIcon={<Info />}
+                              onClick={() => setShowSizeChart(true)}
+                              sx={{ mb: 2 }}
+                            >
+                              Lihat Size Chart
+                            </Button>
+                          </Box>
+                          
+                          {color.sizes.map((sizeItem, sizeIndex) => (
+                            <Box 
+                              key={sizeIndex} 
+                              sx={{ 
+                                display: 'flex', 
+                                gap: 2, 
+                                mb: 2, 
+                                alignItems: 'center',
+                                flexWrap: 'wrap'
+                              }}
+                            >
+                              <FormControl sx={{ minWidth: 120, flexGrow: 1 }}>
+                                <InputLabel id={`size-label-${colorIndex}-${sizeIndex}`}>Ukuran*</InputLabel>
+                                <Select
+                                  labelId={`size-label-${colorIndex}-${sizeIndex}`}
+                                  value={sizeItem.size}
+                                  onChange={(e) => handleSizeChange(colorIndex, sizeIndex, 'size', e.target.value)}
+                                  label="Ukuran*"
+                                  required
+                                >
+                                  <MenuItem value="">Pilih</MenuItem>
+                                  <MenuItem value="S">S</MenuItem>
+                                  <MenuItem value="M">M</MenuItem>
+                                  <MenuItem value="L">L</MenuItem>
+                                  <MenuItem value="XL">XL</MenuItem>
+                                </Select>
+                              </FormControl>
+                              
+                              <TextField
+                                label="Jumlah*"
+                                type="number"
+                                value={sizeItem.jumlah}
+                                onChange={(e) => handleSizeChange(colorIndex, sizeIndex, 'jumlah', e.target.value)}
+                                InputProps={{ inputProps: { min: 1 } }}
+                                sx={{ flexGrow: 1 }}
+                                required
+                              />
+                              
+                              {sizeIndex > 0 && (
+                                <IconButton 
+                                  size="small" 
+                                  color="error"
+                                  onClick={() => removeSize(colorIndex, sizeIndex)}
+                                >
+                                  <Delete fontSize="small" />
+                                </IconButton>
+                              )}
+                            </Box>
+                          ))}
+                          
+                          <Button
+                            startIcon={<Add />}
+                            onClick={() => addSize(colorIndex)}
+                            size="small"
+                            variant="outlined"
+                            sx={{ mt: 1 }}
+                          >
+                            Tambah Ukuran
+                          </Button>
+                        </Card>
+                      ))}
+                      
+                      {/* Enhanced Add Color Button */}
+                      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+                        <Button
+                          startIcon={<AddCircle />}
+                          onClick={addColor}
+                          variant="contained"
+                          size="large"
+                          color="primary"
+                          sx={{ 
+                            borderRadius: '28px',
+                            backgroundColor: '#6D4C3D',
+                            '&:hover': {
+                              backgroundColor: '#5A3D31'
+                            },
+                            px: 4,
+                            py: 1
+                          }}
+                        >
+                          Tambah Warna Baru
+                        </Button>
+                      </Box>
+                    </Box>
 
                     <Box className="mb-6">
                       <Typography variant="subtitle1" className="mb-2">
@@ -567,7 +911,7 @@ function CustomOrders() {
                               Drag & drop file di sini atau klik untuk memilih
                             </Typography>
                             <Typography variant="body2" color="textSecondary">
-                              Format yang diterima: JPG, PNG, GIF (Maks. 2MB/file, maks. 5 gambar)
+                              Format yang diterima: JPG, PNG, GIF (Maks. 5MB/file, maks. 5 gambar)
                             </Typography>
                           </Box>
                         </Box>
@@ -597,6 +941,15 @@ function CustomOrders() {
                       size="large"
                       disabled={isSubmitting}
                       className="py-3"
+                      onClick={(e) => {
+                        // First check if terms have been agreed to, if not show modal
+                        if (!termsAgreed) {
+                          e.preventDefault();
+                          setShowFabricTerms(true);
+                          return;
+                        }
+                        // Otherwise let the form submission proceed
+                      }}
                     >
                       {isSubmitting ? (
                         <Box className="flex items-center">
@@ -652,9 +1005,14 @@ function CustomOrders() {
                         <li className="mb-1">
                           <Typography variant="body2">Revisi desain maksimal 3 kali</Typography>
                         </li>
-                        <li>
+                        <li className="mb-1">
                           <Typography variant="body2">
                             Harga final akan dikonfirmasi setelah detail pesanan lengkap
+                          </Typography>
+                        </li>
+                        <li>
+                          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                            Bahan/kain harus disediakan oleh pelanggan
                           </Typography>
                         </li>
                       </ul>
@@ -739,14 +1097,6 @@ function CustomOrders() {
                     <TableCell align="center">54</TableCell>
                     <TableCell align="center">71</TableCell>
                     <TableCell align="center">25</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell align="center" className="font-medium">
-                      XXL
-                    </TableCell>
-                    <TableCell align="center">56</TableCell>
-                    <TableCell align="center">73</TableCell>
-                    <TableCell align="center">26</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>

@@ -2,6 +2,29 @@ import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
+// Add custom CSS to control Leaflet's z-index
+const customMapStyle = `
+  .leaflet-container,
+  .leaflet-control-container,
+  .leaflet-pane,
+  .leaflet-top,
+  .leaflet-bottom {
+    z-index: 1 !important;
+  }
+  
+  .leaflet-control {
+    z-index: 400 !important;
+  }
+  
+  .leaflet-pane {
+    z-index: 200 !important;
+  }
+  
+  .leaflet-marker-pane {
+    z-index: 300 !important;
+  }
+`;
+
 const LocationMap = ({ position, setPosition }) => {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -70,7 +93,7 @@ const LocationMap = ({ position, setPosition }) => {
         markerRef.current = null;
       }
     };
-  }, [mapRef]); // Only run on mount and unmount
+  }, [mapRef, hasValidPosition, mapPosition, setPosition]); // Added dependencies
 
   // Update map view when position changes and map is already initialized
   useEffect(() => {
@@ -90,9 +113,24 @@ const LocationMap = ({ position, setPosition }) => {
           });
       }
     }
-  }, [position]);
+  }, [position, hasValidPosition, mapPosition, setPosition]); // Added dependencies
 
-  return <div ref={mapRef} style={{ height: "400px", width: "100%" }} />;
+  return (
+    <>
+      {/* Add the style element to control Leaflet z-index */}
+      <style>{customMapStyle}</style>
+      
+      <div 
+        ref={mapRef} 
+        style={{ 
+          height: "400px", 
+          width: "100%",
+          position: "relative",
+          zIndex: 1 // Explicitly set container z-index
+        }} 
+      />
+    </>
+  );
 };
 
 export default LocationMap;
