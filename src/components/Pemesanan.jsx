@@ -1,3 +1,5 @@
+"use client"
+
 import { useEffect, useState } from "react"
 import { usePakaian } from "../context/PakaianContext"
 import { useBahan } from "../context/BahanContext"
@@ -53,7 +55,7 @@ const Pemesanan = () => {
     loading,
     error,
     fetchAllOrders,
-    fetchAllCustomAndOrders,
+    fetchCustomOrders,
     adminVerifyPayment,
     sendToDelivery,
     recievedUser,
@@ -71,19 +73,23 @@ const Pemesanan = () => {
   const [isMobile, setIsMobile] = useState(false)
   const navigate = useNavigate()
   const [sortOption, setSortOption] = useState("newest")
-  const [loadingData, setLoadingData] = useState(true) // New loading state for data
+  const [loadingData, setLoadingData] = useState(true)
+  const [allOrdersData, setAllOrdersData] = useState([]) // Combined data from both endpoints
 
   // Load orders on mount
   useEffect(() => {
     fetchData()
   }, [])
 
-  // Function to fetch data with loading state
+  // Function to fetch data from both endpoints
   const fetchData = async () => {
     setLoadingData(true)
     try {
-      await fetchAllOrders()
-      console.log("Data pesanan:", pesanan)
+      // Fetch both regular orders and custom orders with detailed data
+      const [regularOrdersResult, customOrdersResult] = await Promise.all([fetchAllOrders(), fetchCustomOrders()])
+
+      console.log("Data pesanan regular:", pesanan)
+      console.log("Data custom orders:", customOrders)
     } catch (error) {
       console.error("Error fetching data:", error)
     } finally {
@@ -91,61 +97,210 @@ const Pemesanan = () => {
     }
   }
 
-  // Helper functions for size and color display
-  const getSizeInfo = (pesanan) => {
-    if (!pesanan) return "-"
+  // Combine regular orders and custom orders data
+  useEffect(() => {
+    if (!loadingData) {
+      const combinedData = []
+      const processedOrderIds = new Set() // Track processed order IDs to avoid duplicates
 
-    if (typeof pesanan.size === "string" && isNaN(pesanan.size)) {
-      return pesanan.size
+      // Add regular catalog orders (only non-custom orders)
+      if (pesanan && pesanan.length > 0) {
+        pesanan.forEach((order) => {
+          // Only add if it's not a custom order (catalog_id should not be null)
+          if (order.catalog_id !== null && !processedOrderIds.has(order.order_unique_id)) {
+            combinedData.push({
+              ...order,
+              isCustomOrder: false,
+              displayType: "catalog",
+            })
+            processedOrderIds.add(order.order_unique_id)
+          }
+        })
+      }
+
+      // Add custom orders with enhanced data - Handle the nested structure
+      if (
+        customOrders &&
+        customOrders.custom_orders &&
+        customOrders.custom_orders.data &&
+        customOrders.custom_orders.data.length > 0
+      ) {
+        customOrders.custom_orders.data.forEach((customOrder) => {
+          // Use custom_order_unique_id and avoid duplicates
+          if (!processedOrderIds.has(customOrder.custom_order_unique_id)) {
+            // Find the related order from the orders array
+            const relatedOrder = customOrder.orders && customOrder.orders.length > 0 ? customOrder.orders[0] : null
+
+            combinedData.push({
+              // Use data from related order if available, otherwise from custom order
+              id: relatedOrder ? relatedOrder.id : customOrder.id,
+              order_unique_id: customOrder.custom_order_unique_id, // Always use custom_order_unique_id for custom orders
+              user_id: customOrder.user_id,
+              catalog_id: null, // Custom orders don't have catalog_id
+              custom_order_id: customOrder.id,
+              transaction_id: relatedOrder ? relatedOrder.transaction_id : null,
+              total_harga: customOrder.total_harga,
+              status: relatedOrder ? relatedOrder.status : customOrder.status,
+              created_at: customOrder.created_at,
+              updated_at: customOrder.updated_at,
+
+              // Custom order specific data
+              custom_order: customOrder,
+              user: customOrder.user,
+
+              // Enhanced color and size data from custom order
+              colors: customOrder.colors,
+
+              // Additional custom order fields
+              jenis_baju: customOrder.jenis_baju,
+              detail_bahan: customOrder.detail_bahan,
+              sumber_kain: customOrder.sumber_kain,
+              catatan: customOrder.catatan,
+              gambar_referensi: customOrder.gambar_referensi,
+
+              // Mark as custom order
+              isCustomOrder: true,
+              displayType: "custom",
+            })
+            processedOrderIds.add(customOrder.custom_order_unique_id)
+          }
+        })
+      }
+
+      setAllOrdersData(combinedData)
+      console.log("Combined orders data:", combinedData)
+    }
+  }, [pesanan, customOrders, loadingData])
+
+  // Helper function to calculate total quantity for custom orders
+  const calculateTotalQuantity = (orderData) => {
+    if (!orderData.colors || orderData.colors.length === 0) return 0
+
+    return orderData.colors.reduce((total, color) => {
+      if (!color.sizes || !Array.isArray(color.sizes)) return total
+      return total + color.sizes.reduce((sum, size) => sum + Number.parseInt(size.jumlah || 0), 0)
+    }, 0)
+  }
+
+  // Helper functions for size and color display - Enhanced for custom orders
+  const getSizeInfo = (orderData) => {
+    if (!orderData) return "-"
+
+    // For custom orders, get from colors.sizes array
+    if (orderData.isCustomOrder && orderData.colors && orderData.colors.length > 0) {
+      const allSizes = []
+      orderData.colors.forEach((color) => {
+        if (color.sizes && Array.isArray(color.sizes) && color.sizes.length > 0) {
+          color.sizes.forEach((size) => {
+            allSizes.push(`${size.size} (${size.jumlah})`)
+          })
+        }
+      })
+      return allSizes.length > 0 ? allSizes.join(", ") : "-"
     }
 
-    if (pesanan.catalog && pesanan.catalog.colors && pesanan.catalog.colors.length > 0) {
-      for (const color of pesanan.catalog.colors) {
-        if (color.sizes && color.sizes.id == pesanan.size) {
+    // For regular orders, use existing logic
+    if (typeof orderData.size === "string" && isNaN(orderData.size)) {
+      return orderData.size
+    }
+
+    if (orderData.catalog && orderData.catalog.colors && orderData.catalog.colors.length > 0) {
+      for (const color of orderData.catalog.colors) {
+        if (color.sizes && color.sizes.id == orderData.size) {
           return color.sizes.size
         }
       }
     }
 
-    return pesanan.size || "-"
+    return orderData.size || "-"
   }
 
-  const getColorInfo = (pesanan) => {
-    if (!pesanan) return "-"
+  const getColorInfo = (orderData) => {
+    if (!orderData) return "-"
 
-    if (typeof pesanan.color === "string" && isNaN(pesanan.color)) {
-      return pesanan.color
+    // For custom orders, get from colors array
+    if (orderData.isCustomOrder && orderData.colors && orderData.colors.length > 0) {
+      const colorNames = orderData.colors.map((color) => color.color_name).filter(Boolean)
+      return colorNames.length > 0 ? colorNames.join(", ") : "-"
     }
 
-    if (pesanan.catalog && pesanan.catalog.colors && pesanan.catalog.colors.length > 0) {
-      const color = pesanan.catalog.colors.find((c) => c.id == pesanan.color)
+    // For regular orders, use existing logic
+    if (typeof orderData.color === "string" && isNaN(orderData.color)) {
+      return orderData.color
+    }
+
+    if (orderData.catalog && orderData.catalog.colors && orderData.catalog.colors.length > 0) {
+      const color = orderData.catalog.colors.find((c) => c.id == orderData.color)
       if (color) {
         return color.color_name
       }
     }
 
-    return pesanan.color || "-"
+    return orderData.color || "-"
   }
 
+  // Helper function to get quantity - Enhanced for custom orders
+  const getQuantityInfo = (orderData) => {
+    if (!orderData) return 0
+
+    // For custom orders, calculate total from colors.sizes
+    if (orderData.isCustomOrder) {
+      return calculateTotalQuantity(orderData)
+    }
+
+    // For regular orders
+    return orderData.jumlah || 0
+  }
+
+  // Helper function to get product name
+  const getProductName = (orderData) => {
+    if (!orderData) return "-"
+
+    // For custom orders
+    if (orderData.isCustomOrder) {
+      return orderData.jenis_baju || orderData.custom_order?.jenis_baju || "Custom Order"
+    }
+
+    // For regular orders
+    return orderData.catalog?.nama_katalog || "-"
+  }
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    // Earth's radius in kilometers
+    const R = 6371;
+    
+    // Convert degrees to radians
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    
+    // Haversine formula calculations
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c; // Distance in kilometers
+    
+    return distance;
+  };
   // Handle detail navigation with order_unique_id
-  const handleDetail = (pesanan) => {
-    if (!pesanan) return
+  const handleDetail = (orderData) => {
+    if (!orderData) return
 
-    // Debug - add this line
-    console.log("Order being viewed:", pesanan)
+    console.log("Order being viewed:", orderData)
 
-    if (!pesanan.order_unique_id) {
-      console.error("Order ID is missing", pesanan)
+    if (!orderData.order_unique_id) {
+      console.error("Order ID is missing", orderData)
       return
     }
 
-    // Check order type based on catalog_id
-    if (pesanan.catalog_id === null && pesanan.custom_order_id) {
-      // This is a custom order
-      navigate(`/admin/customOrder/${pesanan.order_unique_id}`)
+    // Check if it's a custom order
+    if (orderData.isCustomOrder || (orderData.catalog_id === null && orderData.custom_order_id)) {
+      // This is a custom order - use custom_order_unique_id
+      navigate(`/admin/customOrder/${orderData.order_unique_id}`) // order_unique_id now contains custom_order_unique_id
     } else {
       // This is a catalog order
-      navigate(`/admin/CatalogPesan/${pesanan.order_unique_id}`)
+      navigate(`/admin/CatalogPesan/${orderData.order_unique_id}`)
     }
   }
 
@@ -178,26 +333,72 @@ const Pemesanan = () => {
 
           switch (newStatus) {
             case "Diproses":
-              // Verify payment - untuk Menunggu_Konfirmasi → Diproses
               response = await adminVerifyPayment(id, "approve")
               break
 
             case "Sedang_Dikirim":
-              // Modal untuk memilih metode pengiriman
+              // Get the order data to access user information
+              const orderToShip = allOrdersData.find(order => order.id === id);
+              const userLat = orderToShip?.user?.latitude;
+              const userLng = orderToShip?.user?.longitude;
+              
+              // JR Konveksi coordinates
+              const jrKonveksiLat = -6.4072857;
+              const jrKonveksiLng = 106.7687122;
+              
+              // Calculate distance if coordinates are available
+              let distance = null;
+              let isOutOfRange = false;
+              let deliveryOptions = '';
+              
+              if (userLat && userLng) {
+                distance = calculateDistance(
+                  parseFloat(userLat), 
+                  parseFloat(userLng), 
+                  jrKonveksiLat, 
+                  jrKonveksiLng
+                );
+                isOutOfRange = distance > 30;
+              }
+              
+              // Prepare delivery options HTML with conditional disabling
+              if (isOutOfRange) {
+                deliveryOptions = `
+                  <div class="mb-1">
+                    <p class="text-yellow-600 text-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="inline h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      Lokasi pelanggan berjarak ${distance.toFixed(1)} km dari JR Konveksi (melebihi 30 km).
+                      <br>Hanya opsi Ekspedisi yang tersedia.
+                    </p>
+                  </div>
+                `;
+              }
+              
+              deliveryOptions += `
+                <select id="type_pengantaran" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                  <option value="">Pilih Metode Pengiriman</option>
+                  <option value="ekspedisi">Ekspedisi</option>
+                  <option value="jrkonveksi" ${isOutOfRange ? 'disabled' : ''}>JR Konveksi</option>
+                  <option value="gosend" ${isOutOfRange ? 'disabled' : ''}>GoSend</option>
+                  <option value="grabExpress" ${isOutOfRange ? 'disabled' : ''}>Grab Express</option>
+                  <option value="pickup" ${isOutOfRange ? 'disabled' : ''}>Pickup/Ambil Sendiri</option>
+                </select>
+              `;
+
               const { value: deliveryData } = await Swal.fire({
                 title: "Konfirmasi Pengiriman",
                 html: `
                   <div class="mb-3">
                     <label class="block text-left text-sm font-medium mb-1">Metode Pengiriman</label>
-                    <select id="type_pengantaran" class="w-full px-3 py-2 border border-gray-300 rounded-md">
-                      <option value="">Pilih Metode Pengiriman</option>
-                      <option value="ekspedisi">Ekspedisi</option>
-                      <option value="jrkonveksi">JR Konveksi</option>
-                      <option value="gosend">GoSend</option>
-                      <option value="grabExpress">Grab Express</option>
-                      <option value="pickup">Pickup/Ambil Sendiri</option>
-                    </select>
+                    ${deliveryOptions}
                   </div>
+                  ${distance !== null ? 
+                    `<div class="mb-3 text-sm bg-gray-50 p-2 rounded">
+                      <p>Jarak: <strong>${distance.toFixed(1)} km</strong> dari JR Konveksi</p>
+                    </div>` : ''
+                  }
                   <div class="mb-3">
                     <label class="block text-left text-sm font-medium mb-1">Catatan (opsional)</label>
                     <textarea id="notes" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Catatan Pengiriman"></textarea>
@@ -209,37 +410,32 @@ const Pemesanan = () => {
                 cancelButtonText: "Batal",
                 confirmButtonColor: "#a97142",
                 preConfirm: () => {
-                  const typePengantaran = document.getElementById("type_pengantaran").value
+                  const typePengantaran = document.getElementById("type_pengantaran").value;
                   if (!typePengantaran) {
-                    Swal.showValidationMessage("Metode pengiriman wajib dipilih")
-                    return false
+                    Swal.showValidationMessage("Metode pengiriman wajib dipilih");
+                    return false;
                   }
                   return {
                     status: "Sedang_Dikirim",
                     type_pengantaran: typePengantaran,
                     notes: document.getElementById("notes").value || "",
-                  }
+                    distance: distance,
+                  };
                 },
-              })
+              });
 
               if (deliveryData) {
-                // Kirim parameter yang sesuai ke API
                 response = await sendToDelivery(id, {
                   status: deliveryData.status,
                   type_pengantaran: deliveryData.type_pengantaran,
-                })
-
-                // Log catatan jika ada (opsional)
-                if (deliveryData.notes) {
-                  console.log(`Catatan pengiriman untuk order ${id}: ${deliveryData.notes}`)
-                }
+                  notes: deliveryData.notes,
+                  distance: deliveryData.distance,
+                });
               } else {
-                return
+                return;
               }
-              break
-
+              break;
             case "Sudah_Terkirim":
-              // Form untuk konfirmasi penerimaan barang
               const { value: receiptData } = await Swal.fire({
                 title: "Konfirmasi Penerimaan Barang",
                 html: `
@@ -264,7 +460,6 @@ const Pemesanan = () => {
                   </div>
                 `,
                 didOpen: () => {
-                  // Preview gambar yang diupload
                   const fileInput = document.getElementById("receipt_image")
                   const preview = document.getElementById("image-preview")
                   const previewContainer = document.getElementById("preview-container")
@@ -309,14 +504,12 @@ const Pemesanan = () => {
               })
 
               if (receiptData) {
-                // Buat FormData untuk upload image
                 const formData = new FormData()
                 formData.append("image", receiptData.image)
                 formData.append("receiver_name", receiptData.receiver_name)
                 formData.append("description", receiptData.description)
                 formData.append("notes", receiptData.notes)
 
-                // Panggil API untuk konfirmasi penerimaan
                 Swal.fire({
                   title: "Memproses...",
                   text: "Sedang mengirim data penerimaan",
@@ -327,11 +520,8 @@ const Pemesanan = () => {
                 })
 
                 try {
-                  // Use the context function instead of direct axios call
                   response = await recievedUser(id, formData)
-
                   Swal.fire("Sukses", "Konfirmasi penerimaan barang berhasil", "success")
-                  // No need to refresh orders again as it's already done in recievedUser
                 } catch (error) {
                   console.error("Error confirming receipt:", error)
                   Swal.fire("Error", error.response?.data?.message || "Gagal mengkonfirmasi penerimaan barang", "error")
@@ -351,9 +541,7 @@ const Pemesanan = () => {
           }
 
           if (newStatus !== "Sudah_Terkirim") {
-            // Already handled success message for receipt confirmation
             Swal.fire("Sukses", "Status pesanan berhasil diubah", "success")
-            // Refresh order data
             fetchData()
           }
         }
@@ -379,26 +567,26 @@ const Pemesanan = () => {
         return [...orders].sort((a, b) => Number.parseFloat(a.total_harga || 0) - Number.parseFloat(b.total_harga || 0))
       case "custom_first":
         return [...orders].sort((a, b) => {
-          if (a.custom_order_id && !b.custom_order_id) return -1
-          if (!a.custom_order_id && b.custom_order_id) return 1
+          if (a.isCustomOrder && !b.isCustomOrder) return -1
+          if (!a.isCustomOrder && b.isCustomOrder) return 1
           return 0
         })
       case "catalog_first":
         return [...orders].sort((a, b) => {
-          if (a.catalog_id && !b.catalog_id) return -1
-          if (!a.catalog_id && b.catalog_id) return 1
+          if (!a.isCustomOrder && b.isCustomOrder) return -1
+          if (a.isCustomOrder && !b.isCustomOrder) return 1
           return 0
         })
       case "jenis_pemesanan_asc":
         return [...orders].sort((a, b) => {
-          const typeA = a.catalog_id === null ? "Pemesanan Khusus" : "Pemesanan Jadi"
-          const typeB = b.catalog_id === null ? "Pemesanan Khusus" : "Pemesanan Jadi"
+          const typeA = a.isCustomOrder ? "Pemesanan Khusus" : "Pemesanan Jadi"
+          const typeB = b.isCustomOrder ? "Pemesanan Khusus" : "Pemesanan Jadi"
           return typeA.localeCompare(typeB)
         })
       case "jenis_pemesanan_desc":
         return [...orders].sort((a, b) => {
-          const typeA = a.catalog_id === null ? "Pemesanan Khusus" : "Pemesanan Jadi"
-          const typeB = b.catalog_id === null ? "Pemesanan Khusus" : "Pemesanan Jadi"
+          const typeA = a.isCustomOrder ? "Pemesanan Khusus" : "Pemesanan Jadi"
+          const typeB = b.isCustomOrder ? "Pemesanan Khusus" : "Pemesanan Jadi"
           return typeB.localeCompare(typeA)
         })
       default:
@@ -406,15 +594,13 @@ const Pemesanan = () => {
     }
   }
 
-  // Filter and sort orders
+  // Filter and sort orders - Updated to use allOrdersData
   const filteredOrders = sortOrders(
-    pesanan.filter((order) => {
+    allOrdersData.filter((order) => {
       const matchSearch =
         searchTerm === "" ||
-        (order.catalog?.nama_katalog && order.catalog.nama_katalog.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (getProductName(order) && getProductName(order).toLowerCase().includes(searchTerm.toLowerCase())) ||
         (order.user?.name && order.user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (order.custom_order?.jenis_baju &&
-          order.custom_order.jenis_baju.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (order.order_unique_id && order.order_unique_id.toLowerCase().includes(searchTerm.toLowerCase()))
 
       const matchStatus =
@@ -431,7 +617,6 @@ const Pemesanan = () => {
   useEffect(() => {
     const total = Math.ceil(filteredOrders.length / entriesPerPage)
     setTotalPages(total > 0 ? total : 1)
-    // Don't always reset to first page when filter changes
     if (currentPage > total) {
       setCurrentPage(1)
     }
@@ -505,8 +690,8 @@ const Pemesanan = () => {
   }
 
   // Render action buttons based on status
-  const renderActionButtons = (pesanan) => {
-    switch (pesanan.status) {
+  const renderActionButtons = (orderData) => {
+    switch (orderData.status) {
       case "Menunggu_Konfirmasi":
         return (
           <>
@@ -515,7 +700,7 @@ const Pemesanan = () => {
               style={tooltipStyle}
               onMouseEnter={showTooltip}
               onMouseLeave={hideTooltip}
-              onClick={() => handleStatusChange(pesanan.id, "Diproses")}
+              onClick={() => handleStatusChange(orderData.id, "Diproses")}
             >
               <button className="p-2 bg-green-500 text-white rounded-full hover:bg-green-600">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -536,7 +721,7 @@ const Pemesanan = () => {
               style={tooltipStyle}
               onMouseEnter={showTooltip}
               onMouseLeave={hideTooltip}
-              onClick={() => handleDetail(pesanan)}
+              onClick={() => handleDetail(orderData)}
             >
               <button className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -563,7 +748,7 @@ const Pemesanan = () => {
               style={tooltipStyle}
               onMouseEnter={showTooltip}
               onMouseLeave={hideTooltip}
-              onClick={() => handleStatusChange(pesanan.id, "Sedang_Dikirim")}
+              onClick={() => handleStatusChange(orderData.id, "Sedang_Dikirim")}
             >
               <button className="p-2 bg-purple-500 text-white rounded-full hover:bg-purple-600">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -581,7 +766,7 @@ const Pemesanan = () => {
               style={tooltipStyle}
               onMouseEnter={showTooltip}
               onMouseLeave={hideTooltip}
-              onClick={() => handleDetail(pesanan)}
+              onClick={() => handleDetail(orderData)}
             >
               <button className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -608,7 +793,7 @@ const Pemesanan = () => {
               style={tooltipStyle}
               onMouseEnter={showTooltip}
               onMouseLeave={hideTooltip}
-              onClick={() => handleStatusChange(pesanan.id, "Sudah_Terkirim")}
+              onClick={() => handleStatusChange(orderData.id, "Sudah_Terkirim")}
             >
               <button className="p-2 bg-teal-500 text-white rounded-full hover:bg-teal-600">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -625,7 +810,7 @@ const Pemesanan = () => {
               style={tooltipStyle}
               onMouseEnter={showTooltip}
               onMouseLeave={hideTooltip}
-              onClick={() => handleDetail(pesanan)}
+              onClick={() => handleDetail(orderData)}
             >
               <button className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -652,7 +837,7 @@ const Pemesanan = () => {
               style={tooltipStyle}
               onMouseEnter={showTooltip}
               onMouseLeave={hideTooltip}
-              onClick={() => handleStatusChange(pesanan.id, "Selesai")}
+              onClick={() => handleStatusChange(orderData.id, "Selesai")}
             >
               <button className="p-2 bg-green-500 text-white rounded-full hover:bg-green-600">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -673,7 +858,7 @@ const Pemesanan = () => {
               style={tooltipStyle}
               onMouseEnter={showTooltip}
               onMouseLeave={hideTooltip}
-              onClick={() => handleDetail(pesanan)}
+              onClick={() => handleDetail(orderData)}
             >
               <button className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -700,7 +885,7 @@ const Pemesanan = () => {
               style={tooltipStyle}
               onMouseEnter={showTooltip}
               onMouseLeave={hideTooltip}
-              onClick={() => handleDetail(pesanan)}
+              onClick={() => handleDetail(orderData)}
             >
               <button className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -726,7 +911,7 @@ const Pemesanan = () => {
             style={tooltipStyle}
             onMouseEnter={showTooltip}
             onMouseLeave={hideTooltip}
-            onClick={() => handleDetail(pesanan)}
+            onClick={() => handleDetail(orderData)}
           >
             <button className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -748,22 +933,18 @@ const Pemesanan = () => {
 
   // Render pagination with improved UI
   const renderPagination = () => {
-    // Don't show pagination if there's no data or only 1 page
     if (totalPages <= 1) {
       return null
     }
 
-    // Calculate range of pages to show
     const pagesToShow = 5
     let startPage = Math.max(1, currentPage - Math.floor(pagesToShow / 2))
     const endPage = Math.min(totalPages, startPage + pagesToShow - 1)
 
-    // Adjust if we're near the end
     if (endPage - startPage + 1 < pagesToShow) {
       startPage = Math.max(1, endPage - pagesToShow + 1)
     }
 
-    // Generate array of page numbers
     const pages = []
     for (let i = startPage; i <= endPage; i++) {
       pages.push(i)
@@ -825,95 +1006,99 @@ const Pemesanan = () => {
 
   // Skeleton loading for table rows
   const renderTableSkeletonRows = () => {
-    return Array(entriesPerPage).fill(0).map((_, index) => (
-      <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-        <td className="px-6 py-4 whitespace-nowrap">
-          <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
-        </td>
-        <td className="px-6 py-4 whitespace-nowrap">
-          <div className="h-4 bg-gray-200 rounded w-20 animate-pulse"></div>
-        </td>
-        <td className="px-6 py-4 whitespace-nowrap">
-          <div className="h-4 bg-gray-200 rounded w-32 animate-pulse"></div>
-        </td>
-        <td className="px-6 py-4 whitespace-nowrap">
-          <div className="h-4 bg-gray-200 rounded w-28 animate-pulse"></div>
-        </td>
-        <td className="px-6 py-4">
-          <div className="h-4 bg-gray-200 rounded w-36 animate-pulse"></div>
-        </td>
-        <td className="px-6 py-4">
-          <div className="h-4 bg-gray-200 rounded w-16 animate-pulse"></div>
-        </td>
-        <td className="px-6 py-4">
-          <div className="h-4 bg-gray-200 rounded w-10 animate-pulse"></div>
-        </td>
-        <td className="px-6 py-4">
-          <div className="h-4 bg-gray-200 rounded w-8 animate-pulse"></div>
-        </td>
-        <td className="px-6 py-4">
-          <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
-        </td>
-        <td className="px-6 py-4">
-          <div className="h-6 bg-gray-200 rounded-full w-20 animate-pulse"></div>
-        </td>
-        <td className="px-6 py-4">
-          <div className="flex gap-2">
-            <div className="h-9 w-9 bg-gray-200 rounded-full animate-pulse"></div>
-            <div className="h-9 w-9 bg-gray-200 rounded-full animate-pulse"></div>
-          </div>
-        </td>
-      </tr>
-    ));
-  };
+    return Array(entriesPerPage)
+      .fill(0)
+      .map((_, index) => (
+        <tr key={index} className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}>
+          <td className="px-6 py-4 whitespace-nowrap">
+            <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap">
+            <div className="h-4 bg-gray-200 rounded w-20 animate-pulse"></div>
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap">
+            <div className="h-4 bg-gray-200 rounded w-32 animate-pulse"></div>
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap">
+            <div className="h-4 bg-gray-200 rounded w-28 animate-pulse"></div>
+          </td>
+          <td className="px-6 py-4">
+            <div className="h-4 bg-gray-200 rounded w-36 animate-pulse"></div>
+          </td>
+          <td className="px-6 py-4">
+            <div className="h-4 bg-gray-200 rounded w-16 animate-pulse"></div>
+          </td>
+          <td className="px-6 py-4">
+            <div className="h-4 bg-gray-200 rounded w-10 animate-pulse"></div>
+          </td>
+          <td className="px-6 py-4">
+            <div className="h-4 bg-gray-200 rounded w-8 animate-pulse"></div>
+          </td>
+          <td className="px-6 py-4">
+            <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+          </td>
+          <td className="px-6 py-4">
+            <div className="h-6 bg-gray-200 rounded-full w-20 animate-pulse"></div>
+          </td>
+          <td className="px-6 py-4">
+            <div className="flex gap-2">
+              <div className="h-9 w-9 bg-gray-200 rounded-full animate-pulse"></div>
+              <div className="h-9 w-9 bg-gray-200 rounded-full animate-pulse"></div>
+            </div>
+          </td>
+        </tr>
+      ))
+  }
 
   // Skeleton loading for mobile cards
   const renderMobileCardSkeletons = () => {
-    return Array(entriesPerPage).fill(0).map((_, index) => (
-      <div key={index} className="bg-white border rounded-lg shadow-sm p-4 mb-4">
-        <div className="flex justify-between items-start mb-3">
-          <div className="w-2/3">
-            <div className="h-4 bg-gray-200 rounded w-20 mb-2 animate-pulse"></div>
-            <div className="h-4 bg-gray-200 rounded w-16 mb-2 animate-pulse"></div>
-            <div className="h-5 bg-gray-200 rounded w-32 animate-pulse"></div>
+    return Array(entriesPerPage)
+      .fill(0)
+      .map((_, index) => (
+        <div key={index} className="bg-white border rounded-lg shadow-sm p-4 mb-4">
+          <div className="flex justify-between items-start mb-3">
+            <div className="w-2/3">
+              <div className="h-4 bg-gray-200 rounded w-20 mb-2 animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-16 mb-2 animate-pulse"></div>
+              <div className="h-5 bg-gray-200 rounded w-32 animate-pulse"></div>
+            </div>
+            <div className="h-6 bg-gray-200 rounded-full w-24 animate-pulse"></div>
           </div>
-          <div className="h-6 bg-gray-200 rounded-full w-24 animate-pulse"></div>
-        </div>
 
-        <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-          <div>
-            <div className="h-4 bg-gray-200 rounded w-28 mb-1 animate-pulse"></div>
-            <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+          <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+            <div>
+              <div className="h-4 bg-gray-200 rounded w-28 mb-1 animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+            </div>
+            <div>
+              <div className="h-4 bg-gray-200 rounded w-16 mb-1 animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+            </div>
+            <div>
+              <div className="h-4 bg-gray-200 rounded w-12 mb-1 animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-16 animate-pulse"></div>
+            </div>
+            <div>
+              <div className="h-4 bg-gray-200 rounded w-14 mb-1 animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-8 animate-pulse"></div>
+            </div>
+            <div>
+              <div className="h-4 bg-gray-200 rounded w-16 mb-1 animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-8 animate-pulse"></div>
+            </div>
+            <div className="col-span-2">
+              <div className="h-4 bg-gray-200 rounded w-20 mb-1 animate-pulse"></div>
+              <div className="h-5 bg-gray-200 rounded w-32 animate-pulse"></div>
+            </div>
           </div>
-          <div>
-            <div className="h-4 bg-gray-200 rounded w-16 mb-1 animate-pulse"></div>
-            <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
-          </div>
-          <div>
-            <div className="h-4 bg-gray-200 rounded w-12 mb-1 animate-pulse"></div>
-            <div className="h-4 bg-gray-200 rounded w-16 animate-pulse"></div>
-          </div>
-          <div>
-            <div className="h-4 bg-gray-200 rounded w-14 mb-1 animate-pulse"></div>
-            <div className="h-4 bg-gray-200 rounded w-8 animate-pulse"></div>
-          </div>
-          <div>
-            <div className="h-4 bg-gray-200 rounded w-16 mb-1 animate-pulse"></div>
-            <div className="h-4 bg-gray-200 rounded w-8 animate-pulse"></div>
-          </div>
-          <div className="col-span-2">
-            <div className="h-4 bg-gray-200 rounded w-20 mb-1 animate-pulse"></div>
-            <div className="h-5 bg-gray-200 rounded w-32 animate-pulse"></div>
-          </div>
-        </div>
 
-        <div className="flex gap-2 mt-4">
-          <div className="h-9 w-9 bg-gray-200 rounded-full animate-pulse"></div>
-          <div className="h-9 w-9 bg-gray-200 rounded-full animate-pulse"></div>
+          <div className="flex gap-2 mt-4">
+            <div className="h-9 w-9 bg-gray-200 rounded-full animate-pulse"></div>
+            <div className="h-9 w-9 bg-gray-200 rounded-full animate-pulse"></div>
+          </div>
         </div>
-      </div>
-    ));
-  };
+      ))
+  }
 
   // Error state with retry button
   if (error) {
@@ -921,10 +1106,7 @@ const Pemesanan = () => {
       <div className="p-4 sm:p-6 bg-white rounded-lg shadow-md">
         <div className="bg-red-50 p-4 rounded-md text-center">
           <p className="text-red-500">{error}</p>
-          <button
-            onClick={fetchData}
-            className="mt-2 px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
-          >
+          <button onClick={fetchData} className="mt-2 px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600">
             Coba Lagi
           </button>
         </div>
@@ -1019,230 +1201,238 @@ const Pemesanan = () => {
       </div>
 
       {/* Data content with improved loading states */}
-      {error ? (
-        <div className="p-4 sm:p-6 bg-white rounded-lg shadow-md">
-          <div className="bg-red-50 p-4 rounded-md text-center">
-            <p className="text-red-500">{error}</p>
-            <button
-              onClick={fetchData}
-              className="mt-2 px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
-            >
-              Coba Lagi
-            </button>
-          </div>
-        </div>
-      ) : (
-        <>
-          {isMobile ? (
-            // Mobile Card View
-            <div className="space-y-4">
-              {loadingData ? (
-                // Mobile card skeleton
-                renderMobileCardSkeletons()
-              ) : pesanan.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">Tidak ada data pesanan yang tersedia.</p>
-                </div>
-              ) : filteredOrders.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">Tidak ada data pesanan yang sesuai dengan filter.</p>
-                </div>
-              ) : (
-                // Actual mobile cards
-                paginatedData.map((pesanan) => (
-                  <div key={pesanan.id} className="bg-white border rounded-lg shadow-sm p-4">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                    <p className="text-xs text-gray-500">ID: {pesanan.order_unique_id || "-"}</p>
-                    <p className="text-sm text-gray-500">
-                      {pesanan.created_at ? new Date(pesanan.created_at).toLocaleDateString() : "-"}
-                    </p>
-                    <h3 className="font-medium">
-                      {pesanan.custom_order?.jenis_baju || pesanan.catalog?.nama_katalog || "-"}
-                    </h3>
-                    </div>
-                    <span
-                        className={`px-2 py-1 rounded-full text-xs bg-${getStatusBadgeColor(pesanan.status)} text-${getStatusTextColor(pesanan.status)}`}
-                      >
-                        {pesanan.status?.replace(/_/g, " ") || "Pending"}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-                      <div>
-                        <p className="text-gray-500">Jenis Pemesanan</p>
-                        <p>{pesanan.catalog_id === null ? "Pemesanan Khusus" : "Pemesanan Jadi"}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500">Customer</p>
-                        <p>{pesanan.user?.name || "-"}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500">Warna</p>
-                        <p>{getColorInfo(pesanan)}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500">Ukuran</p>
-                        <p>{getSizeInfo(pesanan)}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500">Jumlah</p>
-                        <p>{pesanan.jumlah || 0}</p>
-                      </div>
-                      <div className="col-span-2">
-                        <p className="text-gray-500">Total Harga</p>
-                        <p className="font-semibold">{formatCurrency(pesanan.total_harga)}</p>
-                      </div>
-                    </div>
-
-                    {pesanan.custom_order?.gambar_referensi && (
-                      <div className="mb-3">
-                        <p className="text-gray-500 text-sm mb-1">Referensi Foto</p>
-                        <div className="flex items-center gap-2">
-                          <img
-                            src={`${process.env.REACT_APP_API_URL}/${pesanan.custom_order?.gambar_referensi}`}
-                            alt="Referensi"
-                            className="h-20 w-20 object-cover rounded"
-                          />
-                          <button
-                            onClick={() => handleCustomOrderDetail(pesanan.custom_order_id)}
-                            className="px-2 py-1 bg-brown-600 text-white text-sm rounded hover:bg-brown-700"
-                          >
-                            Lihat Detail Custom
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {pesanan.catatan && (
-                      <div className="mb-3">
-                        <p className="text-gray-500 text-sm">Catatan</p>
-                        <p className="text-sm">{pesanan.catatan || "-"}</p>
-                      </div>
-                    )}
-
-                    <div className="flex flex-wrap gap-2 mt-4">{renderActionButtons(pesanan)}</div>
-                  </div>
-                ))
-              )}
+      {isMobile ? (
+        // Mobile Card View
+        <div className="space-y-4">
+          {loadingData ? (
+            renderMobileCardSkeletons()
+          ) : allOrdersData.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Tidak ada data pesanan yang tersedia.</p>
+            </div>
+          ) : filteredOrders.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Tidak ada data pesanan yang sesuai dengan filter.</p>
             </div>
           ) : (
-            // Desktop Table View
-            <div className="overflow-x-auto -mx-4 sm:mx-0">
-              <div className="inline-block min-w-full align-middle">
-                <table className="min-w-full bg-white">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-md font-medium text-gray-500 uppercase tracking-wider">
-                        Order ID
-                      </th>
-                      <th className="px-6 py-3 text-left text-md font-medium text-gray-500 uppercase tracking-wider">
-                        Tanggal
-                      </th>
-                      <th className="px-6 py-3 text-left text-md font-medium text-gray-500 uppercase tracking-wider">
-                        Customer
-                      </th>
-                      <th className="px-6 py-3 text-left text-md font-medium text-gray-500 uppercase tracking-wider">
-                        Jenis Pemesanan
-                      </th>
-                      <th className="px-6 py-3 text-left text-md font-medium text-gray-500 uppercase tracking-wider">
-                        Jenis Pakaian
-                      </th>
-                      <th className="px-6 py-3 text-left text-md font-medium text-gray-500 uppercase tracking-wider">
-                        Warna
-                      </th>
-                      <th className="px-6 py-3 text-left text-md font-medium text-gray-500 uppercase tracking-wider">
-                        Ukuran
-                      </th>
-                      <th className="px-6 py-3 text-left text-md font-medium text-gray-500 uppercase tracking-wider">
-                        Jumlah
-                      </th>
-                      <th className="px-6 py-3 text-left text-md font-medium text-gray-500 uppercase tracking-wider">
-                        Total Harga
-                      </th>
-                      <th className="px-6 py-3 text-left text-md font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-md font-medium text-gray-500 uppercase tracking-wider">
-                        Aksi
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {loadingData ? (
-                      // Table row skeletons
-                      renderTableSkeletonRows()
-                    ) : pesanan.length === 0 ? (
-                      <tr>
-                        <td colSpan="11" className="px-6 py-4 text-center text-gray-500">
-                          Tidak ada data pesanan yang tersedia.
-                        </td>
-                      </tr>
-                    ) : filteredOrders.length === 0 ? (
-                      <tr>
-                        <td colSpan="11" className="px-6 py-4 text-center text-gray-500">
-                          Tidak ada data pesanan yang sesuai dengan filter.
-                        </td>
-                      </tr>
-                    ) : (
-                      // Actual table rows
-                      paginatedData.map((pesanan) => (
-                        <tr key={pesanan.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {pesanan.order_unique_id || "-"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {pesanan.created_at ? new Date(pesanan.created_at).toLocaleDateString() : "-"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {pesanan.user?.name || pesanan.customer_name || pesanan.nama_customer || "-"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {pesanan.catalog_id === null ? (
-                              pesanan.custom_order_id ? (
-                                <span
-                                  className="text-blue-600 cursor-pointer hover:underline"
-                                  onClick={() => handleCustomOrderDetail(pesanan.custom_order_id)}
-                                >
-                                  Pemesanan Khusus
-                                </span>
-                              ) : (
-                                "Pemesanan Khusus"
-                              )
-                            ) : (
-                              "Pemesanan Jadi"
-                            )}
-                          </td>
-                          <td className="px-6 py-4">
-                            {pesanan.custom_order?.jenis_baju || pesanan.catalog?.nama_katalog || "-"}
-                          </td>
-                          <td className="px-6 py-4">{getColorInfo(pesanan)}</td>
-                          <td className="px-6 py-4">{getSizeInfo(pesanan)}</td>
-                          <td className="px-6 py-4">{pesanan.jumlah || 0}</td>
-                          <td className="px-6 py-4">{formatCurrency(pesanan.total_harga)}</td>
-                          <td className="px-6 py-4">
-                            <span
-                              className={`px-2 py-1 rounded-full text-sm bg-${getStatusBadgeColor(pesanan.status)} text-${getStatusTextColor(pesanan.status)}`}
-                            >
-                              {pesanan.status?.replace(/_/g, " ") || "Pending"}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex flex-wrap gap-2">{renderActionButtons(pesanan)}</div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+            paginatedData.map((orderData) => (
+              <div
+                key={`${orderData.displayType}-${orderData.id}`}
+                className="bg-white border rounded-lg shadow-sm p-4"
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <p className="text-xs text-gray-500">ID: {orderData.order_unique_id || "-"}</p>
+                    <p className="text-sm text-gray-500">
+                      {orderData.created_at ? new Date(orderData.created_at).toLocaleDateString() : "-"}
+                    </p>
+                    <h3 className="font-medium">{getProductName(orderData)}</h3>
+                  </div>
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs bg-${getStatusBadgeColor(orderData.status)} text-${getStatusTextColor(orderData.status)}`}
+                  >
+                    {orderData.status?.replace(/_/g, " ") || "Pending"}
+                  </span>
+                </div>
 
-          {/* Pagination - Only show when not loading and has data */}
-          {!loadingData && filteredOrders.length > 0 && renderPagination()}
-        </>
+                <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                  <div>
+                    <p className="text-gray-500">Jenis Pemesanan</p>
+                    <p>{orderData.isCustomOrder ? "Pemesanan Khusus" : "Pemesanan Jadi"}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Customer</p>
+                    <p>{orderData.user?.name || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Warna</p>
+                    <p>{getColorInfo(orderData)}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Ukuran</p>
+                    <p>{getSizeInfo(orderData)}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Jumlah</p>
+                    <p>{getQuantityInfo(orderData)}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-gray-500">Total Harga</p>
+                    <p className="font-semibold">{formatCurrency(orderData.total_harga)}</p>
+                  </div>
+                </div>
+
+                {orderData.isCustomOrder && orderData.gambar_referensi && (
+                  <div className="mb-3">
+                    <p className="text-gray-500 text-sm mb-1">Referensi Foto</p>
+                    <div className="flex items-center gap-2">
+                      {(() => {
+                        try {
+                          const images =
+                            typeof orderData.gambar_referensi === "string"
+                              ? JSON.parse(orderData.gambar_referensi)
+                              : orderData.gambar_referensi
+                          const firstImage = Array.isArray(images) ? images[0] : images
+
+                          if (!firstImage) {
+                            return (
+                              <div className="h-20 w-20 bg-gray-200 rounded flex items-center justify-center">
+                                <span className="text-xs text-gray-500">No Image</span>
+                              </div>
+                            )
+                          }
+
+                          return (
+                            <img
+                              src={`${process.env.REACT_APP_API_URL}/${firstImage}`}
+                              alt="Referensi"
+                              className="h-20 w-20 object-cover rounded"
+                              onError={(e) => {
+                                e.target.style.display = "none"
+                                e.target.nextSibling.style.display = "flex"
+                              }}
+                            />
+                          )
+                        } catch (e) {
+                          console.error("Error parsing gambar_referensi:", e)
+                          return (
+                            <div className="h-20 w-20 bg-gray-200 rounded flex items-center justify-center">
+                              <span className="text-xs text-gray-500">No Image</span>
+                            </div>
+                          )
+                        }
+                      })()}
+                      <button
+                        onClick={() => handleCustomOrderDetail(orderData.custom_order_id)}
+                        className="px-2 py-1 bg-brown-600 text-white text-sm rounded hover:bg-brown-700"
+                      >
+                        Lihat Detail Custom
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {orderData.catatan && (
+                  <div className="mb-3">
+                    <p className="text-gray-500 text-sm">Catatan</p>
+                    <p className="text-sm">{orderData.catatan || "-"}</p>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-2 mt-4">{renderActionButtons(orderData)}</div>
+              </div>
+            ))
+          )}
+        </div>
+      ) : (
+        // Desktop Table View
+        <div className="overflow-x-auto -mx-4 sm:mx-0">
+          <div className="inline-block min-w-full align-middle">
+            <table className="min-w-full bg-white">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-md font-medium text-gray-500 uppercase tracking-wider">
+                    Order ID
+                  </th>
+                  <th className="px-6 py-3 text-left text-md font-medium text-gray-500 uppercase tracking-wider">
+                    Tanggal
+                  </th>
+                  <th className="px-6 py-3 text-left text-md font-medium text-gray-500 uppercase tracking-wider">
+                    Customer
+                  </th>
+                  <th className="px-6 py-3 text-left text-md font-medium text-gray-500 uppercase tracking-wider">
+                    Jenis Pemesanan
+                  </th>
+                  <th className="px-6 py-3 text-left text-md font-medium text-gray-500 uppercase tracking-wider">
+                    Jenis Pakaian
+                  </th>
+                  <th className="px-6 py-3 text-left text-md font-medium text-gray-500 uppercase tracking-wider">
+                    Warna
+                  </th>
+                  <th className="px-6 py-3 text-left text-md font-medium text-gray-500 uppercase tracking-wider">
+                    Ukuran
+                  </th>
+                  <th className="px-6 py-3 text-left text-md font-medium text-gray-500 uppercase tracking-wider">
+                    Jumlah
+                  </th>
+                  <th className="px-6 py-3 text-left text-md font-medium text-gray-500 uppercase tracking-wider">
+                    Total Harga
+                  </th>
+                  <th className="px-6 py-3 text-left text-md font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-md font-medium text-gray-500 uppercase tracking-wider">
+                    Aksi
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {loadingData ? (
+                  renderTableSkeletonRows()
+                ) : allOrdersData.length === 0 ? (
+                  <tr>
+                    <td colSpan="11" className="px-6 py-4 text-center text-gray-500">
+                      Tidak ada data pesanan yang tersedia.
+                    </td>
+                  </tr>
+                ) : filteredOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan="11" className="px-6 py-4 text-center text-gray-500">
+                      Tidak ada data pesanan yang sesuai dengan filter.
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedData.map((orderData) => (
+                    <tr key={`${orderData.displayType}-${orderData.id}`} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {orderData.order_unique_id || "-"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {orderData.created_at ? new Date(orderData.created_at).toLocaleDateString() : "-"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">{orderData.user?.name || "-"}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {orderData.isCustomOrder ? (
+                          orderData.custom_order_id ? (
+                            <span
+                              className="text-blue-600 cursor-pointer hover:underline"
+                              onClick={() => handleCustomOrderDetail(orderData.custom_order_id)}
+                            >
+                              Pemesanan Khusus
+                            </span>
+                          ) : (
+                            "Pemesanan Khusus"
+                          )
+                        ) : (
+                          "Pemesanan Jadi"
+                        )}
+                      </td>
+                      <td className="px-6 py-4">{getProductName(orderData)}</td>
+                      <td className="px-6 py-4">{getColorInfo(orderData)}</td>
+                      <td className="px-6 py-4">{getSizeInfo(orderData)}</td>
+                      <td className="px-6 py-4">{getQuantityInfo(orderData)}</td>
+                      <td className="px-6 py-4">{formatCurrency(orderData.total_harga)}</td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`px-2 py-1 rounded-full text-sm bg-${getStatusBadgeColor(orderData.status)} text-${getStatusTextColor(orderData.status)}`}
+                        >
+                          {orderData.status?.replace(/_/g, " ") || "Pending"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-wrap gap-2">{renderActionButtons(orderData)}</div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
+
+      {/* Pagination - Only show when not loading and has data */}
+      {!loadingData && filteredOrders.length > 0 && renderPagination()}
 
       {/* Refresh Button */}
       <div className="mt-8 flex justify-center">
@@ -1253,16 +1443,30 @@ const Pemesanan = () => {
         >
           {loadingData ? (
             <>
-              <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <svg
+                className="animate-spin h-4 w-4 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
               </svg>
               <span>Memuat...</span>
             </>
           ) : (
             <>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
               </svg>
               <span>Refresh Data</span>
             </>

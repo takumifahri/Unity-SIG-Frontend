@@ -127,9 +127,9 @@ function NavigationBar() {
           >
             <li className="relative group px-2 py-2 md:py-0">
               <Link
-                to="/Catalog"
+                to="/Katalog"
                 className={`font-medium transition-colors no-underline text-black hover:text-[#7D5A50] ${
-                  isActive('/Catalog') ? 'border-b-2 border-[#7D5A50] pb-1 text-[#7D5A50]' : ''
+                  isActive('/Katalog') ? 'border-b-2 border-[#7D5A50] pb-1 text-[#7D5A50]' : ''
                 }`}
               >
                 Katalog

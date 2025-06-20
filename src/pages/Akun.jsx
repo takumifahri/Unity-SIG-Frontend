@@ -1059,7 +1059,7 @@ function Akun() {
                       {!isEditing && (
                         <Button variant="outlined" color="primary" onClick={handleEditToggle}>
                           <i className="fas fa-edit me-2"></i>
-                          Edit Informasi
+                          Edit Informasi    
                         </Button>
                       )}
                     </div>
@@ -1309,142 +1309,140 @@ function Akun() {
                         
                         return (
                           <Paper
-                          key={order.id}
-                          elevation={1}
-                          sx={{
-                            mb: 3,
-                            p: 2,
-                            borderRadius: 2,
-                            "&:last-child": { mb: 0 },
-                          }}
+                            key={order.id}
+                            elevation={1}
+                            sx={{
+                              mb: 3,
+                              p: 2,
+                              borderRadius: 2,
+                              "&:last-child": { mb: 0 },
+                            }}
                           >
-                          <Grid container spacing={2}>
-                            <Grid item>
-                            <Box
-                              component="img"
-                              src={`${process.env.REACT_APP_API_URL}/${imageUrl || "default-image-path.jpg"}`}
-                              alt="Product"
-                              sx={{
-                              width: 100,
-                              height: 100,
-                              objectFit: "cover",
-                              borderRadius: 1,
-                              }}
-                              onError={(e) => {
-                              e.target.src = `${process.env.PUBLIC_URL}/images/default-product.jpg`;
-                              }}
-                            />
-                            </Grid>
-                            <Grid item xs>
-                            <Box
-                              sx={{
-                              display: "flex",
-                              flexDirection: "column",
-                              justifyContent: "center",
-                              height: "100%",
-                              }}
-                            >
-                              <Box sx={{ mb: 1 }}>
-                              <Typography variant="body2" color="text.secondary" component="span">
-                                Tanggal Pemesanan:
-                              </Typography>{" "}
-                              <Typography variant="body2" component="span">
-                                {new Date(order?.created_at || order?.created_at).toLocaleDateString("id-ID", {
-                                weekday: "long",
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                                })}
-                              </Typography>
-                              </Box>
-                              {filterType === "Custom" && (
-                              <Typography variant="body2" sx={{ mb: 1 }}>
-                                <strong>Jenis:</strong> {order?.jenis_baju || "Custom Order"}
-                              </Typography>
-                              )}
-                              {filterType === "Catalog" && (
-                              <Typography variant="body2" sx={{ mb: 1 }}>
-                                <strong>Produk:</strong> {order?.catalog?.nama || "Produk Katalog"}
-                              </Typography>
-                              )}
-                              {(order.price || order.total_harga) && (
-                              <Typography variant="body3" fontWeight="bold" sx={{ mb: 1 }}>
-                                {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(
-                                order.price || order.total_harga || 0,
-                                )}
-                              </Typography>
-                              )}
-                              <Link
-                              href="#"
-                              underline="none"
-                              color="primary"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                handleDetailClick(order); // Kirim seluruh objek order
-                              }}
-                              >
-                              <Box sx={{ display: "flex", gap: 1, mt: 1, flexWrap: "wrap" }}>
-                                <Button variant="outlined" color="primary" size="large">
-                                Detail
-                                </Button>
-                                
-                                {/* Payment button - shown for both custom and catalog orders */}
-                                {(order?.status === "Menunggu_Pembayaran" || 
-                                  order?.status === "menunggu pembayaran" ||
-                                  order?.status === "belum_bayar" ||
-                                  order?.status_pembayaran === "belum_bayar" ||
-                                  order?.status_pembayaran === "Belum_Bayar" && order?.transaction.status !== 'pending') && (
-                                  <Button 
-                                    variant="contained" 
-                                    color="success" 
-                                    size="large"
+                            <Grid container spacing={2}>
+                              <Grid item>
+                                <Box
+                                  component="img"
+                                  src={imageUrl ? `${process.env.REACT_APP_API_URL}/${imageUrl}` : 'https://www.svgrepo.com/show/491841/clothes-shirt-ui.svg'}
+                                  alt="Product"
+                                  sx={{
+                                    width: 100,
+                                    height: 100,
+                                    objectFit: "cover",
+                                    borderRadius: 1,
+                                  }}
+                                  onError={(e) => {
+                                    e.target.src = 'https://www.svgrepo.com/show/491841/clothes-shirt-ui.svg';
+                                  }}
+                                />
+                              </Grid>
+                              <Grid item xs>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    justifyContent: "center",
+                                    height: "100%",
+                                  }}
+                                >
+                                  <Box sx={{ mb: 1 }}>
+                                    <Typography variant="body2" color="text.secondary" component="span">
+                                      Tanggal Pemesanan:
+                                    </Typography>{" "}
+                                    <Typography variant="body2" component="span">
+                                      {new Date(order?.created_at || order?.created_at).toLocaleDateString("id-ID", {
+                                        weekday: "long",
+                                        year: "numeric",
+                                        month: "long",
+                                        day: "numeric",
+                                      })}
+                                    </Typography>
+                                  </Box>
+                                  {filterType === "Custom" && (
+                                    <Typography variant="body2" sx={{ mb: 1 }}>
+                                      <strong>Jenis:</strong> {order?.jenis_baju || "Custom Order"}
+                                    </Typography>
+                                  )}
+                                  {filterType === "Catalog" && (
+                                    <Typography variant="body2" sx={{ mb: 1 }}>
+                                      <strong>Produk:</strong> {order?.catalog?.nama || "Produk Katalog"}
+                                    </Typography>
+                                  )}
+                                  <Typography variant="body3" fontWeight="bold" sx={{ mb: 1 }}>
+                                    {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(
+                                      order.price || order.total_harga || 0,
+                                    )}
+                                  </Typography>
+                                  <Link
+                                    href="#"
+                                    underline="none"
+                                    color="primary"
                                     onClick={(e) => {
-                                    e.stopPropagation();
-                                    e.preventDefault();
-                                    
-                                    // Debug logging
-                                    console.log("=== ORDER CLICK DEBUG ===");
-                                    console.log("Full order object:", order);
-                                    console.log("Order type:", filterType);
-                                    console.log("Order ID:", order?.id);
-                                    console.log("Order status:", order?.status);
-                                    console.log("Payment status:", order?.status_pembayaran);
-                                    
-                                    // Log all possible transaction ID fields
-                                    console.log("Possible transaction IDs:");
-                                    console.log("- order_unique_id:", order?.order_unique_id);
-                                    console.log("- custom_orders.order_id:", order?.custom_orders?.order_id);
-                                    console.log("- transaction.transaction_unique_id:", order?.transaction?.transaction_unique_id);
-                                    console.log("- transaction_unique_id:", order?.transaction_unique_id);
-                                    console.log("- transaction_id:", order?.transaction_id);
-                                    
-                                    // Navigate to payment page with transaction ID
-                                    // Try all possible transaction ID locations
-                                    const transactionId = order?.order_unique_id ||
-                                          order?.order_id ||
-                                          order?.transaction?.transaction_unique_id || 
-                                          order?.transaction_unique_id ||
-                                          order?.transaction_id;
-
-                                    console.log("Selected transaction ID:", transactionId);
-
-                                    if (transactionId) {
-                                      console.log("Navigating to:", `/payment/${transactionId}`);
-                                      navigate(`/payment/${transactionId}`);
-                                    } else {
-                                      console.error("No transaction ID found!");
-                                      showSnackbar("ID transaksi tidak ditemukan", "error", "Error");
-                                    }
+                                      e.preventDefault();
+                                      handleDetailClick(order); // Kirim seluruh objek order
                                     }}
                                   >
-                                    Bayar
-                                  </Button>
-                                  )}
-                              </Box>
-                              </Link>
-                            </Box>
+                                    <Box sx={{ display: "flex", gap: 1, mt: 1, flexWrap: "wrap" }}>
+                                      <Button variant="outlined" color="primary" size="large">
+                                        Detail
+                                      </Button>
+                                      
+                                      {/* Payment button - shown for both custom and catalog orders */}
+                                      {(order?.status === "Menunggu_Pembayaran" || 
+                                        order?.status === "menunggu pembayaran" ||
+                                        order?.status === "belum_bayar" ||
+                                        order?.status_pembayaran === "belum_bayar" ||
+                                        order?.status_pembayaran === "Belum_Bayar") && (
+                                        <Button 
+                                          variant="contained" 
+                                          color="success" 
+                                          size="large"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            e.preventDefault();
+                                            
+                                            // Debug logging
+                                            console.log("=== ORDER CLICK DEBUG ===");
+                                            console.log("Full order object:", order);
+                                            console.log("Order type:", filterType);
+                                            console.log("Order ID:", order?.id);
+                                            console.log("Order status:", order?.status);
+                                            console.log("Payment status:", order?.status_pembayaran);
+                                            
+                                            // Log all possible transaction ID fields
+                                            console.log("Possible transaction IDs:");
+                                            console.log("- order_unique_id:", order?.order_unique_id);
+                                            console.log("- custom_orders.order_id:", order?.custom_orders?.order_id);
+                                            console.log("- transaction.transaction_unique_id:", order?.transaction?.transaction_unique_id);
+                                            console.log("- transaction_unique_id:", order?.transaction_unique_id);
+                                            console.log("- transaction_id:", order?.transaction_id);
+                                            
+                                            // Navigate to payment page with transaction ID
+                                            // Try all possible transaction ID locations
+                                            const transactionId = order?.order_unique_id ||
+                                                      order?.order_id ||
+                                                      order?.transaction?.transaction_unique_id || 
+                                                      order?.transaction_unique_id ||
+                                                      order?.transaction_id;
+
+                                            console.log("Selected transaction ID:", transactionId);
+
+                                            if (transactionId) {
+                                              console.log("Navigating to:", `/payment/${transactionId}`);
+                                              navigate(`/payment/${transactionId}`);
+                                            } else {
+                                              console.error("No transaction ID found!");
+                                              showSnackbar("ID transaksi tidak ditemukan", "error", "Error");
+                                            }
+                                          }}
+                                        >
+                                          Bayar
+                                        </Button>
+                                      )}
+                                    </Box>
+                                  </Link>
+                                </Box>
+                              </Grid>
                             </Grid>
-                          </Grid>
                           </Paper>
                         );
                       })

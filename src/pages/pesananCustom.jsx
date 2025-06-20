@@ -1,3 +1,5 @@
+"use client"
+
 import { useEffect, useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import axios from "axios"
@@ -17,7 +19,13 @@ import {
   TableRow,
   Divider,
   Chip,
+  Grid,
+  Skeleton,
+  Dialog,
+  DialogContent,
 } from "@mui/material"
+import CloseIcon from '@mui/icons-material/Close';
+import PesananCustomSkeleton from "../components/PesananCustomSkeleton"
 import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 import IconButton from "@mui/material/IconButton"
 import LocationOnIcon from "@mui/icons-material/LocationOn"
@@ -34,6 +42,9 @@ import Swal from "sweetalert2"
 import { useAuth } from "../context/AuthContext"
 import withReactContent from "sweetalert2-react-content"
 import DateRangePickerModal from "../components/DateRangePicker"
+import DeliveryTrackingMap from "../components/DeliveryTrackingMap"
+import { DownloadIcon } from "lucide-react"
+import { ZoomInIcon } from "lucide-react"
 const PesananCustom = () => {
   const { orderUniqueId } = useParams()
   const navigate = useNavigate()
@@ -94,7 +105,7 @@ const PesananCustom = () => {
       // Make sure we have all required fields from backend validation
       const payload = {
         detail_bahan: finalizeData.detail_bahan || '',
-        total_harga: parseInt(finalizeData.total_harga),
+        total_harga: Number.parseInt(finalizeData.total_harga),
         start_date: finalizeData.start_date,
         end_date: finalizeData.end_date,
         payment_method: finalizeData.payment_method
@@ -129,7 +140,8 @@ const PesananCustom = () => {
   const [mainImageIndex, setMainImageIndex] = useState(0)
   const [referenceImages, setReferenceImages] = useState([])
   const ReactSwal = withReactContent(Swal);
-
+  const [dialogImageUrl, setDialogImageUrl] = useState('');
+  const [openImageDialog, setOpenImageDialog] = useState(false);
   // Status mapping for timeline
   const statusMapping = {
     pending: {
@@ -249,6 +261,17 @@ const PesananCustom = () => {
       console.error("Error canceling order:", error);
       throw error;
     }
+  };
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
   };
   // Function to handle status changes
   const handleStatusChange = async (newStatus) => {
@@ -385,7 +408,7 @@ const PesananCustom = () => {
                     // Handle input changes for price
                     priceDisplay.addEventListener('input', (e) => {
                       // Remove non-numeric characters
-                      let value = e.target.value.replace(/[^\d]/g, '');
+                      const value = e.target.value.replace(/[^\d]/g, '');
                       
                       // Store raw value
                       priceRaw.value = value || '0';
@@ -414,7 +437,7 @@ const PesananCustom = () => {
                       return false;
                     }
                     
-                    if (isNaN(totalHarga) || parseInt(totalHarga) <= 0) {
+                    if (isNaN(totalHarga) || Number.parseInt(totalHarga) <= 0) {
                       Swal.showValidationMessage('Total harga harus berupa angka positif');
                       return false;
                     }
@@ -425,7 +448,7 @@ const PesananCustom = () => {
                     }
                     
                     return {
-                      total_harga: parseInt(totalHarga),
+                      total_harga: Number.parseInt(totalHarga),
                       detail_bahan: detailBahan,
                       payment_method: paymentMethod
                     };
@@ -562,56 +585,104 @@ const PesananCustom = () => {
               response = await adminVerifyPayment(orderDetail.id, "approve")
               break
 
-            case "Sedang_Dikirim":
-              const { value: deliveryData } = await Swal.fire({
-                title: "Konfirmasi Pengiriman",
-                html: `
-                  <div class="mb-3">
-                    <label class="block text-left text-sm font-medium mb-1">Metode Pengiriman</label>
-                    <select id="type_pengantaran" class="w-full px-3 py-2 border border-gray-300 rounded-md">
-                      <option value="">Pilih Metode Pengiriman</option>
-                      <option value="ekspedisi">Ekspedisi</option>
-                      <option value="jrkonveksi">JR Konveksi</option>
-                      <option value="gosend">GoSend</option>
-                      <option value="grabExpress">Grab Express</option>
-                      <option value="pickup">Pickup/Ambil Sendiri</option>
-                    </select>
-                  </div>
-                  <div class="mb-3">
-                    <label class="block text-left text-sm font-medium mb-1">Catatan (opsional)</label>
-                    <textarea id="notes" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Catatan Pengiriman"></textarea>
-                  </div>
-                `,
-                focusConfirm: false,
-                showCancelButton: true,
-                confirmButtonText: "Kirim",
-                cancelButtonText: "Batal",
-                confirmButtonColor: "#a97142",
-                preConfirm: () => {
-                  const typePengantaran = document.getElementById("type_pengantaran").value
-                  if (!typePengantaran) {
-                    Swal.showValidationMessage("Metode pengiriman wajib dipilih")
-                    return false
-                  }
-                  return {
-                    status: "Sedang_Dikirim",
-                    type_pengantaran: typePengantaran,
-                    notes: document.getElementById("notes").value || "",
-                  }
-                },
-              })
+           case "Sedang_Dikirim":
+            // Get user coordinates
+            const userLat = orderDetail.user?.latitude;
+            const userLng = orderDetail.user?.longitude;
+            
+            // JR Konveksi coordinates
+            const jrKonveksiLat = -6.4072857;
+            const jrKonveksiLng = 106.7687122;
+            
+            // Calculate distance if coordinates are available
+            let distance = null;
+            let isOutOfRange = false;
+            let deliveryOptions = '';
+            
+            if (userLat && userLng) {
+              distance = calculateDistance(
+                parseFloat(userLat), 
+                parseFloat(userLng), 
+                jrKonveksiLat, 
+                jrKonveksiLng
+              );
+              isOutOfRange = distance > 30;
+            }
+            
+            // Prepare delivery options HTML with conditional disabling
+            if (isOutOfRange) {
+              deliveryOptions = `
+                <div class="mb-1">
+                  <p class="text-yellow-600 text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="inline h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    Lokasi pelanggan berjarak ${distance.toFixed(1)} km dari JR Konveksi (melebihi 30 km).
+                    <br>Hanya opsi Ekspedisi yang tersedia.
+                  </p>
+                </div>
+              `;
+            }
+            
+            deliveryOptions += `
+              <select id="type_pengantaran" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                <option value="">Pilih Metode Pengiriman</option>
+                <option value="ekspedisi">Ekspedisi</option>
+                <option value="jrkonveksi" ${isOutOfRange ? 'disabled' : ''}>JR Konveksi</option>
+                <option value="gosend" ${isOutOfRange ? 'disabled' : ''}>GoSend</option>
+                <option value="grabExpress" ${isOutOfRange ? 'disabled' : ''}>Grab Express</option>
+                <option value="pickup" ${isOutOfRange ? 'disabled' : ''}>Pickup/Ambil Sendiri</option>
+              </select>
+            `;
 
-              if (deliveryData) {
-                response = await sendToDelivery(orderDetail.id, {
-                  status: deliveryData.status,
-                  type_pengantaran: deliveryData.type_pengantaran,
-                  notes: deliveryData.notes,
-                })
-              } else {
-                return
-              }
-              break
+            const { value: deliveryData } = await Swal.fire({
+              title: "Konfirmasi Pengiriman",
+              html: `
+                <div class="mb-3">
+                  <label class="block text-left text-sm font-medium mb-1">Metode Pengiriman</label>
+                  ${deliveryOptions}
+                </div>
+                ${distance !== null ? 
+                  `<div class="mb-3 text-sm bg-gray-50 p-2 rounded">
+                    <p>Jarak: <strong>${distance.toFixed(1)} km</strong> dari JR Konveksi</p>
+                  </div>` : ''
+                }
+                <div class="mb-3">
+                  <label class="block text-left text-sm font-medium mb-1">Catatan (opsional)</label>
+                  <textarea id="notes" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Catatan Pengiriman"></textarea>
+                </div>
+              `,
+              focusConfirm: false,
+              showCancelButton: true,
+              confirmButtonText: "Kirim",
+              cancelButtonText: "Batal",
+              confirmButtonColor: "#a97142",
+              preConfirm: () => {
+                const typePengantaran = document.getElementById("type_pengantaran").value;
+                if (!typePengantaran) {
+                  Swal.showValidationMessage("Metode pengiriman wajib dipilih");
+                  return false;
+                }
+                return {
+                  status: "Sedang_Dikirim",
+                  type_pengantaran: typePengantaran,
+                  notes: document.getElementById("notes").value || "",
+                  distance: distance,
+                };
+              },
+            });
 
+            if (deliveryData) {
+              response = await sendToDelivery(orderDetail.id, {
+                status: deliveryData.status,
+                type_pengantaran: deliveryData.type_pengantaran,
+                notes: deliveryData.notes,
+                distance: deliveryData.distance,
+              });
+            } else {
+              return;
+            }
+            break;
             case "Sudah_Terkirim":
               const { value: receiptData } = await Swal.fire({
                 title: "Konfirmasi Penerimaan Barang",
@@ -741,7 +812,127 @@ const PesananCustom = () => {
       Swal.fire("Error", "Gagal mengubah status pesanan", "error")
     }
   }
+// 
+//     try {
+//       // Show loading indicator
+//       Swal.fire({
+//         title: 'Mengunduh...',
+//         text: 'Sedang mengunduh gambar',
+//         allowOutsideClick: false,
+//         didOpen: () => {
+//           Swal.showLoading();
+//         }
+//       });
+  
+//       // Create a temporary anchor element
+//       const a = document.createElement('a');
+      
+//       // Open image in new tab, which browser will handle without CORS restrictions
+//       a.href = imageUrl;
+//       a.target = '_blank';
+//       a.rel = 'noopener noreferrer';
+      
+//       // Click the anchor to open image in new tab
+//       document.body.appendChild(a);
+//       a.click();
+//       document.body.removeChild(a);
+      
+//       // Close loading dialog
+//       setTimeout(() => {
+//         Swal.close();
+        
+//         // Show instructions modal
+//         Swal.fire({
+//           title: 'Unduh Gambar',
+//           html: `
+//             <p>Gambar telah dibuka di tab baru.</p>
+//             <p>Untuk mengunduh:</p>
+//             <ol style="text-align:left; margin-left:20px;">
+//               <li>Klik kanan pada gambar</li>
+//               <li>Pilih "Simpan gambar sebagai" atau "Download image"</li>
+//               <li>Simpan dengan nama yang diinginkan</li>
+//             </ol>
+//           `,
+//           icon: 'info',
+//           confirmButtonText: 'Mengerti',
+//           confirmButtonColor: '#D9B99B',
+//         });
+//       }, 500);
+      
+//     } catch (error) {
+//       console.error('Error downloading image:', error);
+//       Swal.fire('Error', 'Gagal mengunduh gambar. Silakan coba lagi.', 'error');
+//     }
+//   };
 
+  const handleOpenImageDialog = (imageUrl) => {
+    // Make sure the URL is valid
+    if (!imageUrl) {
+      Swal.fire('Error', 'Gambar tidak ditemukan', 'error');
+      return;
+    }
+    
+    // Set dialog image URL and open the dialog
+    setDialogImageUrl(imageUrl);
+    setOpenImageDialog(true);
+  };
+  
+  const handleCloseImageDialog = () => {
+    setOpenImageDialog(false);
+  };
+  
+  const downloadImage = async (imageUrl, imageName = 'bukti-pembayaran') => {
+    try {
+      // Show loading indicator
+      Swal.fire({
+        title: 'Mengunduh...',
+        text: 'Sedang mengunduh gambar',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+  
+      // Create a temporary anchor element
+      const a = document.createElement('a');
+      
+      // Open image in new tab, which browser will handle without CORS restrictions
+      a.href = imageUrl;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      
+      // Click the anchor to open image in new tab
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      // Close loading dialog
+      setTimeout(() => {
+        Swal.close();
+        
+        // Show instructions modal
+        Swal.fire({
+          title: 'Unduh Gambar',
+          html: `
+            <p>Gambar telah dibuka di tab baru.</p>
+            <p>Untuk mengunduh:</p>
+            <ol style="text-align:left; margin-left:20px;">
+              <li>Klik kanan pada gambar</li>
+              <li>Pilih "Simpan gambar sebagai" atau "Download image"</li>
+              <li>Simpan dengan nama yang diinginkan</li>
+            </ol>
+          `,
+          icon: 'info',
+          confirmButtonText: 'Mengerti',
+          confirmButtonColor: '#D9B99B',
+        });
+      }, 500);
+      
+    } catch (error) {
+      console.error('Error downloading image:', error);
+      Swal.fire('Error', 'Gagal mengunduh gambar. Silakan coba lagi.', 'error');
+    }
+  };
   // Format currency
   const formatCurrency = (amount) => {
     return amount ? `Rp ${Number.parseInt(amount).toLocaleString("id-ID")}` : "Pending"
@@ -817,7 +1008,7 @@ const PesananCustom = () => {
   const renderActionButton = () => {
     if (!orderDetail) return null
 
-    switch (orderDetail.status) {
+    switch (orderDetail.orders?.[0].status) {
       case "pending":
         return (
           <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
@@ -989,22 +1180,7 @@ const PesananCustom = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="xl" sx={{ padding: 4 }}>
-        <Card
-          sx={{
-            maxWidth: 900,
-            margin: "0 auto",
-            border: "1px solid #D9B99B",
-            borderRadius: "12px",
-            padding: 4,
-            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-          }}
-        >
-          <Box sx={{ py: 4, textAlign: "center" }}>
-            <Typography>Loading order details...</Typography>
-          </Box>
-        </Card>
-      </Container>
+      <PesananCustomSkeleton />
     )
   }
 
@@ -1177,26 +1353,27 @@ const PesananCustom = () => {
               >
                 Detail Kustom
               </Button>
-              {["Sedang_Dikirim", "Sudah_Terkirim", "Selesai"].includes(orderDetail.status) && (
-                <Button
-                  onClick={() => setCurrentTab("delivery")}
-                  sx={{
-                    px: 3,
-                    py: 1.5,
-                    borderBottom: currentTab === "delivery" ? "2px solid #D9B99B" : "none",
-                    borderRadius: 0,
-                    color: currentTab === "delivery" ? "#75584A" : "text.secondary",
-                    fontWeight: currentTab === "delivery" ? 600 : 400,
-                    "&:hover": { bgcolor: "transparent", color: "#75584A" },
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 0.5,
-                  }}
-                >
-                  <LocalShippingIcon fontSize="small" />
-                  Informasi Pengiriman
-                </Button>
-              )}
+              {(["Sedang_Dikirim", "Sudah_Terkirim", "Selesai"].includes(orderDetail.orders?.[0]?.status) || 
+                  ["sedang_dikirim", "sudah_terkirim", "selesai"].includes(orderDetail.status?.toLowerCase())) && (
+                  <Button
+                    onClick={() => setCurrentTab("delivery")}
+                    sx={{
+                      px: 3,
+                      py: 1.5,
+                      borderBottom: currentTab === "delivery" ? "2px solid #D9B99B" : "none",
+                      borderRadius: 0,
+                      color: currentTab === "delivery" ? "#75584A" : "text.secondary",
+                      fontWeight: currentTab === "delivery" ? 600 : 400,
+                      "&:hover": { bgcolor: "transparent", color: "#75584A" },
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 0.5,
+                    }}
+                  >
+                    <LocalShippingIcon fontSize="small" />
+                    Informasi Pengiriman
+                  </Button>
+                )}
             </Box>
           </Box>
 
@@ -1436,84 +1613,93 @@ const PesananCustom = () => {
             </Box>
           )}
 
-          {currentTab === "payment" && (
-            <Box sx={{ marginBottom: 4 }}>
-              <TableContainer
-                component={Paper}
-                sx={{
-                  mb: 2,
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
-                  border: "1px solid #f0f0f0",
-                  borderRadius: "8px",
-                  overflow: "hidden",
-                }}
-              >
-                <Table>
-                  <TableHead sx={{ backgroundColor: "#f9f4ef" }}>
-                    <TableRow>
-                      <TableCell colSpan={2}>
-                        <Typography variant="h6" sx={{ fontWeight: 500, color: "#75584A" }}>
-                          Informasi Pembayaran
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 500, width: "40%" }}>ID Transaksi</TableCell>
-                      <TableCell>{orderDetail.transaction?.transaction_unique_id || "-"}</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 500 }}>Metode Pembayaran</TableCell>
-                      <TableCell>{orderDetail.transaction?.payment_method || "-"}</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 500 }}>Tujuan Transfer</TableCell>
-                      <TableCell>{orderDetail.transaction?.tujuan_transfer || "-"}</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 500 }}>Total</TableCell>
-                      <TableCell>{formatCurrency(orderDetail.total_harga || orderDetail?.total_harga)}</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 500 }}>Status Pembayaran</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={orderDetail.transaction?.status || orderDetail?.status_pembayaran || "-"}
-                          size="small"
-                          sx={{
-                            bgcolor:
-                              orderDetail.transaction?.status === "success" ||
-                              orderDetail?.status_pembayaran === "sudah_bayar"
-                                ? "#C8E6C9"
-                                : "#FFF9C4",
-                            color:
-                              orderDetail.transaction?.status === "success" ||
-                              orderDetail?.status_pembayaran === "sudah_bayar"
-                                ? "#2E7D32"
-                                : "#F57F17",
-                          }}
-                        />
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 500 }}>Tanggal Pembayaran</TableCell>
-                      <TableCell>
-                        {orderDetail.transaction ? formatDate(orderDetail.transaction.created_at) : "-"}
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </TableContainer>
+        {currentTab === "payment" && (
+          <Box sx={{ marginBottom: 4 }}>
+            <TableContainer
+              component={Paper}
+              sx={{
+                mb: 2,
+                boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+                border: "1px solid #f0f0f0",
+                borderRadius: "8px",
+                overflow: "hidden",
+              }}
+            >
+              <Table>
+                <TableHead sx={{ backgroundColor: "#f9f4ef" }}>
+                  <TableRow>
+                    <TableCell colSpan={2}>
+                      <Typography variant="h6" sx={{ fontWeight: 500, color: "#75584A" }}>
+                        Informasi Pembayaran
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 500, width: "40%" }}>ID Transaksi</TableCell>
+                    <TableCell>{orderDetail.transactions?.[0]?.transaction_unique_id || "-"}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 500 }}>Metode Pembayaran</TableCell>
+                    <TableCell>{orderDetail.transactions?.[0]?.payment_method || "-"}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 500 }}>Tujuan Transfer</TableCell>
+                    <TableCell>{orderDetail.transactions?.[0]?.tujuan_transfer || "-"}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 500 }}>Total</TableCell>
+                    <TableCell>{formatCurrency(orderDetail.total_harga || orderDetail?.total_harga)}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 500 }}>Status Pembayaran</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={orderDetail.transactions?.[0]?.status || orderDetail?.status_pembayaran || "-"}
+                        size="small"
+                        sx={{
+                          bgcolor:
+                            orderDetail.transactions?.[0]?.status === "success" ||
+                            orderDetail?.status_pembayaran === "sudah_bayar"
+                              ? "#C8E6C9"
+                              : "#FFF9C4",
+                          color:
+                            orderDetail.transactions?.[0]?.status === "success" ||
+                            orderDetail?.status_pembayaran === "sudah_bayar"
+                              ? "#2E7D32"
+                              : "#F57F17",
+                        }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 500 }}>Tanggal Pembayaran</TableCell>
+                    <TableCell>
+                      {orderDetail.transactions?.[0] ? formatDate(orderDetail.transactions[0].created_at) : "-"}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </TableContainer>
 
-              {orderDetail.transaction?.bukti_transfer && (
-                <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 500, color: "#75584A", mb: 2 }}>
-                    Bukti Pembayaran
-                  </Typography>
+            {orderDetail.transactions?.[0]?.bukti_transfer && (
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 500, color: "#75584A", mb: 2 }}>
+                  Bukti Pembayaran
+                </Typography>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    flexDirection: 'column',
+                    gap: 2
+                  }}
+                >
                   <Box
                     component="img"
-                    src={`${process.env.REACT_APP_API_URL}/${orderDetail.transaction.bukti_transfer}`}
+                    src={`${process.env.REACT_APP_API_URL}/${orderDetail.transactions[0].bukti_transfer}`}
                     alt="Bukti Pembayaran"
                     sx={{
                       maxWidth: "100%",
@@ -1523,15 +1709,55 @@ const PesananCustom = () => {
                       display: "block",
                       margin: "0 auto",
                       boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+                      cursor: "pointer"
                     }}
+                    onClick={() => handleOpenImageDialog(`${process.env.REACT_APP_API_URL}/${orderDetail.transactions[0].bukti_transfer}`)}
                     onError={(e) => {
                       e.target.src = "https://via.placeholder.com/400x300?text=No+Image"
                     }}
                   />
+                  <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                    <Button 
+                      size="small"
+                      variant="outlined"
+                      startIcon={<DownloadIcon />}
+                      onClick={() => downloadImage(
+                        `${process.env.REACT_APP_API_URL}/${orderDetail.transactions[0].bukti_transfer}`,
+                        `bukti-pembayaran-${orderDetail.custom_order_unique_id}`
+                      )}
+                      sx={{ 
+                        color: "#75584A", 
+                        borderColor: "#D9B99B",
+                        "&:hover": {
+                          borderColor: "#C2A07B",
+                          bgcolor: "rgba(217, 185, 155, 0.1)",
+                        }
+                      }}
+                    >
+                      Unduh
+                    </Button>
+                    <Button 
+                      size="small"
+                      variant="outlined"
+                      startIcon={<ZoomInIcon />}
+                      onClick={() => handleOpenImageDialog(`${process.env.REACT_APP_API_URL}/${orderDetail.transactions[0].bukti_transfer}`)}
+                      sx={{ 
+                        color: "#75584A", 
+                        borderColor: "#D9B99B",
+                        "&:hover": {
+                          borderColor: "#C2A07B",
+                          bgcolor: "rgba(217, 185, 155, 0.1)",
+                        }
+                      }}
+                    >
+                      Lihat Detail
+                    </Button>
+                  </Box>
                 </Box>
-              )}
-            </Box>
-          )}
+              </Box>
+            )}
+          </Box>
+        )}
 
           {currentTab === "customDetails" && (
             <Box sx={{ marginBottom: 4 }}>
@@ -1764,157 +1990,208 @@ const PesananCustom = () => {
             </Box>
           )}
 
-          {currentTab === "delivery" && (
-            <Box sx={{ marginBottom: 4 }}>
-              <TableContainer
-                component={Paper}
-                sx={{
-                  mb: 4,
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
-                  border: "1px solid #f0f0f0",
-                  borderRadius: "8px",
-                  overflow: "hidden",
-                }}
-              >
-                <Table>
-                  <TableHead sx={{ backgroundColor: "#f9f4ef" }}>
-                    <TableRow>
-                      <TableCell colSpan={2}>
-                        <Typography
-                          variant="h6"
-                          sx={{ fontWeight: 500, color: "#75584A", display: "flex", alignItems: "center", gap: 1 }}
-                        >
-                          <LocalShippingIcon /> Informasi Pengiriman
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 500, width: "40%" }}>Metode Pengiriman</TableCell>
-                      <TableCell>{orderDetail.delivery?.type_pengantaran || "-"}</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 500 }}>Status</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={orderDetail.status.replace(/_/g, " ")}
-                          size="small"
-                          sx={{
-                            bgcolor: statusColor.bg,
-                            color: statusColor.text,
-                          }}
-                        />
-                      </TableCell>
-                    </TableRow>
-                    {orderDetail.delivery?.receiver_name && (
+            {currentTab === "delivery" && (
+              <Box sx={{ marginBottom: 4 }}>
+                <TableContainer
+                  component={Paper}
+                  sx={{
+                    mb: 4,
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+                    border: "1px solid #f0f0f0",
+                    borderRadius: "8px",
+                    overflow: "hidden",
+                  }}
+                >
+                  <Table>
+                    <TableHead sx={{ backgroundColor: "#f9f4ef" }}>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 500 }}>Diterima Oleh</TableCell>
-                        <TableCell>{orderDetail.delivery.receiver_name}</TableCell>
+                        <TableCell colSpan={2}>
+                          <Typography variant="h6" sx={{ fontWeight: 500, color: "#75584A", display: "flex", alignItems: "center", gap: 1 }}>
+                            <LocalShippingIcon /> Informasi Pengiriman
+                          </Typography>
+                        </TableCell>
                       </TableRow>
-                    )}
-                    {orderDetail.delivery?.notes && (
+                    </TableHead>
+                    <TableBody>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 500 }}>Catatan</TableCell>
-                        <TableCell>{orderDetail.delivery.notes}</TableCell>
+                        <TableCell sx={{ fontWeight: 500, width: "40%" }}>Metode Pengiriman</TableCell>
+                        <TableCell>
+                          {orderDetail.delivery_proof?.type_pengantaran || 
+                          orderDetail.orders?.[0]?.delivery_proof?.type_pengantaran || "-"}
+                        </TableCell>
                       </TableRow>
-                    )}
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 500 }}>Alamat Pengiriman</TableCell>
-                      <TableCell>{orderDetail.user?.address || "-"}</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 500 }}>Status</TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={orderDetail.orders?.[0]?.status.replace(/_/g, ' ') || orderDetail.status.replace(/_/g, ' ')}
+                            size="small"
+                            sx={{ 
+                              bgcolor: statusColor.bg,
+                              color: statusColor.text,
+                            }}
+                          />
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 500 }}>Tanggal Pengiriman</TableCell>
+                        <TableCell>
+                          {formatDate(orderDetail.delivery_proof?.delivery_date || 
+                                      orderDetail.orders?.[0]?.delivery_proof?.delivery_date) || "-"}
+                        </TableCell>
+                      </TableRow>
+                      {(orderDetail.delivery_proof?.receiver_name || orderDetail.orders?.[0]?.delivery_proof?.receiver_name) && (
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 500 }}>Diterima Oleh</TableCell>
+                          <TableCell>
+                            {orderDetail.delivery_proof?.receiver_name || 
+                            orderDetail.orders?.[0]?.delivery_proof?.receiver_name}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {(orderDetail.delivery_proof?.notes || orderDetail.orders?.[0]?.delivery_proof?.notes) && (
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 500 }}>Catatan</TableCell>
+                          <TableCell>
+                            {orderDetail.delivery_proof?.notes || 
+                            orderDetail.orders?.[0]?.delivery_proof?.notes}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 500 }}>ID Pengiriman</TableCell>
+                        <TableCell>
+                          {orderDetail.delivery_proof?.delivery_proof_unique_id || 
+                          orderDetail.orders?.[0]?.delivery_proof?.delivery_proof_unique_id || "-"}
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 500 }}>Alamat Pengiriman</TableCell>
+                        <TableCell>{orderDetail.user?.address || "-"}</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
 
-              {/* Map Section */}
-              {orderDetail.user?.latitude && orderDetail.user?.longitude && (
-                <Box>
-                  <Typography
-                    variant="h6"
-                    sx={{ fontWeight: 500, color: "#75584A", mb: 2, display: "flex", alignItems: "center", gap: 1 }}
-                  >
-                    <LocationOnIcon /> Lokasi Pengiriman
-                  </Typography>
-
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      borderRadius: "8px",
-                      border: "1px solid #D9B99B",
-                      overflow: "hidden",
-                      height: 400,
-                      position: "relative",
-                    }}
-                  >
-                    {/* Create iframe with Google Maps */}
-                    <Box
-                      component="iframe"
-                      src={`https://maps.google.com/maps?q=${orderDetail.user.latitude},${orderDetail.user.longitude}&z=15&output=embed`}
-                      sx={{
-                        border: "none",
-                        width: "100%",
-                        height: "100%",
-                      }}
-                      title="Lokasi Pengiriman"
-                      aria-label="Lokasi Pengiriman"
-                    />
-                  </Paper>
-
-                  <Box sx={{ mt: 2, display: "flex", justifyContent: "center" }}>
-                    <Button
-                      variant="outlined"
-                      href={`https://www.google.com/maps/dir/?api=1&destination=${orderDetail.user.latitude},${orderDetail.user.longitude}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      sx={{
-                        color: "#75584A",
-                        borderColor: "#D9B99B",
-                        "&:hover": {
-                          borderColor: "#C2A07B",
-                          bgcolor: "rgba(217, 185, 155, 0.1)",
-                        },
-                      }}
-                      startIcon={<LocationOnIcon />}
+                {/* Map Section with DeliveryTrackingMap */}
+                {orderDetail.user?.latitude && orderDetail.user?.longitude && (
+                  <Box>
+                    <Typography 
+                      variant="h6" 
+                      sx={{ fontWeight: 500, color: "#75584A", mb: 2, display: "flex", alignItems: "center", gap: 1 }}
                     >
-                      Buka di Google Maps
-                    </Button>
-                  </Box>
-                </Box>
-              )}
-
-              {/* Receipt Image (if available) */}
-              {orderDetail.delivery?.image && (
-                <Box sx={{ mt: 4 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 500, color: "#75584A", mb: 2 }}>
-                    Bukti Penerimaan
-                  </Typography>
-                  <Box
-                    component="img"
-                    src={`${process.env.REACT_APP_API_URL}/${orderDetail.delivery.image}`}
-                    alt="Bukti Penerimaan"
-                    sx={{
-                      maxWidth: "100%",
-                      maxHeight: "400px",
-                      borderRadius: "8px",
-                      objectFit: "contain",
-                      display: "block",
-                      margin: "0 auto",
-                      boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-                    }}
-                    onError={(e) => {
-                      e.target.src = "https://via.placeholder.com/400x300?text=No+Image"
-                    }}
-                  />
-                  {orderDetail.delivery?.description && (
-                    <Typography variant="body2" sx={{ mt: 2, textAlign: "center", color: "text.secondary" }}>
-                      {orderDetail.delivery.description}
+                      <LocationOnIcon /> Peta Pengiriman
                     </Typography>
-                  )}
-                </Box>
-              )}
-            </Box>
-          )}
+                    
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        borderRadius: "8px",
+                        border: "1px solid #D9B99B",
+                        overflow: "hidden",
+                        height: 400,
+                        position: "relative",
+                      }}
+                    >
+                      <DeliveryTrackingMap 
+                        userCoords={[orderDetail.user.latitude, orderDetail.user.longitude]} 
+                        orderStatus={orderDetail.orders?.[0]?.status || orderDetail.status}
+                      />
+                    </Paper>
+                    
+                    <Box sx={{ mt: 2, display: "flex", justifyContent: "center" }}>
+                      <Button
+                        variant="outlined"
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${orderDetail.user.latitude},${orderDetail.user.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{ 
+                          color: "#75584A", 
+                          borderColor: "#D9B99B",
+                          "&:hover": {
+                            borderColor: "#C2A07B",
+                            bgcolor: "rgba(217, 185, 155, 0.1)",
+                          }
+                        }}
+                        startIcon={<LocationOnIcon />}
+                      >
+                        Buka di Google Maps
+                      </Button>
+                    </Box>
+                  </Box>
+                )}
+
+                {/* Receipt Image (if available) */}
+                {(orderDetail.delivery_proof?.image_path || orderDetail.orders?.[0]?.delivery_proof?.image_path) && (
+                  <Box sx={{ mt: 4 }}>
+                    <Typography variant="h6" sx={{ 
+                      fontWeight: 500, 
+                      color: "#75584A", 
+                      mb: 2, 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'space-between' 
+                    }}>
+                      <span>Bukti Pengiriman</span>
+                      <Box>
+                        <Button 
+                          size="small"
+                          variant="outlined"
+                          startIcon={<DownloadIcon />}
+                          onClick={() => downloadImage(
+                            `${process.env.REACT_APP_API_URL}/${orderDetail.delivery_proof?.image_path || orderDetail.orders?.[0]?.delivery_proof?.image_path}`,
+                            `bukti-pengiriman-${orderDetail.order_unique_id || orderDetail.custom_order_unique_id}`
+                          )}
+                          sx={{ 
+                            mr: 1,
+                            color: "#75584A", 
+                            borderColor: "#D9B99B",
+                            "&:hover": {
+                              borderColor: "#C2A07B",
+                              bgcolor: "rgba(217, 185, 155, 0.1)",
+                            }
+                          }}
+                        >
+                          Unduh
+                        </Button>
+                        <Button 
+                          size="small"
+                          variant="outlined"
+                          startIcon={<ZoomInIcon />}
+                          onClick={() => handleOpenImageDialog(`${process.env.REACT_APP_API_URL}/${orderDetail.delivery_proof?.image_path || orderDetail.orders?.[0]?.delivery_proof?.image_path}`)}
+                          sx={{ 
+                            color: "#75584A", 
+                            borderColor: "#D9B99B",
+                            "&:hover": {
+                              borderColor: "#C2A07B",
+                              bgcolor: "rgba(217, 185, 155, 0.1)",
+                            }
+                          }}
+                        >
+                          Lihat
+                        </Button>
+                      </Box>
+                    </Typography>
+                    <Box
+                      component="img"
+                      src={`${process.env.REACT_APP_API_URL}/${orderDetail.delivery_proof?.image_path || orderDetail.orders?.[0]?.delivery_proof?.image_path}`}
+                      alt="Bukti Pengiriman"
+                      sx={{
+                        maxWidth: "100%",
+                        height: "300px",
+                        borderRadius: "8px",
+                        objectFit: "contain",
+                        display: "block",
+                        margin: "0 auto",
+                        boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+                        cursor: "pointer",
+                      }}
+                      onClick={() => handleOpenImageDialog(`${process.env.REACT_APP_API_URL}/${orderDetail.delivery_proof?.image_path || orderDetail.orders?.[0]?.delivery_proof?.image_path}`)}
+                    />
+                  </Box>
+                )}
+              </Box>
+            )}
 
           <Divider sx={{ my: 4, borderColor: "#f0e6d9" }} />
 
@@ -2038,83 +2315,86 @@ const PesananCustom = () => {
                   </TimelineItem>
                 )}
 
-                {/* Proses - Finalization Stage */}
-                {(orderDetail.status === "proses" || 
-                  ["Menunggu_Pembayaran", "Menunggu_Konfirmasi", "Diproses", "Sedang_Dikirim", "Sudah_Terkirim", "Selesai"].includes(orderDetail.status)) && (
-                  <TimelineItem>
-                    <TimelineOppositeContent sx={{ flex: 0.2 }}>
-                      <Typography variant="body2" fontWeight="medium">
-                        {formatDate(orderDetail.updated_at)}
-                      </Typography>
-                      <Typography variant="caption">
-                        {new Date(orderDetail.updated_at).toLocaleTimeString("id-ID", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </Typography>
-                    </TimelineOppositeContent>
-                    <TimelineSeparator>
-                      <TimelineDot sx={{ backgroundColor: orderDetail.status === "proses" ? "#1565C0" : "#9e9e9e" }} />
-                      {["Menunggu_Pembayaran", "Menunggu_Konfirmasi", "Diproses", "Sedang_Dikirim", "Sudah_Terkirim", "Selesai"].includes(orderDetail.status) && (
-                        <TimelineConnector sx={{ backgroundColor: "#F57F17" }} />
-                      )}
-                    </TimelineSeparator>
-                    <TimelineContent>
-                      <Typography variant="body1" fontWeight="medium">
-                        Finalisasi Pesanan
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Pesanan sedang dalam tahap finalisasi (penetapan harga, jadwal, dll)
-                      </Typography>
-                    </TimelineContent>
-                  </TimelineItem>
-                )}
+              {/* Proses - Finalization Stage */}
+              {(orderDetail.status === "proses" || 
+                ["Menunggu_Pembayaran", "Menunggu_Konfirmasi", "Diproses", "Sedang_Dikirim", "Sudah_Terkirim", "Selesai"].includes(orderDetail.status)) && (
+                <TimelineItem>
+                  <TimelineOppositeContent sx={{ flex: 0.2 }}>
+                    <Typography variant="body2" fontWeight="medium">
+                      {formatDate(orderDetail.updated_at)}
+                    </Typography>
+                    <Typography variant="caption">
+                      {new Date(orderDetail.updated_at).toLocaleTimeString("id-ID", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </Typography>
+                  </TimelineOppositeContent>
+                  <TimelineSeparator>
+                    <TimelineDot sx={{ backgroundColor: orderDetail.status === "proses" ? "#1565C0" : "#9e9e9e" }} />
+                    {/* Always show connector to next stage if orders exist */}
+                    {orderDetail.orders && orderDetail.orders.length > 0 && (
+                      <TimelineConnector sx={{ backgroundColor: "#F57F17" }} />
+                    )}
+                  </TimelineSeparator>
+                  <TimelineContent>
+                    <Typography variant="body1" fontWeight="medium">
+                      Finalisasi Pesanan
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Pesanan sedang dalam tahap finalisasi (penetapan harga, jadwal, dll)
+                    </Typography>
+                  </TimelineContent>
+                </TimelineItem>
+              )}
 
-                {/* Payment Required */}
-                {["Menunggu_Pembayaran", "Menunggu_Konfirmasi", "Diproses", "Sedang_Dikirim", "Sudah_Terkirim", "Selesai"].includes(orderDetail.status) && (
-                  <TimelineItem>
-                    <TimelineOppositeContent sx={{ flex: 0.2 }}>
-                      <Typography variant="body2" fontWeight="medium">
-                        {formatDate(orderDetail.updated_at)}
-                      </Typography>
-                      <Typography variant="caption">
-                        {new Date(orderDetail.updated_at).toLocaleTimeString("id-ID", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </Typography>
-                    </TimelineOppositeContent>
-                    <TimelineSeparator>
-                      <TimelineDot sx={{ backgroundColor: orderDetail.status === "Menunggu_Pembayaran" ? "#F57F17" : "#9e9e9e" }} />
-                      {["Menunggu_Konfirmasi", "Diproses", "Sedang_Dikirim", "Sudah_Terkirim", "Selesai"].includes(orderDetail.status) && (
-                        <TimelineConnector sx={{ backgroundColor: "#1565c0" }} />
-                      )}
-                    </TimelineSeparator>
-                    <TimelineContent>
-                      <Typography variant="body1" fontWeight="medium">
-                        Menunggu Pembayaran
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Menunggu pembayaran dari pelanggan
-                      </Typography>
-                    </TimelineContent>
-                  </TimelineItem>
-                )}
+              {/* Payment Required */}
+              {orderDetail.orders && orderDetail.orders.length > 0 && 
+                ["Menunggu_Pembayaran", "Menunggu_Konfirmasi", "Diproses", "Sedang_Dikirim", "Sudah_Terkirim", "Selesai"]
+                  .includes(orderDetail.orders[0]?.status) && (
+                <TimelineItem>
+                  <TimelineOppositeContent sx={{ flex: 0.2 }}>
+                    <Typography variant="body2" fontWeight="medium">
+                      {formatDate(orderDetail.orders[0]?.created_at)}
+                    </Typography>
+                    <Typography variant="caption">
+                      {new Date(orderDetail.orders[0]?.created_at).toLocaleTimeString("id-ID", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </Typography>
+                  </TimelineOppositeContent>
+                  <TimelineSeparator>
+                    <TimelineDot sx={{ backgroundColor: orderDetail.orders[0]?.status === "Menunggu_Pembayaran" ? "#F57F17" : "#9e9e9e" }} />
+                    {["Menunggu_Konfirmasi", "Diproses", "Sedang_Dikirim", "Sudah_Terkirim", "Selesai"].includes(orderDetail.orders[0]?.status) && (
+                      <TimelineConnector sx={{ backgroundColor: "#1565c0" }} />
+                    )}
+                  </TimelineSeparator>
+                  <TimelineContent>
+                    <Typography variant="body1" fontWeight="medium">
+                      Menunggu Pembayaran
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Menunggu pembayaran dari pelanggan
+                    </Typography>
+                  </TimelineContent>
+                </TimelineItem>
+              )}
 
                 {/* Payment Received */}
-                {["Menunggu_Konfirmasi", "Diproses", "Sedang_Dikirim", "Sudah_Terkirim", "Selesai"].includes(orderDetail.status) && (
+                {["Menunggu_Konfirmasi", "Diproses", "Sedang_Dikirim", "Sudah_Terkirim", "Selesai"].includes(orderDetail.orders[0]?.status) && (
                   <TimelineItem>
                     <TimelineOppositeContent sx={{ flex: 0.2 }}>
                       <Typography variant="body2" fontWeight="medium">
-                        {formatDate(orderDetail.transaction?.created_at || orderDetail.updated_at)}
+                        {formatDate(orderDetail.transactions[0]?.created_at || orderDetail.orders[0]?.updated_at)}
                       </Typography>
                       <Typography variant="caption">
-                        {(orderDetail.transaction?.created_at
-                          ? new Date(orderDetail.transaction.created_at).toLocaleTimeString("id-ID", {
+                        {(orderDetail.transactions[0]?.created_at
+                          ? new Date(orderDetail.transactions[0]?.created_at).toLocaleTimeString("id-ID", {
                               hour: "2-digit",
                               minute: "2-digit",
                             })
-                          : new Date(orderDetail.updated_at).toLocaleTimeString("id-ID", {
+                          : new Date(orderDetail.orders[0]?.updated_at).toLocaleTimeString("id-ID", {
                               hour: "2-digit",
                               minute: "2-digit",
                             })
@@ -2122,8 +2402,8 @@ const PesananCustom = () => {
                       </Typography>
                     </TimelineOppositeContent>
                     <TimelineSeparator>
-                      <TimelineDot sx={{ backgroundColor: orderDetail.status === "Menunggu_Konfirmasi" ? "#1565c0" : "#9e9e9e" }} />
-                      {["Diproses", "Sedang_Dikirim", "Sudah_Terkirim", "Selesai"].includes(orderDetail.status) && (
+                      <TimelineDot sx={{ backgroundColor: orderDetail.orders[0]?.status === "Menunggu_Konfirmasi" ? "#1565c0" : "#9e9e9e" }} />
+                      {["Diproses", "Sedang_Dikirim", "Sudah_Terkirim", "Selesai"].includes(orderDetail.orders[0]?.status) && (
                         <TimelineConnector sx={{ backgroundColor: "#2e7d32" }} />
                       )}
                     </TimelineSeparator>
@@ -2139,22 +2419,22 @@ const PesananCustom = () => {
                 )}
 
                 {/* Order Processed */}
-                {["Diproses", "Sedang_Dikirim", "Sudah_Terkirim", "Selesai"].includes(orderDetail.status) && (
+                {["Diproses", "Sedang_Dikirim", "Sudah_Terkirim", "Selesai"].includes(orderDetail.orders[0]?.status) && (
                   <TimelineItem>
                     <TimelineOppositeContent sx={{ flex: 0.2 }}>
                       <Typography variant="body2" fontWeight="medium">
-                        {formatDate(orderDetail.updated_at)}
+                        {formatDate(orderDetail.orders[0]?.updated_at)}
                       </Typography>
                       <Typography variant="caption">
-                        {new Date(orderDetail.updated_at).toLocaleTimeString("id-ID", {
+                        {new Date(orderDetail.orders[0]?.updated_at).toLocaleTimeString("id-ID", {
                           hour: "2-digit",
                           minute: "2-digit",
                         })}
                       </Typography>
                     </TimelineOppositeContent>
                     <TimelineSeparator>
-                      <TimelineDot sx={{ backgroundColor: orderDetail.status === "Diproses" ? "#2e7d32" : "#9e9e9e" }} />
-                      {["Sedang_Dikirim", "Sudah_Terkirim", "Selesai"].includes(orderDetail.status) && (
+                      <TimelineDot sx={{ backgroundColor: orderDetail.orders[0]?.status === "Diproses" ? "#2e7d32" : "#9e9e9e" }} />
+                      {["Sedang_Dikirim", "Sudah_Terkirim", "Selesai"].includes(orderDetail.orders[0]?.status) && (
                         <TimelineConnector sx={{ backgroundColor: "#6a1b9a" }} />
                       )}
                     </TimelineSeparator>
@@ -2170,22 +2450,22 @@ const PesananCustom = () => {
                 )}
 
                 {/* Order Shipped */}
-                {["Sedang_Dikirim", "Sudah_Terkirim", "Selesai"].includes(orderDetail.status) && (
+                {["Sedang_Dikirim", "Sudah_Terkirim", "Selesai"].includes(orderDetail.orders[0]?.status) && (
                   <TimelineItem>
                     <TimelineOppositeContent sx={{ flex: 0.2 }}>
                       <Typography variant="body2" fontWeight="medium">
-                        {formatDate(orderDetail.updated_at)}
+                        {formatDate(orderDetail.orders[0]?.updated_at)}
                       </Typography>
                       <Typography variant="caption">
-                        {new Date(orderDetail.updated_at).toLocaleTimeString("id-ID", {
+                        {new Date(orderDetail.orders[0]?.updated_at).toLocaleTimeString("id-ID", {
                           hour: "2-digit",
                           minute: "2-digit",
                         })}
                       </Typography>
                     </TimelineOppositeContent>
                     <TimelineSeparator>
-                      <TimelineDot sx={{ backgroundColor: orderDetail.status === "Sedang_Dikirim" ? "#6a1b9a" : "#9e9e9e" }} />
-                      {["Sudah_Terkirim", "Selesai"].includes(orderDetail.status) && (
+                      <TimelineDot sx={{ backgroundColor: orderDetail.orders[0]?.status === "Sedang_Dikirim" ? "#6a1b9a" : "#9e9e9e" }} />
+                      {["Sudah_Terkirim", "Selesai"].includes(orderDetail.orders[0]?.status) && (
                         <TimelineConnector sx={{ backgroundColor: "#00838f" }} />
                       )}
                     </TimelineSeparator>
@@ -2201,22 +2481,22 @@ const PesananCustom = () => {
                 )}
 
                 {/* Order Received */}
-                {["Sudah_Terkirim", "Selesai"].includes(orderDetail.status) && (
+                {["Sudah_Terkirim", "Selesai"].includes(orderDetail.orders[0]?.status) && (
                   <TimelineItem>
                     <TimelineOppositeContent sx={{ flex: 0.2 }}>
                       <Typography variant="body2" fontWeight="medium">
-                        {formatDate(orderDetail.updated_at)}
+                        {formatDate(orderDetail.orders[0]?.updated_at)}
                       </Typography>
                       <Typography variant="caption">
-                        {new Date(orderDetail.updated_at).toLocaleTimeString("id-ID", {
+                        {new Date(orderDetail.orders[0]?.updated_at).toLocaleTimeString("id-ID", {
                           hour: "2-digit",
                           minute: "2-digit",
                         })}
                       </Typography>
                     </TimelineOppositeContent>
                     <TimelineSeparator>
-                      <TimelineDot sx={{ backgroundColor: orderDetail.status === "Sudah_Terkirim" ? "#00838f" : "#9e9e9e" }} />
-                      {orderDetail.status === "Selesai" && <TimelineConnector sx={{ backgroundColor: "#4527a0" }} />}
+                      <TimelineDot sx={{ backgroundColor: orderDetail.orders[0]?.status === "Sudah_Terkirim" ? "#00838f" : "#9e9e9e" }} />
+                      {orderDetail.orders[0]?.status === "Selesai" && <TimelineConnector sx={{ backgroundColor: "#4527a0" }} />}
                     </TimelineSeparator>
                     <TimelineContent>
                       <Typography variant="body1" fontWeight="medium">
@@ -2230,14 +2510,14 @@ const PesananCustom = () => {
                 )}
 
                 {/* Order Completed */}
-                {orderDetail.status === "Selesai" && (
+                {orderDetail.orders[0]?.status === "Selesai" && (
                   <TimelineItem>
                     <TimelineOppositeContent sx={{ flex: 0.2 }}>
                       <Typography variant="body2" fontWeight="medium">
-                        {formatDate(orderDetail.updated_at)}
+                        {formatDate(orderDetail.orders[0]?.updated_at)}
                       </Typography>
                       <Typography variant="caption">
-                        {new Date(orderDetail.updated_at).toLocaleTimeString("id-ID", {
+                        {new Date(orderDetail.orders[0]?.updated_at).toLocaleTimeString("id-ID", {
                           hour: "2-digit",
                           minute: "2-digit",
                         })}
@@ -2307,8 +2587,148 @@ const PesananCustom = () => {
           </Box>
         </CardContent>
       </Card>
+      <Dialog
+        open={openImageDialog}
+        onClose={handleCloseImageDialog}
+        maxWidth="2xl"
+        fullWidth
+        PaperProps={{
+          sx: {
+            bgcolor: 'rgba(255, 255, 255, 0.98)',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+          }
+        }}
+        BackdropProps={{
+          sx: {
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            backdropFilter: 'blur(2px)',
+            position: 'fixed !important',
+            inset: '0px !important',
+            width: '100vw !important',
+            height: '100vh !important',
+            zIndex: (theme) => theme.zIndex.drawer + 1,
+            display: 'flex !important',
+            alignItems: 'center !important',
+            justifyContent: 'center !important',
+            margin: '0 !important'
+          }
+        }}
+        sx={{
+          '& .MuiDialog-container': {
+            height: '100vh',
+            width: '100vw',
+            alignItems: 'center',
+            justifyContent: 'center'
+          },
+          '& .MuiDialog-paper': {
+            margin: '16px !important',
+            maxHeight: 'calc(100% - 32px) !important'
+          },
+          '& .MuiBackdrop-root': {
+            position: 'fixed !important'
+          }
+        }}
+      >
+        <DialogContent 
+          sx={{ 
+            p: 0, 
+            position: 'relative', 
+            height: '80vh',
+            display: 'flex',
+            flexDirection: 'column'
+          }}
+        >
+          {/* Header with title and buttons */}
+          <Box
+            sx={{
+              position: 'sticky',
+              top: 0,
+              left: 0,
+              right: 0,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              p: 2,
+              bgcolor: 'rgba(255,255,255,0.95)',
+              borderBottom: '1px solid rgba(0,0,0,0.05)',
+              zIndex: 10,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+            }}
+          >
+            <Typography variant="h6" sx={{ color: '#75584A', fontWeight: 500 }}>
+              Detail Gambar
+            </Typography>
+            
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Button
+                variant="outlined"
+                startIcon={<DownloadIcon />}
+                onClick={() => downloadImage(dialogImageUrl, 'gambar-pesanan')}
+                sx={{ 
+                  mr: 2,
+                  color: "#75584A", 
+                  borderColor: "#D9B99B",
+                  "&:hover": {
+                    borderColor: "#C2A07B",
+                    bgcolor: "rgba(217, 185, 155, 0.1)",
+                  }
+                }}
+              >
+                Unduh
+              </Button>
+              
+              <IconButton
+                aria-label="close"
+                onClick={handleCloseImageDialog}
+                sx={{
+                  color: '#75584A',
+                  bgcolor: 'white',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                  '&:hover': {
+                    bgcolor: '#f5f5f5',
+                  },
+                }}
+              >
+                <CloseIcon />
+              </IconButton>
+            </Box>
+          </Box>
+          
+          {/* Container for image */}
+          <Box
+            sx={{
+              flex: 1,
+              width: '100%',
+              height: 'calc(100% - 64px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'auto',
+              padding: '16px'
+            }}
+          >
+            <Box
+              component="img"
+              src={dialogImageUrl}
+              alt="Gambar Detail"
+              sx={{
+                maxWidth: '100%',
+                maxHeight: '100%',
+                objectFit: 'contain',
+                borderRadius: '4px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+              }}
+            />
+          </Box>
+        </DialogContent>
+      </Dialog>
     </Container>
   )
 }
 
+
 export default PesananCustom
+
+

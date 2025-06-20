@@ -26,15 +26,24 @@ import {
   List,
   ListItem,
   ListItemText,
+  Dialog,
+  DialogContent,
+  IconButton,
 } from "@mui/material"
 
+// MUI Icons
+import CloseIcon from "@mui/icons-material/Close"
+import ZoomInIcon from "@mui/icons-material/ZoomIn"
+import ZoomOutIcon from "@mui/icons-material/ZoomOut"
+import RestartAltIcon from "@mui/icons-material/RestartAlt"
+import DownloadIcon from "@mui/icons-material/Download"
 // MUI Icons
 import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 import InfoIcon from "@mui/icons-material/Info"
 import CheckCircleIcon from "@mui/icons-material/CheckCircle"
 import UploadFileIcon from "@mui/icons-material/UploadFile"
 import ContentCopyIcon from "@mui/icons-material/ContentCopy"
-
+import PaymentSkeletonWithAnimation from "../components/payment-skeleton"
 function PaymentPage() {
   const navigate = useNavigate()
   const { id } = useParams()
@@ -45,7 +54,10 @@ function PaymentPage() {
   const [previewImage, setPreviewImage] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [uploadSuccess, setUploadSuccess] = useState(false)
-
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [currentImage, setCurrentImage] = useState(null);
+ 
   // Snackbar state
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -201,10 +213,7 @@ function PaymentPage() {
   if (loading) {
     return (
       <Container maxWidth="md" sx={{ py: 8, textAlign: "center" }}>
-        <CircularProgress color="primary" size={60} thickness={4} />
-        <Typography variant="body1" color="text.secondary" sx={{ mt: 3 }}>
-          Loading payment details...
-        </Typography>
+        <PaymentSkeletonWithAnimation />
       </Container>
     )
   }
@@ -243,7 +252,7 @@ function PaymentPage() {
           variant="contained"
           color="primary"
           startIcon={<ArrowBackIcon />}
-          onClick={() => navigate("/orders")}
+          onClick={() => navigate("/akun")}
           sx={{
             bgcolor: "#6B4A3D",
             "&:hover": { bgcolor: "#8f5f4c" },
@@ -262,7 +271,7 @@ function PaymentPage() {
           <Button
             variant="text"
             startIcon={<ArrowBackIcon />}
-            onClick={() => navigate("/orders")}
+            onClick={() => navigate("/akun")}
             sx={{ color: "text.secondary" }}
           >
             Back to Orders
@@ -613,34 +622,57 @@ function PaymentPage() {
                   <Typography variant="body2" color="text.secondary" mb={3}>
                     Your payment has been verified and your order is being processed.
                   </Typography>
-
+          
                   {/* Display the uploaded payment proof */}
                   {(transaction.bukti_pembayaran || 
                     (transaction.transaction && transaction.transaction.bukti_transfer)) && (
-                    <Box mt={3} maxWidth={300} mx="auto">
+                      <Box 
+                      display="flex" 
+                      flexDirection="column" 
+                      alignItems="center" 
+                      justifyContent="center"
+                      mt={3}
+                      width="100%"
+                    >
                       <Typography variant="body2" color="text.secondary" mb={1}>
                         Payment proof:
                       </Typography>
-                      <img
-                        src={`${process.env.REACT_APP_API_URL}/${transaction.bukti_pembayaran || transaction.transaction.bukti_transfer}`}
-                        alt="Payment Proof"
-                        style={{
-                          maxHeight: "256px",
-                          maxWidth: "100%",
-                          borderRadius: "8px",
-                          border: "1px solid #e0e0e0",
-                        }}
-                        onError={(e) => {
-                          e.target.src = "/placeholder.svg?height=256&width=200";
-                        }}
-                      />
+                      <Box 
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="center"
+                        width="100%"
+                      >
+                        <img
+                          src={`${process.env.REACT_APP_API_URL}/${transaction.bukti_pembayaran || transaction.transaction.bukti_transfer}`}
+                          alt="Payment Proof"
+                          style={{
+                            maxHeight: "256px",
+                            maxWidth: "300px",
+                            width: "auto",
+                            height: "auto",
+                            margin: "0 auto",
+                            borderRadius: "8px",
+                            border: "1px solid #e0e0e0",
+                            objectFit: "contain",
+                            cursor: "zoom-in"
+                          }}
+                          onClick={() => {
+                            setCurrentImage(`${process.env.REACT_APP_API_URL}/${transaction.bukti_pembayaran || transaction.transaction.bukti_transfer}`);
+                            setImageModalOpen(true);
+                            setZoomLevel(1);
+                          }}
+                          onError={(e) => {
+                            e.target.src = "/placeholder.svg?height=256&width=200";
+                          }}
+                        />
+                      </Box>
                     </Box>
                   )}
                 </Box>
               </Card>
             );
           }
-          
           // Case 2: Payment expired - Show expired message (no re-upload)
           else if (isExpiredStatus) {
             return (
@@ -918,7 +950,7 @@ function PaymentPage() {
 
         {/* Tombol View All Orders */}
         <Box textAlign="center">
-          <Button variant="outlined" onClick={() => navigate("/orders")} sx={{ px: 3, py: 1 }}>
+          <Button variant="outlined" onClick={() => navigate("/akun")} sx={{ px: 3, py: 1 }}>
             View All Orders
           </Button>
         </Box>
@@ -935,7 +967,130 @@ function PaymentPage() {
           {snackbar.message}
         </Alert>
       </Snackbar>
+          <Dialog 
+            open={imageModalOpen} 
+            onClose={() => setImageModalOpen(false)} 
+            maxWidth="lg" 
+            fullWidth
+          >
+            <DialogContent 
+              sx={{ 
+                p: 0, 
+                display: 'flex', 
+                flexDirection: 'column',
+                bgcolor: 'rgba(0,0,0,0.9)',
+                position: 'relative', 
+                overflow: 'hidden',
+                height: '80vh'
+              }}
+            >
+              {/* Close button */}
+              <IconButton 
+                onClick={() => setImageModalOpen(false)}
+                sx={{ 
+                  position: 'absolute', 
+                  right: 8, 
+                  top: 8, 
+                  color: 'white',
+                  bgcolor: 'rgba(0,0,0,0.5)',
+                  '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' }
+                }}
+              >
+                <CloseIcon />
+              </IconButton>
+              
+              {/* Zoom controls */}
+              <Box 
+                sx={{ 
+                  position: 'absolute', 
+                  bottom: 16, 
+                  left: '50%', 
+                  transform: 'translateX(-50%)',
+                  zIndex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  bgcolor: 'rgba(0,0,0,0.5)',
+                  borderRadius: 2,
+                  p: 1
+                }}
+              >
+                <IconButton 
+                  onClick={() => setZoomLevel(prev => Math.max(0.5, prev - 0.5))}
+                  disabled={zoomLevel <= 0.5}
+                  sx={{ color: 'white' }}
+                >
+                  <ZoomOutIcon />
+                </IconButton>
+                
+                <Typography variant="body2" color="white" sx={{ mx: 2 }}>
+                  {Math.round(zoomLevel * 100)}%
+                </Typography>
+                
+                <IconButton 
+                  onClick={() => setZoomLevel(prev => Math.min(3, prev + 0.5))}
+                  disabled={zoomLevel >= 3}
+                  sx={{ color: 'white' }}
+                >
+                  <ZoomInIcon />
+                </IconButton>
+                
+                <Divider orientation="vertical" flexItem sx={{ mx: 1, bgcolor: 'rgba(255,255,255,0.3)' }} />
+                
+                <IconButton 
+                  onClick={() => setZoomLevel(1)}
+                  sx={{ color: 'white' }}
+                >
+                  <RestartAltIcon />
+                </IconButton>
+                
+                <Divider orientation="vertical" flexItem sx={{ mx: 1, bgcolor: 'rgba(255,255,255,0.3)' }} />
+                
+                <IconButton 
+                  onClick={() => {
+                    // Create an anchor element and set properties for download
+                    const link = document.createElement('a');
+                    link.href = currentImage;
+                    link.download = 'payment-proof.jpg';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                  sx={{ color: 'white' }}
+                >
+                  <DownloadIcon />
+                </IconButton>
+              </Box>
+              
+              {/* Image */}
+              <Box 
+                sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  width: '100%', 
+                  height: '100%',
+                  overflow: 'auto'
+                }}
+              >
+                <img
+                  src={currentImage}
+                  alt="Payment Proof"
+                  style={{
+                    transform: `scale(${zoomLevel})`,
+                    transformOrigin: 'center',
+                    transition: 'transform 0.3s',
+                    maxWidth: '100%',
+                    maxHeight: '100%'
+                  }}
+                  onError={(e) => {
+                    e.target.src = "/placeholder.svg?height=512&width=400";
+                  }}
+                />
+              </Box>
+            </DialogContent>
+          </Dialog>
     </Container>
+    
   )
 }
 
