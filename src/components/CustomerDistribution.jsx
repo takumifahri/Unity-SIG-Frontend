@@ -571,6 +571,11 @@ const CustomerDistribution = () => {
         </div>
       </div>
 
+      {/* Form Tambah Pelanggan */}
+      <div id="addCustomerForm">
+        <AddCustomerForm onAddCustomer={handleAddCustomer} />
+      </div>
+
       {/* Tabel Daftar Pelanggan */}
       <div className="bg-white rounded-lg shadow-lg p-4 mt-4">
         <h2 className="text-lg font-bold mb-3">Daftar Pelanggan</h2>

@@ -1,61 +1,75 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
+// Fix Leaflet's default icon path issues
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
+  iconUrl: require('leaflet/dist/images/marker-icon.png'),
+  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+});
+
 const Map = ({ customers }) => {
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+
   useEffect(() => {
-    // Kustomisasi icon marker
-    const customIcon = L.icon({
-      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      shadowSize: [41, 41]
-    });
+    // Initialize map only once
+    if (mapRef.current && !mapInstanceRef.current) {
+      mapInstanceRef.current = L.map(mapRef.current).setView([-7.2575, 112.7521], 13);
 
-    // Inisialisasi peta
-    const map = L.map('map').setView([-7.2575, 112.7521], 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(mapInstanceRef.current);
+    }
 
-    // Tambahkan tile layer
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
+    // Clear existing markers
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.eachLayer((layer) => {
+        if (layer instanceof L.Marker) {
+          layer.remove();
+        }
+      });
 
-    // Simpan referensi marker
-    const markers = [];
+      // Add markers for customers
+      const markers = customers.map(customer => {
+        return L.marker(customer.coordinates)
+          .bindPopup(`
+            <div class="p-3">
+              <h3 class="font-bold text-lg mb-2">${customer.name}</h3>
+              <p class="text-gray-600 mb-1">
+                <span class="font-semibold">Alamat:</span><br/>
+                ${customer.address}
+              </p>
+              <p class="text-gray-600">
+                <span class="font-semibold">Telepon:</span><br/>
+                ${customer.phone}
+              </p>
+            </div>
+          `, {
+            className: 'custom-popup'
+          })
+          .addTo(mapInstanceRef.current);
+      });
 
-    // Tambahkan marker untuk setiap pelanggan
-    customers.forEach(customer => {
-      const marker = L.marker(customer.coordinates, { icon: customIcon })
-        .bindPopup(`
-          <div class="p-3">
-            <h3 class="font-bold text-lg mb-2">${customer.name}</h3>
-            <p class="text-gray-600 mb-1">
-              <span class="font-semibold">Alamat:</span><br/>
-              ${customer.address}
-            </p>
-            <p class="text-gray-600">
-              <span class="font-semibold">Telepon:</span><br/>
-              ${customer.phone}
-            </p>
-          </div>
-        `, {
-          className: 'custom-popup'
-        })
-        .addTo(map);
-      
-      markers.push(marker);
-    });
+      // Fit bounds if there are markers
+      if (markers.length > 0) {
+        const group = L.featureGroup(markers);
+        mapInstanceRef.current.fitBounds(group.getBounds(), { padding: [50, 50] });
+      }
+    }
 
-    // Cleanup function
+    // Cleanup on unmount
     return () => {
-      markers.forEach(marker => marker.remove());
-      map.remove();
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
     };
-  }, [customers]); // Re-render ketika customers berubah
+  }, [customers]);
 
-  return null;
+  return <div ref={mapRef} style={{ height: '500px', width: '100%' }} />;
 };
 
 export default Map;

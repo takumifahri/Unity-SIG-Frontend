@@ -25,6 +25,7 @@ import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
 import Ulasan from './pages/Ulasan';
 import Checkout from './pages/Checkout';
+import Payment from './pages/Payment';
 import CustomOrder from './pages/CustomOrder';
 import Kontak from './pages/Kontak';
 import Lokasi from './pages/Lokasi';
@@ -78,7 +79,11 @@ function App() {
                         <Route path="/register" element={<Register />} />
 
                         {/* Routes dengan Layout (Navbar dan Footer) */}
-                        <Route path="/" element={<Layout />}>
+                        <Route path="/" element={<>
+                          <Navbar />
+                          <Outlet />
+                          <Footer />
+                        </>}>
                           <Route index element={<Home />} />
                           <Route path="about" element={<About />} />
                           <Route path="akun" element={<Akun />} />
@@ -104,7 +109,8 @@ function App() {
                         </Route>
 
                         {/* Admin Routes */}
-                        <Route path="/admin/*" element={<AdminLayout />} >
+                        <Route path="/admin" element={<AdminLayout />}>
+                          <Route index element={<Dashboard />} />
                           <Route path="dashboard" element={<Dashboard />} />
                           <Route path="pakaian/tambah" element={<TambahPakaian />} />
                           <Route path="pakaian/edit/:id" element={<EditPakaianTable />} />
@@ -122,8 +128,6 @@ function App() {
 
 
                           <Route path="keuangan" element={<Keuangan />} />
-                          <Route path="keuangan/pemasukan" element={<KeuanganPemasukan />} />
-                          <Route path="keuangan/pengeluaran" element={<KeuanganPengeluaran />} />
                           <Route path="sebaran-pelanggan" element={<CustomerDistribution />} />
                           <Route path="akun-terdaftar" element={<AkunTerdaftar />} />
                         </Route>

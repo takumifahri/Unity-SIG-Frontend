@@ -2,8 +2,6 @@ import { useState, useEffect } from "react"
 import { Link, Navigate, useLocation } from "react-router-dom"
 import {
   MdDashboard,
-  MdCheckroom,
-  MdInventory,
   MdShoppingCart,
   MdAttachMoney,
   MdLocationOn,

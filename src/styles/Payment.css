@@ -1,0 +1,41 @@
+.payment-card {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  border: none;
+}
+
+.payment-instructions {
+  background-color: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.payment-instructions p {
+  margin-bottom: 8px;
+}
+
+.payment-instructions strong {
+  color: #0d6efd;
+}
+
+.text-primary {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+/* File upload styling */
+.form-control[type="file"] {
+  padding: 8px;
+  border-radius: 4px;
+  background-color: #f8f9fa;
+}
+
+.form-control[type="file"]:hover {
+  background-color: #e9ecef;
+}
+
+/* Success message styling */
+.alert-success {
+  border-left: 4px solid #198754;
+} 
