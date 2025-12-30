@@ -43,7 +43,7 @@
     "react-number-format": "^5.4.4",
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.2.0",
-    "react-scripts": "^0.0.0",
+    "react-scripts": "^5.0.1",
     "react-spinners": "^0.16.1",
     "redux": "^5.0.1",
     "redux-persist": "^6.0.0",
